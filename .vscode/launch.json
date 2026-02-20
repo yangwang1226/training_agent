@@ -1,0 +1,65 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // {
+        //     "name": "Python: FastAPI 应用 (Dev环境)",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": false,
+        //     "args": ["--env=dev"],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}",
+        //         "ENV": "dev"
+        //     },
+        //     "stopOnEntry": false,
+        //     "redirectOutput": true
+        // },
+        // {
+        //     "name": "Python: FastAPI 应用 (Test1环境)",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": false,
+        //     "args": ["--env=test1"],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}",
+        //         "ENV": "test1"
+        //     },
+        //     "stopOnEntry": false,
+        //     "redirectOutput": true
+        // },
+        // {
+        //     "name": "Python: FastAPI 应用 (Test2环境)",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": false,
+        //     "args": ["--env=test2"],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}",
+        //         "ENV": "test2"
+        //     },
+        //     "stopOnEntry": false,
+        //     "redirectOutput": true
+        // },
+        // {
+        //     "name": "Python: FastAPI 应用 (PROD环境)",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": false,
+        //     "args": ["--env=prod", "--jasypt-password=scrm-ai-knowledge-secret-2024"],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}",
+        //         "ENV": "prod"
+        //     },
+        //     "stopOnEntry": false,
+        //     "redirectOutput": true
+        // }
+    ]
+}

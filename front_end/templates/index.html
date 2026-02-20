@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能提示词生成系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>智能提示词生成系统</h1>
+            <p class="subtitle">对话模式 - 像和朋友聊天一样告诉我您的需求</p>
+        </header>
+
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                </div>
+
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input type="text" id="userInput" placeholder="输入您的消息..." autocomplete="off">
+                        <button id="sendBtn" class="btn btn-primary">发送</button>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="generateBtn" class="btn btn-success" disabled>开始生成</button>
+                        <button id="resetBtn" class="btn btn-warning">重新开始</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="state-panel">
+                    <h3>基础信息</h3>
+                    <div class="state-item" id="stateIndustry">
+                        <span class="state-label">行业：</span>
+                        <span class="state-value">未收集</span>
+                    </div>
+                    <div class="state-item" id="stateRole">
+                        <span class="state-label">角色：</span>
+                        <span class="state-value">未收集</span>
+                    </div>
+                    <div class="state-item" id="stateIntent">
+                        <span class="state-label">购买意愿：</span>
+                        <span class="state-value">未收集</span>
+                    </div>
+                    <div class="state-item" id="stateQuestions">
+                        <span class="state-label">问题列表：</span>
+                        <span class="state-value">未收集</span>
+                    </div>
+                </div>
+
+                <div class="state-panel extended-panel">
+                    <h3>延展信息 <span class="extended-status" id="extendedStatus"></span></h3>
+                    <div id="extendedInfoList" class="extended-info-list">
+                        <p class="no-extended-info">基础信息收集完成后，将根据行业特点收集延展信息</p>
+                    </div>
+                </div>
+
+                <div class="tips-panel">
+                    <h3>使用提示</h3>
+                    <ul>
+                        <li>输入 'quit' 退出对话</li>
+                        <li>输入 'reset' 重新开始</li>
+                        <li>信息收集完成后点击"开始生成"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-modal" id="resultModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>生成的提示词</h2>
+                    <button class="close-btn" id="closeModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <pre id="promptResult"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="copyBtn">复制到剪贴板</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

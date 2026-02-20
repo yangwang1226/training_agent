@@ -39,6 +39,9 @@ class ConversationState:
     main_questions: List[Dict] = field(default_factory=list)
     trigger_groups: List[Dict] = field(default_factory=list)
     collected_info: Dict[str, bool] = field(default_factory=dict)
+    extended_info: Dict[str, str] = field(default_factory=dict)
+    extended_questions: List[str] = field(default_factory=list)
+    extended_info_sufficient: bool = False
     
     def __post_init__(self):
         self.collected_info = {
@@ -62,6 +65,11 @@ class ConversationState:
         if not self.collected_info.get("questions"):
             missing.append("问题列表")
         return missing
+    
+    def get_extended_info_summary(self) -> str:
+        if not self.extended_info:
+            return ""
+        return "\n".join([f"- {k}: {v}" for k, v in self.extended_info.items()])
 
 
 class InfoExtraction(BaseModel):
@@ -71,22 +79,50 @@ class InfoExtraction(BaseModel):
     purchase_intent: Optional[str] = Field(default=None, description="购买意愿：冷淡/一般/感兴趣/非常感兴趣")
     custom_questions: Optional[List[str]] = Field(default=None, description="用户期望的问题列表")
     additional_requirements: Optional[str] = Field(default=None, description="其他要求")
+    extended_info: Optional[Dict[str, str]] = Field(default=None, description="延展信息，如车型、预算、城市等")
+    extended_info_sufficient: Optional[bool] = Field(default=None, description="延展信息是否已经足够丰富")
+
+
+class ExtendedInfoJudge(BaseModel):
+    need_more_info: bool = Field(description="是否需要继续收集延展信息")
+    next_question: Optional[str] = Field(default=None, description="下一个建议询问的问题")
+    reason: str = Field(description="判断理由")
+    current_extended_info: Dict[str, str] = Field(default_factory=dict, description="当前已收集的延展信息")
 
 
 SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对话的方式收集用户需求信息。
 
 你的任务是通过对话了解以下信息：
+
+【基础信息】（必须收集）
 1. 行业：用户所在的行业领域（如教育培训、房地产、汽车、金融等）
 2. 角色：用户希望AI模拟的角色（如家长、购房者、购车者等）
 3. 购买意愿：模拟客户的购买意愿程度（冷淡/一般/感兴趣/非常感兴趣）
 4. 问题：用户期望AI提出的问题，或者让系统自动生成
+
+【延展信息】（根据行业特点智能收集）
+当基础信息收集完成后，你需要根据行业特点，主动询问更多背景信息，让生成的提示词更加丰富和真实。
+
+延展信息收集原则：
+- 根据行业特点设计针对性的问题，每个行业关注点不同
+- 一次只问一个问题，自然地引导用户
+- 收集2-4个关键延展信息即可，不要过于冗长
+- 用户如果表示"不需要"或"随便"，可以跳过继续下一个问题
+
+各行业延展信息示例（仅供参考，根据实际情况灵活调整）：
+- 汽车行业：咨询的车型/品牌、预算范围、新车还是二手车、购车用途等
+- 房地产行业：目标城市/区域、预算范围、学区需求、户型偏好等
+- 教育培训行业：学生年级、学科、学习目标、当前水平等
+- 金融行业：投资类型、风险偏好、资金规模、投资目标等
+- 其他行业：根据行业特点自行判断关键信息
 
 对话风格要求：
 - 像朋友聊天一样自然，不要像在填表或审问
 - 一次只问一个问题，等待用户回答后再继续
 - 根据用户的回答灵活调整对话方向
 - 如果用户提供了部分信息，先确认理解是否正确
-- 当收集到足够信息后，告诉用户可以开始生成提示词
+- 基础信息收集完成后，自然过渡到延展信息收集
+- 当延展信息收集足够后，告诉用户可以开始生成提示词
 
 示例对话：
 用户：我想生成一个销售培训的提示词
@@ -106,11 +142,24 @@ SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对�
 助手：了解了。您有没有特别想让AI提出的问题？比如关于价格、配置、售后这些？如果没有的话我可以帮您自动生成。
 
 用户：没有，自动生成吧
-助手：好的，我已经收集到所有需要的信息了：
+助手：好的，让我再了解一些背景信息，让生成的提示词更贴近实际场景。
+
+这个购车者有具体关注的车型或品牌吗？
+
+用户：关注的是比亚迪汉，新能源车
+助手：明白了，比亚迪汉新能源车。那预算范围大概是多少呢？
+
+用户：20-25万左右
+助手：好的。是考虑新车还是二手车呢？
+
+用户：新车
+助手：好的，我已经收集到足够的信息了：
 - 行业：汽车销售
 - 角色：购车者
 - 购买意愿：感兴趣
-- 问题：自动生成
+- 关注车型：比亚迪汉（新能源）
+- 预算：20-25万
+- 购车类型：新车
 
 现在可以为您生成提示词了，请回复"开始生成"或者还有其他需要补充的？
 """
@@ -150,17 +199,22 @@ class ConversationalPromptAgent:
         return response.content
     
     def _extract_info(self, user_input: str) -> Dict[str, Any]:
+        extended_info_summary = self.state.get_extended_info_summary()
+        
         extraction_prompt = f"""从以下用户输入中提取信息，如果某项信息未提及则返回null：
 
 用户输入：{user_input}
 
-当前已收集信息：
+当前已收集基础信息：
 - 行业：{self.state.industry or '未收集'}
 - 角色：{self.state.role_type or '未收集'}
 - 购买意愿：{self.state.purchase_intent or '未收集'}
 - 自定义问题：{self.state.custom_questions or '未收集'}
 
-请返回JSON格式的提取结果。"""
+当前已收集延展信息：
+{extended_info_summary or '暂无'}
+
+请返回JSON格式的提取结果。注意：extended_info字段用于提取行业相关的背景信息（如汽车行业的车型、预算；房地产行业的城市、户型等）。"""
         
         try:
             parser = JsonOutputParser(pydantic_object=InfoExtraction)
@@ -198,8 +252,79 @@ class ConversationalPromptAgent:
         if extraction_result.get("additional_requirements"):
             self.state.additional_requirements = extraction_result["additional_requirements"]
         
+        if extraction_result.get("extended_info"):
+            for key, value in extraction_result["extended_info"].items():
+                if value:
+                    self.state.extended_info[key] = value
+        
         if self.state.collected_info.get("industry") and self.state.collected_info.get("role"):
             self.state.collected_info["questions"] = True
+        
+        if extraction_result.get("extended_info_sufficient") is not None:
+            self.state.extended_info_sufficient = extraction_result["extended_info_sufficient"]
+        
+        self._check_extended_info_complete()
+    
+    def _check_extended_info_complete(self):
+        basic_info_complete = (
+            self.state.collected_info.get("industry") and
+            self.state.collected_info.get("role") and
+            self.state.collected_info.get("intent") and
+            self.state.collected_info.get("questions")
+        )
+        
+        if not basic_info_complete:
+            return
+        
+        if self.state.extended_info_sufficient:
+            return
+        
+        if len(self.state.extended_info) >= 2:
+            self.state.extended_info_sufficient = True
+            return
+        
+        judge_result = self._judge_extended_info()
+        
+        if not judge_result.get("need_more_info", True):
+            self.state.extended_info_sufficient = True
+            if judge_result.get("current_extended_info"):
+                for key, value in judge_result["current_extended_info"].items():
+                    if value:
+                        self.state.extended_info[key] = value
+    
+    def _judge_extended_info(self) -> Dict[str, Any]:
+        extended_info_summary = self.state.get_extended_info_summary()
+        
+        prompt = f"""请判断当前延展信息是否足够丰富，能否生成高质量的提示词。
+
+行业：{self.state.industry}
+角色：{self.state.role_type}
+购买意愿：{self.state.purchase_intent}
+
+当前已收集的延展信息：
+{extended_info_summary or '暂无'}
+
+判断标准：
+1. 根据行业特点，判断是否收集了关键的背景信息
+2. 汽车行业：车型/品牌、预算、新车/二手车等至少收集2项
+3. 房地产行业：城市/区域、预算、户型等至少收集2项
+4. 教育培训：年级、学科、学习目标等至少收集2项
+5. 其他行业：根据行业特点判断，至少收集2项关键信息
+6. 如果用户明确表示"不需要"或"随便"，也可以认为足够
+
+请返回JSON格式的判断结果。"""
+        
+        try:
+            parser = JsonOutputParser(pydantic_object=ExtendedInfoJudge)
+            response = self.extraction_llm.invoke(
+                [HumanMessage(content=prompt + "\n\n" + parser.get_format_instructions())]
+            )
+            return parser.parse(response.content)
+        except Exception as e:
+            logging.error(f"延展信息判断失败: {str(e)}")
+            if len(self.state.extended_info) >= 2:
+                return {"need_more_info": False, "reason": "已收集足够信息"}
+            return {"need_more_info": True, "reason": "需要更多信息"}
     
     def is_ready_to_generate(self) -> bool:
         return self.state.is_complete()
@@ -212,19 +337,36 @@ class ConversationalPromptAgent:
             missing = self.state.get_missing_info()
             return f"还需要收集以下信息：{', '.join(missing)}"
         
+        logging.info("=" * 50)
+        logging.info("开始生成提示词...")
+        logging.info(f"行业: {self.state.industry}")
+        logging.info(f"角色: {self.state.role_type}")
+        logging.info(f"购买意愿: {self.state.purchase_intent}")
+        logging.info(f"延展信息: {self.state.extended_info}")
+        logging.info("=" * 50)
+        
         self._generate_questions()
         self._generate_trigger_groups()
         self._generate_emotion()
         
-        return self._build_full_prompt()
+        logging.info("正在构建完整提示词...")
+        result = self._build_full_prompt()
+        logging.info("提示词生成完成!")
+        
+        return result
     
     def _generate_questions(self):
+        logging.info("步骤1: 生成主问题列表...")
+        
         if self.state.custom_questions:
+            logging.info("使用用户自定义问题")
             self.state.main_questions = [
                 {"question": q, "order": i + 1}
                 for i, q in enumerate(self.state.custom_questions)
             ]
             return
+        
+        extended_info_summary = self.state.get_extended_info_summary()
         
         prompt = f"""你是一个专业的销售培训场景设计专家。现在需要生成客户向销售/顾问提出的问题列表。
 
@@ -234,6 +376,9 @@ class ConversationalPromptAgent:
 - 购买意愿：{self.state.purchase_intent}
 - 其他要求：{self.state.additional_requirements or '无'}
 
+延展背景信息：
+{extended_info_summary or '无'}
+
 重要说明：
 1. 这些问题是AI模拟的客户向销售/顾问提出的问题，用于训练销售的话术和应变能力
 2. 问题必须口语化、接地气，像普通客户在电话里会问的话
@@ -241,6 +386,7 @@ class ConversationalPromptAgent:
 4. 问题要简短直接，不要太长太复杂
 5. 问题要涵盖客户关心的各个方面（价格、服务、效果、对比等）
 6. 问题数量必须不少于10个，根据购买意愿适当增加
+7. 问题要结合延展背景信息，体现具体场景（如特定车型、预算范围、城市等）
 
 问题风格示例：
 - "这个多少钱？"
@@ -249,19 +395,25 @@ class ConversationalPromptAgent:
 - "能便宜点吗？"
 - "有没有什么优惠活动？"
 
-返回JSON格式：{{"main_questions": [{{"question": "问题", "order": 1}}], "background_info": "背景描述（客户的基本情况和需求）"}}"""
+返回JSON格式：{{"main_questions": [{{"question": "问题", "order": 1}}], "background_info": "背景描述（客户的基本情况和需求，要结合延展信息）"}}"""
         
         try:
+            logging.info("正在调用LLM生成问题...")
             response = self.extraction_llm.invoke([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
             result = json.loads(self._extract_json(response.content))
             self.state.main_questions = result.get("main_questions", [])
             self.state.background_info = result.get("background_info", "")
+            logging.info(f"成功生成 {len(self.state.main_questions)} 个问题")
+            logging.info(f"背景信息: {self.state.background_info[:100]}..." if len(self.state.background_info) > 100 else f"背景信息: {self.state.background_info}")
         except Exception as e:
             logging.error(f"生成问题失败: {str(e)}")
             self.state.main_questions = []
     
     def _generate_trigger_groups(self):
+        logging.info("步骤2: 生成关联问题分组...")
+        
         if not self.state.main_questions:
+            logging.warning("没有主问题，跳过关联问题生成")
             return
         
         questions_text = "\n".join([
@@ -284,41 +436,60 @@ class ConversationalPromptAgent:
 返回JSON格式：{{"trigger_groups": [{{"group_name": "A", "trigger_keywords": ["关键词"], "questions": [{{"question": "问题", "order": 1}}]}}]}}"""
         
         try:
+            logging.info("正在调用LLM生成关联问题...")
             response = self.extraction_llm.invoke([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
             result = json.loads(self._extract_json(response.content))
             self.state.trigger_groups = result.get("trigger_groups", [])
+            logging.info(f"成功生成 {len(self.state.trigger_groups)} 个关联问题分组")
         except Exception as e:
             logging.error(f"生成关联问题失败: {str(e)}")
             self.state.trigger_groups = []
     
     def _generate_emotion(self):
+        logging.info("步骤3: 生成情绪描述...")
+        
+        extended_info_summary = self.state.get_extended_info_summary()
+        
         prompt = f"""根据角色和购买意愿生成情绪描述：
 
 角色：{self.state.role_type}
 购买意愿：{self.state.purchase_intent}
 行业：{self.state.industry}
 
+延展背景信息：
+{extended_info_summary or '无'}
+
+请结合以上信息，生成符合角色特点的情绪和说话风格。
+
 返回JSON格式：{{"emotion_type": "情绪类型", "emotion_description": "情绪描述", "speaking_style": "说话风格", "attitude": "沟通态度"}}"""
         
         try:
+            logging.info("正在调用LLM生成情绪描述...")
             response = self.extraction_llm.invoke([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
             result = json.loads(self._extract_json(response.content))
             self.state.emotion_type = result.get("emotion_type", "平和")
             self.state.emotion_description = result.get("emotion_description", "")
             self.state.speaking_style = result.get("speaking_style", "")
             self.state.attitude = result.get("attitude", "")
+            logging.info(f"情绪类型: {self.state.emotion_type}")
         except Exception as e:
             logging.error(f"生成情绪描述失败: {str(e)}")
     
     def _build_full_prompt(self) -> str:
+        logging.info("正在加载模板...")
         template = self.template_manager.get_template("training_salse")
         if not template:
+            logging.error("模板 training_salse 加载失败")
             return "模板加载失败"
+        
+        logging.info("模板加载成功，正在填充内容...")
         
         questions_text = "\n".join([
             f"{q.get('order', i+1)}. {q.get('question', '')}"
             for i, q in enumerate(self.state.main_questions)
         ])
+        
+        logging.info(f"问题列表已生成，共 {len(self.state.main_questions)} 个问题")
         
         trigger_groups_text = self._format_trigger_groups()
         
@@ -328,14 +499,21 @@ class ConversationalPromptAgent:
 - 说话风格：{self.state.speaking_style}
 - 沟通态度：{self.state.attitude}"""
         
+        logging.info("正在填充背景信息...")
         result = self.template_manager.fill_background_info(template, self.state.background_info)
+        
+        logging.info("正在填充主问题列表...")
         result = self.template_manager.fill_main_questions(result, questions_text)
+        
+        logging.info("正在填充关联问题...")
         result = self.template_manager.fill_trigger_groups(result, trigger_groups_text)
         
         role_section_end = "---"
         role_end_idx = result.find(role_section_end)
         if role_end_idx != -1:
             result = result[:role_end_idx + len(role_section_end)] + "\n\n" + emotion_text + result[role_end_idx + len(role_section_end):]
+        
+        logging.info(f"提示词构建完成，总长度: {len(result)} 字符")
         
         return result
     

@@ -1,0 +1,76 @@
+{
+    // Python 解释器配置
+    "python.defaultInterpreterPath": "C:\\Users\\wangchenyu3\\.conda\\envs\\ai-training\\python.exe",
+    
+    // 终端激活环境
+    "python.terminal.activateEnvironment": true,
+    
+    // 自动激活环境
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    
+    // 终端配置 - 自动激活 conda 环境
+    "terminal.integrated.defaultProfile.windows": "Conda PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "Conda PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell",
+            "args": [
+                "-NoExit",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "& 'D:\\miniconda3\\shell\\condabin\\conda-hook.ps1'; conda activate ai-training; Write-Host '✅ 环境已激活' -ForegroundColor Green"
+            ]
+        },
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "icon": "terminal-cmd"
+        }
+    },
+    
+    // 终端启动时执行的命令
+    "terminal.integrated.shellIntegration.enabled": true,
+    
+    // Linting 配置
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    
+    // 格式化配置
+    "python.formatting.provider": "autopep8",
+    
+    // 测试配置
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": false,
+    
+    // 调试配置
+    "debug.onTaskErrors": "abort",
+    "debug.allowBreakpointsEverywhere": false,
+    "debug.internalConsoleOptions": "neverOpen",
+    "debug.console.closeOnEnd": true,
+    "debug.terminal.clearBeforeReusing": true,
+    
+    // 添加这一行：指定默认的调试配置
+    "launch": {
+        "configurations": [],
+        "compounds": []
+    },
+    // 编辑器配置
+    "editor.formatOnSave": false,
+    "editor.rulers": [88, 120],
+    
+    // 文件排除配置
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true
+    }
+}
+
