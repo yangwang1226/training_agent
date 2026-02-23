@@ -1,0 +1,19 @@
+# Web Framework
+flask>=2.0.0
+flask-sock>=0.7.0
+
+# LLM & AI
+langchain-core>=0.1.0
+langchain-openai>=0.0.5
+pydantic>=2.0.0
+dashscope>=1.14.0
+
+# Audio
+pyaudio>=0.2.13
+
+# Environment
+python-dotenv>=1.0.0
+
+# WebSocket
+websockets>=11.0
+websocket-client>=1.6.0

@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
@@ -6,84 +5,38 @@ from enum import Enum
 
 from .llm_client import LLMClient
 from .template_manager import TemplateManager
-from .models import BackgroundInfo, MainQuestion, TriggerGroup, FollowUpQuestion
+from .models import MainQuestion, TriggerGroup, FollowUpQuestion
 
 
-class PurchaseIntent(Enum):
-    COLD = "冷淡"
+class PositionType(Enum):
+    SALES = "销售"
+    CUSTOMER_SERVICE = "客服"
+
+
+class PersonalityType(Enum):
+    COLD = "冷漠"
+    NEUTRAL = "平淡"
+    ENTHUSIASTIC = "热情"
+
+
+class InterestLevel(Enum):
+    LOW = "不感兴趣"
     NEUTRAL = "一般"
-    INTERESTED = "感兴趣"
-    VERY_INTERESTED = "非常感兴趣"
+    HIGH = "感兴趣"
 
 
-class EmotionType(Enum):
-    CALM = "平和"
-    ANXIOUS = "焦虑"
-    IMPATIENT = "急躁"
-    FRIENDLY = "友善"
-    SUSPICIOUS = "多疑"
-    DECISIVE = "果断"
+INDUSTRY_PRODUCTS = {
+    "房地产": ["住宅", "别墅", "商铺", "写字楼", "其他"],
+    "保险": ["寿险", "健康险", "车险", "意外险", "理财险", "其他"],
+    "汽车": ["问界", "宝马", "奥迪", "蔚来", "保时捷", "奔驰", "比亚迪", "特斯拉", "理想", "大众", "其他"],
+    "教育": ["K12辅导", "考研培训", "留学咨询", "职业培训", "兴趣班", "其他"]
+}
 
+INDUSTRIES = ["房地产", "保险", "汽车", "教育", "其他"]
 
-@dataclass
-class UserInfo:
-    industry: str = ""
-    role_type: str = ""
-    purchase_intent: PurchaseIntent = PurchaseIntent.NEUTRAL
-    custom_questions: List[str] = field(default_factory=list)
-    auto_generate_questions: bool = True
-    additional_requirements: str = ""
+PERSONALITIES = ["冷漠", "平淡", "热情"]
 
-
-@dataclass
-class InteractiveResult:
-    success: bool
-    full_prompt: str = ""
-    user_info: Optional[UserInfo] = None
-    error_message: str = ""
-
-
-INDUSTRY_SYSTEM_PROMPT = """你是一个专业的行业分析助手。根据用户输入，识别用户所属的行业领域。
-
-请从以下行业中选择最匹配的一个：
-- 教育培训（K12、考研、留学等）
-- 房地产（新房、二手房、租房等）
-- 汽车（新车、二手车、汽车后市场等）
-- 金融服务（银行、保险、理财等）
-- 医疗健康（医院、诊所、体检等）
-- 电商零售（线上商城、线下零售等）
-- 旅游出行（旅行社、酒店、机票等）
-- 其他
-
-如果用户输入的行业不在上述列表中，请直接返回用户输入的行业名称。"""
-
-INDUSTRY_USER_PROMPT = """用户输入：{user_input}
-
-请严格按照以下JSON格式输出：
-{{"industry": "识别出的行业"}}"""
-
-
-ROLE_SYSTEM_PROMPT = """你是一个角色识别助手。根据用户描述，识别用户希望AI模拟的角色类型。
-
-常见的角色类型包括：
-- 家长/学生（教育场景）
-- 购房者/租房者（房地产场景）
-- 购车者（汽车场景）
-- 投资者/借款人（金融场景）
-- 患者/家属（医疗场景）
-- 消费者（零售场景）
-- 游客/旅客（旅游场景）
-
-请根据用户描述识别角色，并生成角色描述。"""
-
-ROLE_USER_PROMPT = """用户输入：{user_input}
-行业：{industry}
-
-请严格按照以下JSON格式输出：
-{{
-    "role_type": "角色类型",
-    "role_description": "角色详细描述（一句话）"
-}}"""
+INTEREST_LEVELS = ["不感兴趣", "一般", "感兴趣"]
 
 
 QUESTIONS_SYSTEM_PROMPT = """你是一个专业的销售培训场景设计专家。根据行业、角色和购买意愿，生成客户向销售/顾问提出的问题列表。
@@ -102,9 +55,11 @@ QUESTIONS_SYSTEM_PROMPT = """你是一个专业的销售培训场景设计专家
 """
 
 QUESTIONS_USER_PROMPT = """行业：{industry}
-AI模拟的角色：{role_type}（客户）
-购买意愿：{purchase_intent}
-自定义问题：{custom_questions}
+产品：{product}
+AI模拟的角色：客户
+客户性格：{personality}
+感兴趣程度：{interest_level}
+背景信息：{background_info}
 其他要求：{additional_requirements}
 
 请严格按照以下JSON格式输出，问题数量不少于10个：
@@ -127,19 +82,15 @@ FOLLOW_UP_QUESTIONS_SYSTEM_PROMPT = """你是一个关联问题生成专家。�
 3. 问题要简短直接，不要太长太复杂
 4. 关联问题应该像是在聊天中自然追问出来的
 
-问题风格示例：
-- 好的表达："那保养一次大概多少钱？"、"这车保值率怎么样？"
-- 不好的表达："请问该车型的常规保养费用区间是多少？"、"该车型的二手车保值率数据如何？"
-
 生成规则：
 1. 每个分组针对一个或多个主问题
 2. 触发关键词要具体、可识别
 3. 关联问题要有逻辑性，是对回答的合理追问
 4. 每个分组的关联问题数量控制在1-2个
-5. 根据购买意愿调整关联问题的数量"""
+"""
 
-FOLLOW_UP_QUESTIONS_USER_PROMPT = """角色：{role_type}
-购买意愿：{purchase_intent}
+FOLLOW_UP_QUESTIONS_USER_PROMPT = """客户性格：{personality}
+感兴趣程度：{interest_level}
 主问题列表：
 {main_questions_text}
 
@@ -157,23 +108,30 @@ FOLLOW_UP_QUESTIONS_USER_PROMPT = """角色：{role_type}
 }}"""
 
 
-EMOTION_SYSTEM_PROMPT = """你是一个情绪描述生成专家。根据角色的购买意愿和性格特点，生成该角色的情绪描述。
+EMOTION_SYSTEM_PROMPT = """你是一个情绪描述生成专家。根据角色的性格特点和感兴趣程度，生成该角色的情绪描述。
 
 情绪描述应该包含：
-1. 整体情绪基调（平和、焦虑、急躁等）
+1. 整体情绪基调
 2. 说话语气特点
 3. 对销售/顾问的态度
 4. 决策风格
 
-情绪要与购买意愿相匹配：
-- 冷淡：不耐烦、想快速结束对话
-- 一般：平和、有问有答
-- 感兴趣：积极、愿意深入了解
-- 非常感兴趣：热情、主动询问细节"""
+情绪要与性格和感兴趣程度相匹配：
+- 冷漠+不感兴趣：很不耐烦、想快速结束对话
+- 冷漠+一般：冷淡、有问有答但不热情
+- 冷漠+感兴趣：虽然不太热情但会认真询问
+- 平淡+不感兴趣：不太想继续聊、礼貌但敷衍
+- 平淡+一般：平和、有问有答
+- 平淡+感兴趣：比较积极、愿意了解
+- 热情+不感兴趣：虽然热情但不太想买
+- 热情+一般：友好、愿意沟通
+- 热情+感兴趣：非常积极、主动询问细节
+"""
 
-EMOTION_USER_PROMPT = """角色：{role_type}
-购买意愿：{purchase_intent}
+EMOTION_USER_PROMPT = """客户性格：{personality}
+感兴趣程度：{interest_level}
 行业：{industry}
+产品：{product}
 
 请严格按照以下JSON格式输出：
 {{
@@ -184,64 +142,114 @@ EMOTION_USER_PROMPT = """角色：{role_type}
 }}"""
 
 
+@dataclass
+class UserInfo:
+    position: PositionType = PositionType.SALES
+    industry: str = ""
+    product: str = ""
+    personality: PersonalityType = PersonalityType.NEUTRAL
+    interest_level: InterestLevel = InterestLevel.NEUTRAL
+    background_info: str = ""
+    auto_generate_background: bool = True
+    custom_questions: List[str] = field(default_factory=list)
+    auto_generate_questions: bool = True
+    additional_requirements: str = ""
+
+
+@dataclass
+class InteractiveResult:
+    success: bool
+    full_prompt: str = ""
+    user_info: Optional[UserInfo] = None
+    error_message: str = ""
+
+
 class InteractivePromptAgent:
+    INDUSTRIES = INDUSTRIES
+    INDUSTRY_PRODUCTS = INDUSTRY_PRODUCTS
+    PERSONALITIES = PERSONALITIES
+    INTEREST_LEVELS = INTEREST_LEVELS
+    
     def __init__(self, llm_client: Optional[LLMClient] = None):
-        self.llm_client = llm_client or LLMClient()
         self.template_manager = TemplateManager()
+        self.llm_client = llm_client or LLMClient()
         self.user_info = UserInfo()
     
-    def analyze_industry(self, user_input: str) -> str:
-        user_prompt = INDUSTRY_USER_PROMPT.format(user_input=user_input)
-        try:
-            result = self.llm_client.call_with_json_output(
-                INDUSTRY_SYSTEM_PROMPT, user_prompt
-            )
-            self.user_info.industry = result.get("industry", "")
-            return self.user_info.industry
-        except Exception as e:
-            logging.error(f"分析行业失败: {str(e)}")
-            return user_input
+    def get_initial_message(self) -> str:
+        return "我是模拟客户智能体，可以帮您创建您想创建的客户对话场景。请先选择您的岗位："
     
-    def analyze_role(self, user_input: str) -> Dict[str, str]:
-        user_prompt = ROLE_USER_PROMPT.format(
-            user_input=user_input,
-            industry=self.user_info.industry
-        )
-        try:
-            result = self.llm_client.call_with_json_output(
-                ROLE_SYSTEM_PROMPT, user_prompt
-            )
-            self.user_info.role_type = result.get("role_type", "")
-            return {
-                "role_type": result.get("role_type", ""),
-                "role_description": result.get("role_description", "")
-            }
-        except Exception as e:
-            logging.error(f"分析角色失败: {str(e)}")
-            return {"role_type": user_input, "role_description": ""}
+    def get_position_options(self) -> List[str]:
+        return ["销售", "客服"]
     
-    def set_purchase_intent(self, intent: str) -> PurchaseIntent:
-        intent_mapping = {
-            "冷淡": PurchaseIntent.COLD,
-            "一般": PurchaseIntent.NEUTRAL,
-            "感兴趣": PurchaseIntent.INTERESTED,
-            "非常感兴趣": PurchaseIntent.VERY_INTERESTED
+    def set_position(self, position: str) -> bool:
+        if position == "销售":
+            self.user_info.position = PositionType.SALES
+            return True
+        elif position == "客服":
+            self.user_info.position = PositionType.CUSTOMER_SERVICE
+            return True
+        return False
+    
+    def get_industry_options(self) -> List[str]:
+        return INDUSTRIES
+    
+    def set_industry(self, industry: str):
+        self.user_info.industry = industry
+    
+    def get_product_options(self) -> List[str]:
+        return INDUSTRY_PRODUCTS.get(self.user_info.industry, [])
+    
+    def set_product(self, product: str):
+        self.user_info.product = product
+    
+    def get_personality_options(self) -> List[str]:
+        return PERSONALITIES
+    
+    def set_personality(self, personality: str) -> bool:
+        mapping = {
+            "冷漠": PersonalityType.COLD,
+            "平淡": PersonalityType.NEUTRAL,
+            "热情": PersonalityType.ENTHUSIASTIC
         }
-        self.user_info.purchase_intent = intent_mapping.get(intent, PurchaseIntent.NEUTRAL)
-        return self.user_info.purchase_intent
+        if personality in mapping:
+            self.user_info.personality = mapping[personality]
+            return True
+        return False
+    
+    def get_interest_level_options(self) -> List[str]:
+        return INTEREST_LEVELS
+    
+    def set_interest_level(self, level: str) -> bool:
+        mapping = {
+            "不感兴趣": InterestLevel.LOW,
+            "一般": InterestLevel.NEUTRAL,
+            "感兴趣": InterestLevel.HIGH
+        }
+        if level in mapping:
+            self.user_info.interest_level = mapping[level]
+            return True
+        return False
+    
+    def set_background_info(self, background_info: str):
+        self.user_info.background_info = background_info
+    
+    def set_auto_generate_background(self, auto_generate: bool):
+        self.user_info.auto_generate_background = auto_generate
     
     def set_custom_questions(self, questions: List[str], auto_generate: bool = True):
         self.user_info.custom_questions = questions
         self.user_info.auto_generate_questions = auto_generate
     
+    def set_additional_requirements(self, requirements: str):
+        self.user_info.additional_requirements = requirements
+    
     def generate_questions_and_background(self) -> Dict[str, Any]:
-        custom_questions_str = "、".join(self.user_info.custom_questions) if self.user_info.custom_questions else "无"
-        
         user_prompt = QUESTIONS_USER_PROMPT.format(
             industry=self.user_info.industry,
-            role_type=self.user_info.role_type,
-            purchase_intent=self.user_info.purchase_intent.value,
-            custom_questions=custom_questions_str,
+            product=self.user_info.product,
+            personality=self.user_info.personality.value,
+            interest_level=self.user_info.interest_level.value,
+            background_info=self.user_info.background_info or "无",
             additional_requirements=self.user_info.additional_requirements or "无"
         )
         
@@ -261,8 +269,8 @@ class InteractivePromptAgent:
         ])
         
         user_prompt = FOLLOW_UP_QUESTIONS_USER_PROMPT.format(
-            role_type=self.user_info.role_type,
-            purchase_intent=self.user_info.purchase_intent.value,
+            personality=self.user_info.personality.value,
+            interest_level=self.user_info.interest_level.value,
             main_questions_text=main_questions_text
         )
         
@@ -293,9 +301,10 @@ class InteractivePromptAgent:
     
     def generate_emotion(self) -> Dict[str, str]:
         user_prompt = EMOTION_USER_PROMPT.format(
-            role_type=self.user_info.role_type,
-            purchase_intent=self.user_info.purchase_intent.value,
-            industry=self.user_info.industry
+            personality=self.user_info.personality.value,
+            interest_level=self.user_info.interest_level.value,
+            industry=self.user_info.industry,
+            product=self.user_info.product
         )
         
         try:
@@ -307,12 +316,12 @@ class InteractivePromptAgent:
             logging.error(f"生成情绪描述失败: {str(e)}")
             return {
                 "emotion_type": "平和",
-                "emotion_description": "情绪稳定，态度平和",
-                "speaking_style": "语气平和，表达清晰",
-                "attitude": "保持礼貌，理性沟通"
+                "emotion_description": "情绪稳定",
+                "speaking_style": "语气平和",
+                "attitude": "保持礼貌"
             }
     
-    def generate_full_prompt(self, template_name: str = "training_teacher") -> InteractiveResult:
+    def generate_full_prompt(self, template_name: str = "training_salse") -> InteractiveResult:
         try:
             logging.info("开始生成问题和背景信息...")
             qa_result = self.generate_questions_and_background()
@@ -393,26 +402,23 @@ class InteractivePromptAgent:
     
     def get_available_templates(self) -> List[str]:
         return self.template_manager.get_template_names()
-    
-    def set_additional_requirements(self, requirements: str):
-        self.user_info.additional_requirements = requirements
 
 
 def interactive_generate_prompt(
+    position: str,
     industry: str,
-    role_type: str,
-    purchase_intent: str,
-    custom_questions: Optional[List[str]] = None,
-    auto_generate: bool = True,
-    additional_requirements: str = "",
-    template_name: str = "training_teacher"
+    product: str,
+    personality: str,
+    interest_level: str,
+    background_info: str = "",
+    template_name: str = "training_salse"
 ) -> InteractiveResult:
     agent = InteractivePromptAgent()
-    agent.analyze_industry(industry)
-    agent.analyze_role(role_type)
-    agent.set_purchase_intent(purchase_intent)
-    if custom_questions:
-        agent.set_custom_questions(custom_questions, auto_generate)
-    if additional_requirements:
-        agent.set_additional_requirements(additional_requirements)
+    agent.set_position(position)
+    agent.set_industry(industry)
+    agent.set_product(product)
+    agent.set_personality(personality)
+    agent.set_interest_level(interest_level)
+    if background_info:
+        agent.set_background_info(background_info)
     return agent.generate_full_prompt(template_name)

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模拟客户智能体</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .interactive-area {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .option-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .option-btn {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .option-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        .option-btn.selected {
+            background: #667eea;
+            color: white;
+        }
+        .other-input {
+            display: none;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .other-input.show {
+            display: block;
+        }
+        .other-input input {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            width: 200px;
+            font-size: 14px;
+        }
+        .other-input button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ddd;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .step-circle.active {
+            background: #667eea;
+        }
+        .step-circle.completed {
+            background: #28a745;
+        }
+        .step-line {
+            width: 50px;
+            height: 2px;
+            background: #ddd;
+            margin-top: 15px;
+        }
+        .step-line.completed {
+            background: #28a745;
+        }
+        .step-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+        .background-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .background-section textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .generate-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .generate-options button {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .generate-options button.primary {
+            background: #667eea;
+            color: white;
+        }
+        .generate-options button.secondary {
+            background: white;
+            color: #667eea;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading.show {
+            display: block;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>模拟客户智能体</h1>
+            <p class="subtitle">帮您创建客户对话场景，提升销售/客服话术能力</p>
+        </header>
+
+        <div class="step-indicator" id="stepIndicator">
+            <div class="step">
+                <div class="step-circle active" data-step="1">1</div>
+                <div class="step-label">岗位</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle" data-step="2">2</div>
+                <div class="step-label">行业</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle" data-step="3">3</div>
+                <div class="step-label">产品</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle" data-step="4">4</div>
+                <div class="step-label">性格</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle" data-step="5">5</div>
+                <div class="step-label">兴趣</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle" data-step="6">6</div>
+                <div class="step-label">背景</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message">
+                        <div class="message-text">我是模拟客户智能体，可以帮您创建您想创建的客户对话场景。请先选择您的岗位：</div>
+                    </div>
+                </div>
+
+                <div class="interactive-area" id="interactiveArea">
+                    <div class="option-container" id="optionContainer"></div>
+                    <div class="other-input" id="otherInput">
+                        <input type="text" id="otherInputField" placeholder="请输入...">
+                        <button id="otherSubmitBtn">确定</button>
+                    </div>
+                </div>
+
+                <div class="background-section" id="backgroundSection" style="display: none;">
+                    <h4>编辑模拟客户的背景信息</h4>
+                    <p style="color: #666; font-size: 14px;">例如：买车的客户预算20万，在北京用车，倾向于SUV等</p>
+                    <textarea id="backgroundInput" placeholder="请输入模拟客户的背景信息..."></textarea>
+                    <div class="generate-options">
+                        <button class="primary" id="autoGenerateBtn">自动生成背景</button>
+                        <button class="secondary" id="confirmBackgroundBtn">确认并生成场景</button>
+                    </div>
+                </div>
+
+                <div class="loading" id="loadingArea">
+                    <div class="loading-spinner"></div>
+                    <p>正在生成场景，请稍候...</p>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="state-panel">
+                    <h3>已选择信息</h3>
+                    <div class="state-item" id="statePosition">
+                        <span class="state-label">岗位：</span>
+                        <span class="state-value">未选择</span>
+                    </div>
+                    <div class="state-item" id="stateIndustry">
+                        <span class="state-label">行业：</span>
+                        <span class="state-value">未选择</span>
+                    </div>
+                    <div class="state-item" id="stateProduct">
+                        <span class="state-label">产品：</span>
+                        <span class="state-value">未选择</span>
+                    </div>
+                    <div class="state-item" id="statePersonality">
+                        <span class="state-label">客户性格：</span>
+                        <span class="state-value">未选择</span>
+                    </div>
+                    <div class="state-item" id="stateInterest">
+                        <span class="state-label">感兴趣程度：</span>
+                        <span class="state-value">未选择</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-modal" id="resultModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>场景生成完成</h2>
+                    <button class="close-btn" id="closeModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <pre id="promptResult"></pre>
+                </div>
+                <div class="modal-footer">
+                    <div class="save-section">
+                        <input type="text" id="promptName" placeholder="请输入场景名称..." class="prompt-name-input">
+                        <button class="btn btn-success" id="saveBtn">保存场景</button>
+                    </div>
+                    <div class="action-row">
+                        <button class="btn btn-primary" id="copyBtn">复制到剪贴板</button>
+                        <button class="btn btn-realtime" id="startRealtimeBtn">开始对话</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/interactive.js') }}"></script>
+</body>
+</html>

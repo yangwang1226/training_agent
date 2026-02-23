@@ -8,8 +8,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeModal = document.getElementById('closeModal');
     const copyBtn = document.getElementById('copyBtn');
     const promptResult = document.getElementById('promptResult');
+    const promptName = document.getElementById('promptName');
+    const saveBtn = document.getElementById('saveBtn');
+    const toast = document.getElementById('toast');
+    const startRealtimeBtn = document.getElementById('startRealtimeBtn');
 
     let isReady = false;
+    let currentPrompt = '';
+    let currentSceneId = '';
 
     function addMessage(content, isUser = false) {
         const messageDiv = document.createElement('div');
@@ -191,7 +197,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (data.success) {
+                currentPrompt = data.full_prompt;
                 promptResult.textContent = data.full_prompt;
+                promptName.value = '';
                 resultModal.style.display = 'flex';
             } else {
                 addMessage('生成失败: ' + (data.error || '未知错误'));
@@ -305,6 +313,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 copyBtn.textContent = '复制到剪贴板';
             }, 2000);
         });
+    });
+
+    function showToast(message, type = 'success') {
+        toast.textContent = message;
+        toast.className = `toast show ${type}`;
+        setTimeout(() => {
+            toast.className = 'toast';
+        }, 3000);
+    }
+
+    async function savePrompt() {
+        const name = promptName.value.trim();
+        
+        if (!name) {
+            showToast('请输入场景名称', 'error');
+            return;
+        }
+        
+        if (!currentPrompt) {
+            showToast('没有可保存的提示词', 'error');
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+
+        try {
+            const response = await fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    name: name,
+                    prompt: currentPrompt 
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('场景保存成功！', 'success');
+                promptName.value = '';
+                currentSceneId = data.scene_id;
+                startRealtimeBtn.style.display = 'inline-block';
+            } else {
+                showToast('保存失败: ' + (data.error || '未知错误'), 'error');
+            }
+
+        } catch (error) {
+            showToast('保存失败，请重试', 'error');
+            console.error('Error:', error);
+        }
+
+        saveBtn.textContent = '保存场景';
+        saveBtn.disabled = false;
+    }
+
+    saveBtn.addEventListener('click', savePrompt);
+
+    promptName.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            savePrompt();
+        }
+    });
+
+    startRealtimeBtn.addEventListener('click', () => {
+        if (currentSceneId) {
+            window.location.href = `/realtime/${currentSceneId}`;
+        }
     });
 
     initConversation();

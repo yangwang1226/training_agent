@@ -9,7 +9,7 @@ class TemplateManager:
         if template_dir:
             self.template_dir = Path(template_dir)
         else:
-            self.template_dir = Path(__file__).parent / "template"
+            self.template_dir = Path(__file__).parent.parent / "template"
         
         self._templates: Dict[str, str] = {}
         self._load_templates()

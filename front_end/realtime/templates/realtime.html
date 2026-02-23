@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时对话 - 智能提示词系统</title>
+    <link rel="stylesheet" href="{{ url_for('realtime.static', filename='css/realtime.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>实时对话训练</h1>
+            <p class="subtitle" id="sceneName">场景加载中...</p>
+            <a href="/" class="back-link">返回主页</a>
+        </header>
+
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <p>点击下方按钮开始语音对话</p>
+                        <p>系统将根据场景提示词与您进行实时互动</p>
+                    </div>
+                </div>
+
+                <div class="status-bar" id="statusBar">
+                    <span class="status-icon" id="statusIcon">●</span>
+                    <span class="status-text" id="statusText">未连接</span>
+                </div>
+
+                <div class="control-panel">
+                    <div class="prompt-preview">
+                        <button class="btn btn-secondary" id="togglePrompt">查看场景提示词</button>
+                        <div class="prompt-content" id="promptContent" style="display: none;">
+                            <pre id="promptText"></pre>
+                        </div>
+                    </div>
+
+                    <div class="audio-controls">
+                        <button class="btn btn-primary btn-large" id="startBtn" disabled>
+                            <span class="btn-icon">🎤</span>
+                            <span class="btn-text">开始对话</span>
+                        </button>
+                        <button class="btn btn-danger btn-large" id="stopBtn" style="display: none;">
+                            <span class="btn-icon">⏹️</span>
+                            <span class="btn-text">结束对话</span>
+                        </button>
+                    </div>
+
+                    <div class="visualizer" id="visualizer">
+                        <canvas id="audioCanvas" width="400" height="60"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="info-panel">
+                    <h3>对话信息</h3>
+                    <div class="info-item">
+                        <span class="info-label">对话时长：</span>
+                        <span class="info-value" id="duration">00:00</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">消息数量：</span>
+                        <span class="info-value" id="messageCount">0</span>
+                    </div>
+                </div>
+
+                <div class="tips-panel">
+                    <h3>使用说明</h3>
+                    <ul>
+                        <li>点击"开始对话"启动语音交互</li>
+                        <li>说话时系统会实时识别</li>
+                        <li>AI会同时输出语音和文字</li>
+                        <li>点击"结束对话"停止会话</li>
+                    </ul>
+                </div>
+
+                <div class="text-output">
+                    <h3>实时转写</h3>
+                    <div class="transcript" id="transcript">
+                        <p class="placeholder">等待对话开始...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="providerModal" style="display: none;">
+        <div class="modal-content">
+            <h2>选择对话模型</h2>
+            <p class="modal-subtitle">请选择要使用的语音模型服务商</p>
+            <div class="provider-options">
+                <button class="provider-option" data-provider="qwen">
+                    <span class="provider-icon">🤖</span>
+                    <span class="provider-name">千问 (Qwen)</span>
+                    <span class="provider-desc">阿里云通义千问实时语音</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCENE_ID = "{{ scene_id }}";
+        const SCENE_NAME = "{{ scene_name }}";
+    </script>
+    <script src="{{ url_for('realtime.static', filename='js/realtime.js') }}"></script>
+</body>
+</html>

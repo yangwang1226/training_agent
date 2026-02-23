@@ -79,10 +79,19 @@
                     <pre id="promptResult"></pre>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary" id="copyBtn">复制到剪贴板</button>
+                    <div class="save-section">
+                        <input type="text" id="promptName" placeholder="请输入场景名称..." class="prompt-name-input">
+                        <button class="btn btn-success" id="saveBtn">保存场景</button>
+                    </div>
+                    <div class="action-row">
+                        <button class="btn btn-primary" id="copyBtn">复制到剪贴板</button>
+                        <button class="btn btn-realtime" id="startRealtimeBtn" style="display: none;">开始对话</button>
+                    </div>
                 </div>
             </div>
         </div>
+        
+        <div class="toast" id="toast"></div>
     </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
