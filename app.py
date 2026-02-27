@@ -73,7 +73,8 @@ def chat():
     logging.info(f"是否可以生成: {agent.is_ready_to_generate()}")
     
     return jsonify({
-        'response': response,
+        'response': response.get('content', ''),
+        'options': response.get('options', []),
         'is_ready': agent.is_ready_to_generate(),
         'state': {
             'industry': state.industry,
@@ -131,7 +132,8 @@ def reset():
     response = agent.chat("你好")
     
     return jsonify({
-        'response': response,
+        'response': response.get('content', ''),
+        'options': response.get('options', []),
         'is_ready': False,
         'state': {
             'industry': '',
@@ -159,7 +161,8 @@ def init():
     state = agent.get_current_state()
     
     return jsonify({
-        'response': response,
+        'response': response.get('content', ''),
+        'options': response.get('options', []),
         'is_ready': False,
         'state': {
             'industry': state.industry,
@@ -263,11 +266,12 @@ def find_scene_file(scene_id):
 def interactive_init():
     agent = get_interactive_agent(session.get('session_id', 'default'))
     
+    response = agent.get_initial_message()
+    
     return jsonify({
-        'message': agent.get_initial_message(),
-        'options': {
-            'position': agent.get_position_options()
-        }
+        'message': response.content,
+        'options': response.options,
+        'next_step': response.next_step
     })
 
 
@@ -280,62 +284,16 @@ def interactive_select():
     
     agent = get_interactive_agent(session_id)
     
-    if step == 'position':
-        agent.set_position(value)
-        return jsonify({
-            'success': True,
-            'next_step': 'industry',
-            'message': '请选择您所在的行业：',
-            'options': agent.get_industry_options()
-        })
-    elif step == 'industry':
-        agent.set_industry(value)
-        if value == '其他':
-            return jsonify({
-                'success': True,
-                'next_step': 'industry_input',
-                'message': '请输入您的行业：',
-                'show_input': True
-            })
-        return jsonify({
-            'success': True,
-            'next_step': 'product',
-            'message': '请选择您要销售/服务的产品：',
-            'options': agent.get_product_options()
-        })
-    elif step == 'product':
-        agent.set_product(value)
-        if value == '其他':
-            return jsonify({
-                'success': True,
-                'next_step': 'product_input',
-                'message': '请输入产品名称：',
-                'show_input': True
-            })
-        return jsonify({
-            'success': True,
-            'next_step': 'personality',
-            'message': '请选择模拟客户的性格：',
-            'options': agent.get_personality_options()
-        })
-    elif step == 'personality':
-        agent.set_personality(value)
-        return jsonify({
-            'success': True,
-            'next_step': 'interest_level',
-            'message': '请选择模拟客户的感兴趣程度：',
-            'options': agent.get_interest_level_options()
-        })
-    elif step == 'interest_level':
-        agent.set_interest_level(value)
-        return jsonify({
-            'success': True,
-            'next_step': 'background',
-            'message': '请编辑模拟客户的背景信息（也可以自动生成）：',
-            'show_background': True
-        })
+    response = agent.process_selection(step, value)
     
-    return jsonify({'success': False, 'error': 'Invalid step'})
+    return jsonify({
+        'success': True,
+        'message': response.content,
+        'options': response.options,
+        'next_step': response.next_step,
+        'show_input': response.show_input,
+        'show_background': response.show_background
+    })
 
 
 @app.route('/api/interactive/input', methods=['POST'])

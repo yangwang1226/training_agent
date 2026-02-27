@@ -265,7 +265,16 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'status':
                 updateStatus(data.status, data.message);
                 if (data.status === 'speaking') {
-                    clearAudioQueue();
+                    if (currentAudioSource) {
+                        try {
+                            currentAudioSource.stop();
+                        } catch (e) {
+                        }
+                        currentAudioSource = null;
+                    }
+                    audioQueue = [];
+                    isPlayingAudio = false;
+                    nextPlayTime = 0;
                     lastMessageDiv = null;
                     lastMessageRole = null;
                     lastMessageText = '';
@@ -400,32 +409,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (audioData.byteLength > 0) {
                 try {
-                    const audioBuffer = await currentAudioContext.decodeAudioData(audioData);
-                    console.log('playAudio: direct decode success, duration =', audioBuffer.duration);
+                    const wavData = pcmToWav(audioData, 24000, 1, 16);
+                    console.log('playAudio: wavData size =', wavData.byteLength);
                     
-                    audioQueue.push(audioBuffer);
+                    const audioBuffer = await currentAudioContext.decodeAudioData(wavData);
+                    console.log('playAudio: PCM decode success, duration =', audioBuffer.duration, 'channels =', audioBuffer.numberOfChannels);
                     
-                    if (!isPlayingAudio) {
-                        playNextInQueue();
-                    }
-                } catch (decodeError) {
-                    console.log('Direct decode failed, trying PCM to WAV...');
-                    
-                    try {
-                        const wavData = pcmToWav(audioData, 24000, 1, 16);
-                        console.log('playAudio: wavData size =', wavData.byteLength);
-                        
-                        const audioBuffer = await currentAudioContext.decodeAudioData(wavData);
-                        console.log('playAudio: PCM decode success, duration =', audioBuffer.duration);
-                        
+                    if (audioBuffer.duration > 0) {
                         audioQueue.push(audioBuffer);
+                        console.log('Audio queue length:', audioQueue.length);
                         
                         if (!isPlayingAudio) {
                             playNextInQueue();
                         }
-                    } catch (e) {
-                        console.error('Audio decode error:', e);
+                    } else {
+                        console.warn('Audio buffer duration is 0, skipping');
                     }
+                } catch (e) {
+                    console.error('Audio decode error:', e);
                 }
             }
         } catch (error) {
@@ -457,8 +458,11 @@ document.addEventListener('DOMContentLoaded', function() {
         view.setUint32(40, dataSize, true);
         
         const pcmView = new Uint8Array(pcmData);
-        for (let i = 0; i < dataSize; i++) {
-            view.setUint8(44 + i, pcmView[i]);
+        const pcmInt16View = new Int16Array(pcmData);
+        const wavInt16View = new Int16Array(buffer, 44, pcmInt16View.length);
+        
+        for (let i = 0; i < pcmInt16View.length; i++) {
+            wavInt16View[i] = pcmInt16View[i];
         }
         
         return buffer;
@@ -480,14 +484,13 @@ document.addEventListener('DOMContentLoaded', function() {
         currentAudioSource.connect(currentAudioContext.destination);
         
         const currentTime = currentAudioContext.currentTime;
-        if (nextPlayTime < currentTime) {
-            nextPlayTime = currentTime;
-        }
         
-        currentAudioSource.start(nextPlayTime);
-        nextPlayTime += audioBuffer.duration;
+        console.log('Playing audio at time:', currentTime, 'duration:', audioBuffer.duration);
+        currentAudioSource.start(currentTime);
         
         currentAudioSource.onended = () => {
+            console.log('Audio ended, queue length:', audioQueue.length);
+            currentAudioSource = null;
             if (isPlayingAudio) {
                 playNextInQueue();
             }

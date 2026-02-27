@@ -151,6 +151,11 @@ document.addEventListener('DOMContentLoaded', function() {
             removeLoadingMessage();
             addMessage(data.response);
             
+            // 显示选项按钮
+            if (data.options && data.options.length > 0) {
+                showOptions(data.options);
+            }
+            
             isReady = data.is_ready;
             generateBtn.disabled = !isReady;
             
@@ -247,6 +252,11 @@ document.addEventListener('DOMContentLoaded', function() {
             removeLoadingMessage();
             addMessage(data.response);
             
+            // 显示选项按钮
+            if (data.options && data.options.length > 0) {
+                showOptions(data.options);
+            }
+            
             isReady = data.is_ready;
             updateState(data.state);
 
@@ -270,6 +280,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             removeLoadingMessage();
             addMessage(data.response);
+            
+            // 显示选项按钮
+            if (data.options && data.options.length > 0) {
+                showOptions(data.options);
+            }
             
             isReady = data.is_ready;
             updateState(data.state);
@@ -321,6 +336,25 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             toast.className = 'toast';
         }, 3000);
+    }
+
+    function showOptions(options) {
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'options-container';
+        
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'option-button';
+            button.textContent = option;
+            button.onclick = () => {
+                sendMessage(option);
+                optionsContainer.remove();
+            };
+            optionsContainer.appendChild(button);
+        });
+        
+        chatMessages.appendChild(optionsContainer);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     async function savePrompt() {

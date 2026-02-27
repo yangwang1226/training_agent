@@ -27,14 +27,24 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 14px;
+            display: inline-block;
+            position: relative;
+            user-select: none;
         }
         .option-btn:hover {
-            background: #667eea;
-            color: white;
+            background: #e8ebfe;
+            border-color: #5568d3;
+            transform: translateY(-1px);
         }
         .option-btn.selected {
             background: #667eea;
             color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .option-btn.selected::before {
+            content: '✓ ';
+            margin-right: 4px;
         }
         .other-input {
             display: none;
@@ -202,9 +212,7 @@
         <div class="main-content">
             <div class="chat-container">
                 <div class="chat-messages" id="chatMessages">
-                    <div class="message ai-message">
-                        <div class="message-text">我是模拟客户智能体，可以帮您创建您想创建的客户对话场景。请先选择您的岗位：</div>
-                    </div>
+                    <!-- 消息将通过JavaScript动态添加 -->
                 </div>
 
                 <div class="interactive-area" id="interactiveArea">

@@ -124,44 +124,37 @@ SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对�
 - 基础信息收集完成后，自然过渡到延展信息收集
 - 当延展信息收集足够后，告诉用户可以开始生成提示词
 
+请以JSON格式返回你的回答，包含以下字段：
+- "content"：你的问题或回答内容
+- "options"：如果是需要用户选择的问题，填写选项数组；如果不是选择问题，填写空数组
+
+示例1（选择问题）：
+{
+  "content": "好的，是哪个行业的销售培训呢？",
+  "options": ["房地产", "汽车", "教育", "金融", "其他"]
+}
+
+示例2（非选择问题）：
+{
+  "content": "了解了，没有特别的问题，我会帮您自动生成。",
+  "options": []
+}
+
 示例对话：
 用户：我想生成一个销售培训的提示词
-助手：好的，是哪个行业的销售培训呢？比如房产、汽车、教育还是其他？
+助手：{"content": "好的，是哪个行业的销售培训呢？", "options": ["房地产", "汽车", "教育", "金融", "其他"]}
 
 用户：汽车销售
-助手：明白了，汽车销售培训。那您希望AI模拟什么角色呢？比如购车者、试驾客户？
+助手：{"content": "明白了，汽车销售培训。那您希望AI模拟什么角色呢？", "options": ["购车者", "试驾客户", "其他"]}
 
 用户：购车者
-助手：好的，购车者角色。那这个购车者的购买意愿是怎样的呢？
-- 比较冷淡，只是随便看看
-- 一般，有购车意向但还在对比
-- 感兴趣，已经看中了某款车
-- 非常感兴趣，准备下单了
+助手：{"content": "好的，购车者角色。那这个购车者的购买意愿是怎样的呢？", "options": ["冷淡", "一般", "感兴趣", "非常感兴趣"]}
 
 用户：感兴趣
-助手：了解了。您有没有特别想让AI提出的问题？比如关于价格、配置、售后这些？如果没有的话我可以帮您自动生成。
+助手：{"content": "了解了。您有没有特别想让AI提出的问题？比如关于价格、配置、售后这些？如果没有的话我可以帮您自动生成。", "options": []}
 
 用户：没有，自动生成吧
-助手：好的，让我再了解一些背景信息，让生成的提示词更贴近实际场景。
-
-这个购车者有具体关注的车型或品牌吗？
-
-用户：关注的是比亚迪汉，新能源车
-助手：明白了，比亚迪汉新能源车。那预算范围大概是多少呢？
-
-用户：20-25万左右
-助手：好的。是考虑新车还是二手车呢？
-
-用户：新车
-助手：好的，我已经收集到足够的信息了：
-- 行业：汽车销售
-- 角色：购车者
-- 购买意愿：感兴趣
-- 关注车型：比亚迪汉（新能源）
-- 预算：20-25万
-- 购车类型：新车
-
-现在可以为您生成提示词了，请回复"开始生成"或者还有其他需要补充的？
+助手：{"content": "好的，让我再了解一些背景信息，让生成的提示词更贴近实际场景。这个购车者有具体关注的车型或品牌吗？", "options": []}
 """
 
 
@@ -187,7 +180,7 @@ class ConversationalPromptAgent:
             temperature=0
         )
     
-    def chat(self, user_input: str) -> str:
+    def chat(self, user_input: str) -> Dict[str, Any]:
         self.messages.append(HumanMessage(content=user_input))
         
         extraction_result = self._extract_info(user_input)
@@ -196,7 +189,26 @@ class ConversationalPromptAgent:
         response = self.llm.invoke(self.messages)
         self.messages.append(AIMessage(content=response.content))
         
-        return response.content
+        content = response.content
+        options = []
+        
+        # 尝试解析JSON格式的回复
+        try:
+            # 提取JSON内容
+            json_content = self._extract_json(content)
+            # 解析JSON
+            parsed_response = json.loads(json_content)
+            # 提取content和options
+            content = parsed_response.get('content', content)
+            options = parsed_response.get('options', [])
+        except Exception as e:
+            # 如果解析失败，使用原始内容
+            logging.warning(f"解析JSON失败: {str(e)}")
+        
+        return {
+            "content": content,
+            "options": options
+        }
     
     def _extract_info(self, user_input: str) -> Dict[str, Any]:
         extended_info_summary = self.state.get_extended_info_summary()

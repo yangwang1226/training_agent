@@ -164,6 +164,15 @@ class InteractiveResult:
     error_message: str = ""
 
 
+@dataclass
+class ChatResponse:
+    content: str
+    options: List[str] = field(default_factory=list)
+    next_step: Optional[str] = None
+    show_input: bool = False
+    show_background: bool = False
+
+
 class InteractivePromptAgent:
     INDUSTRIES = INDUSTRIES
     INDUSTRY_PRODUCTS = INDUSTRY_PRODUCTS
@@ -175,8 +184,12 @@ class InteractivePromptAgent:
         self.llm_client = llm_client or LLMClient()
         self.user_info = UserInfo()
     
-    def get_initial_message(self) -> str:
-        return "我是模拟客户智能体，可以帮您创建您想创建的客户对话场景。请先选择您的岗位："
+    def get_initial_message(self) -> ChatResponse:
+        return ChatResponse(
+            content="我是模拟客户智能体，可以帮您创建您想创建的客户对话场景。请先选择您的岗位：",
+            options=self.get_position_options(),
+            next_step="position"
+        )
     
     def get_position_options(self) -> List[str]:
         return ["销售", "客服"]
@@ -189,6 +202,48 @@ class InteractivePromptAgent:
             self.user_info.position = PositionType.CUSTOMER_SERVICE
             return True
         return False
+    
+    def process_selection(self, step: str, value: str) -> ChatResponse:
+        if step == "position":
+            if self.set_position(value):
+                return ChatResponse(
+                    content=f"好的，您选择了{value}岗位。请问您所在的行业是？",
+                    options=self.get_industry_options(),
+                    next_step="industry"
+                )
+        elif step == "industry":
+            self.set_industry(value)
+            return ChatResponse(
+                content=f"明白了，{value}行业。请问您要销售/服务的产品是？",
+                options=self.get_product_options(),
+                next_step="product"
+            )
+        elif step == "product":
+            self.set_product(value)
+            return ChatResponse(
+                content=f"好的，{value}。请问您希望模拟客户的性格是？",
+                options=self.get_personality_options(),
+                next_step="personality"
+            )
+        elif step == "personality":
+            if self.set_personality(value):
+                return ChatResponse(
+                    content=f"好的，客户性格{value}。请问模拟客户的感兴趣程度是？",
+                    options=self.get_interest_level_options(),
+                    next_step="interest_level"
+                )
+        elif step == "interest_level":
+            if self.set_interest_level(value):
+                return ChatResponse(
+                    content=f"了解了，感兴趣程度{value}。请编辑模拟客户的背景信息（也可以自动生成）：",
+                    next_step="background",
+                    show_background=True
+                )
+        
+        return ChatResponse(
+            content="抱歉，处理您的选择时出现了问题。",
+            options=[]
+        )
     
     def get_industry_options(self) -> List[str]:
         return INDUSTRIES

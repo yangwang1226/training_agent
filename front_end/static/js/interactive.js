@@ -15,7 +15,9 @@ function init() {
         .then(res => res.json())
         .then(data => {
             addMessage(data.message, 'ai');
-            renderOptions(data.options.position);
+            if (data.options && data.options.length > 0) {
+                renderOptions(data.options);
+            }
             updateStepIndicator();
         })
         .catch(err => {
@@ -28,12 +30,51 @@ function renderOptions(options) {
     const container = document.getElementById('optionContainer');
     container.innerHTML = '';
     
-    options.forEach(option => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.textContent = option;
-        btn.onclick = () => selectOption(option);
-        container.appendChild(btn);
+    if (!options || options.length === 0) {
+        return;
+    }
+    
+    // 创建单选按钮组
+    const radioGroupName = 'option_' + Date.now(); // 使用时间戳确保唯一性
+    
+    options.forEach((option, index) => {
+        // 创建单选按钮容器
+        const optionWrapper = document.createElement('label');
+        optionWrapper.className = 'option-btn';
+        optionWrapper.style.cursor = 'pointer';
+        
+        // 创建隐藏的单选按钮
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = radioGroupName;
+        radio.value = option;
+        radio.id = `option_${index}_${Date.now()}`;
+        radio.style.display = 'none';
+        
+        // 创建显示文本
+        const label = document.createElement('span');
+        label.textContent = option;
+        
+        // 点击事件
+        optionWrapper.onclick = (e) => {
+            e.preventDefault();
+            // 先清除所有选中状态
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // 设置当前按钮为选中状态
+            optionWrapper.classList.add('selected');
+            radio.checked = true;
+            
+            // 延迟执行选择，让用户看到选中效果
+            setTimeout(() => {
+                handleModelOption(option);
+            }, 200);
+        };
+        
+        optionWrapper.appendChild(radio);
+        optionWrapper.appendChild(label);
+        container.appendChild(optionWrapper);
     });
     
     document.getElementById('otherInput').classList.remove('show');
@@ -49,7 +90,46 @@ function selectOption(option) {
         return;
     }
 
-    processSelection(option);
+    handleModelOption(option);
+}
+
+function handleModelOption(option) {
+    addMessage(option, 'user');
+    
+    fetch('/api/interactive/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: state.currentStep, value: option })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            updateState(state.currentStep, option);
+            
+            if (data.show_input) {
+                showOtherInput();
+            } else if (data.show_background) {
+                showBackgroundSection();
+            } else {
+                state.currentStep = data.next_step;
+                setTimeout(() => {
+                    addMessage(data.message, 'ai');
+                    if (data.options && data.options.length > 0) {
+                        renderOptions(data.options);
+                    } else {
+                        document.getElementById('optionContainer').innerHTML = '';
+                    }
+                    updateStepIndicator();
+                }, 300);
+            }
+        } else {
+            showToast('错误: ' + data.error);
+        }
+    })
+    .catch(err => {
+        console.error('Select error:', err);
+        showToast('请求失败');
+    });
 }
 
 function showOtherInput() {
@@ -78,43 +158,6 @@ document.getElementById('otherInputField').onkeypress = (e) => {
     }
 };
 
-function processSelection(option) {
-    addMessage(option, 'user');
-    
-    fetch('/api/interactive/select', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: state.currentStep, value: option })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateState(state.currentStep, option);
-            
-            if (data.show_input) {
-                showOtherInput();
-            } else if (data.show_background) {
-                showBackgroundSection();
-            } else {
-                state.currentStep = data.next_step;
-                setTimeout(() => {
-                    addMessage(data.message, 'ai');
-                    if (data.options) {
-                        renderOptions(data.options);
-                    }
-                    updateStepIndicator();
-                }, 300);
-            }
-        } else {
-            showToast('错误: ' + data.error);
-        }
-    })
-    .catch(err => {
-        console.error('Select error:', err);
-        showToast('请求失败');
-    });
-}
-
 function processInput(value) {
     addMessage(value, 'user');
     
@@ -128,15 +171,19 @@ function processInput(value) {
         if (data.success) {
             if (state.currentStep === 'industry') {
                 state.industry = value;
+                updateStateDisplay('stateIndustry', value);
             } else if (state.currentStep === 'product') {
                 state.product = value;
+                updateStateDisplay('stateProduct', value);
             }
             
             state.currentStep = data.next_step;
             setTimeout(() => {
                 addMessage(data.message, 'ai');
-                if (data.options) {
+                if (data.options && data.options.length > 0) {
                     renderOptions(data.options);
+                } else {
+                    document.getElementById('optionContainer').innerHTML = '';
                 }
                 updateStepIndicator();
             }, 300);
