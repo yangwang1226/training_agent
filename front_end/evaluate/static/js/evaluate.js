@@ -1,11 +1,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
+    const pageTitle = document.getElementById('pageTitle');
     
     let radarChart = null;
     let trendChart = null;
     
     const userId = 'default_user';
+    
+    const tabTitles = {
+        'profile': '能力画像',
+        'history': '训练历史',
+        'assessment': '评估报告',
+        'suggestions': '改进建议'
+    };
     
     function initTabs() {
         tabs.forEach(tab => {
@@ -21,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         content.classList.add('active');
                     }
                 });
+                
+                pageTitle.textContent = tabTitles[targetTab] || '能力画像';
             });
         });
     }
@@ -28,9 +38,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function showToast(message) {
         const toast = document.getElementById('toast');
         toast.textContent = message;
-        toast.classList.add('show');
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: #1B2559;
+            color: white;
+            border-radius: 10px;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        `;
+        document.body.appendChild(toast);
+        
         setTimeout(() => {
-            toast.classList.remove('show');
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
     
@@ -51,64 +75,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function renderProfile(profile) {
-        const levelIcons = {
-            '入门': '🌱',
-            '进阶': '🌿',
-            '熟练': '🌳',
-            '专家': '🏆'
-        };
-        
-        document.getElementById('levelBadge').innerHTML = `
-            <span class="level-icon">${levelIcons[profile.level] || '🌱'}</span>
-            <span class="level-text">${profile.level}</span>
-        `;
+        document.getElementById('levelLabelText').textContent = profile.level || '入门';
+        document.getElementById('levelText').textContent = profile.level || '入门';
         
         const score = profile.overall_score || 0;
         document.getElementById('overallScore').textContent = Math.round(score);
         
-        const circumference = 2 * Math.PI * 45;
+        const circumference = 2 * Math.PI * 90;
         const offset = circumference - (score / 100) * circumference;
         const scoreCircle = document.getElementById('scoreCircle');
+        scoreCircle.style.strokeDasharray = circumference;
         scoreCircle.style.strokeDashoffset = offset;
         
         document.getElementById('trainingCount').textContent = profile.training_count || 0;
         document.getElementById('totalDuration').textContent = Math.round((profile.total_duration || 0) / 60);
         
-        renderDimensionBars(profile.dimension_scores);
         renderRadarChart(profile.dimension_scores);
         
         const strengthsList = document.getElementById('strengthsList');
         const weaknessesList = document.getElementById('weaknessesList');
         
         strengthsList.innerHTML = (profile.strong_points || [])
-            .map(p => `<li>${p}</li>`)
-            .join('') || '<li>暂无数据</li>';
+            .map(p => `<div class="list-item strength"><p>${p}</p></div>`)
+            .join('') || '<div class="list-item"><p>暂无数据</p></div>';
         
         weaknessesList.innerHTML = (profile.weak_points || [])
-            .map(p => `<li>${p}</li>`)
-            .join('') || '<li>暂无数据</li>';
-    }
-    
-    function renderDimensionBars(scores) {
-        const container = document.getElementById('dimensionBars');
-        const dimensions = ['沟通技巧', '产品知识', '需求挖掘', '异议处理', '促成技巧'];
-        
-        container.innerHTML = dimensions.map(dim => {
-            const score = scores[dim] || 0;
-            const levelClass = score >= 80 ? 'excellent' : 
-                              score >= 60 ? 'good' : 
-                              score >= 40 ? 'average' : 'weak';
-            
-            return `
-                <div class="dimension-bar">
-                    <span class="dimension-name">${dim}</span>
-                    <div class="dimension-progress">
-                        <div class="dimension-fill ${levelClass}" style="width: ${score}%"></div>
-                    </div>
-                    <span class="dimension-score-text">${Math.round(score)}</span>
-                </div>
-            `;
-        }).join('');
+            .map(p => `<div class="list-item weakness"><p>${p}</p></div>`)
+            .join('') || '<div class="list-item"><p>暂无数据</p></div>';
     }
     
     function renderRadarChart(scores) {
@@ -128,22 +121,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: '能力得分',
                     data: data,
-                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                    borderColor: 'rgba(102, 126, 234, 1)',
+                    backgroundColor: 'rgba(67, 24, 255, 0.1)',
+                    borderColor: 'rgba(67, 24, 255, 1)',
                     borderWidth: 2,
-                    pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                    pointBackgroundColor: 'rgba(67, 24, 255, 1)',
                     pointBorderColor: '#fff',
                     pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(102, 126, 234, 1)'
+                    pointHoverBorderColor: 'rgba(67, 24, 255, 1)',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     r: {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
-                            stepSize: 20
+                            stepSize: 20,
+                            font: { size: 10 },
+                            color: '#707EAE'
+                        },
+                        grid: {
+                            color: '#E0E5F2'
+                        },
+                        angleLines: {
+                            color: '#E0E5F2'
+                        },
+                        pointLabels: {
+                            font: { size: 12, weight: '500' },
+                            color: '#1B2559'
                         }
                     }
                 },
@@ -178,29 +187,37 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('historyList');
         
         if (!history || history.length === 0) {
-            container.innerHTML = '<div class="loading">暂无训练记录</div>';
+            container.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #707EAE;">暂无训练记录</td></tr>';
             return;
         }
         
-        container.innerHTML = history.map(item => `
-            <div class="history-item" data-session-id="${item.session_id}">
-                <div class="history-info">
-                    <span class="history-title">${item.industry} - ${item.role}</span>
-                    <span class="history-meta">${item.date} · ${Math.round(item.duration / 60)}分钟</span>
-                </div>
-                <span class="history-score">${item.score}</span>
-            </div>
-        `).join('');
+        container.innerHTML = history.map(item => {
+            const statusClass = item.score >= 80 ? 'high' : item.score >= 60 ? 'medium' : 'low';
+            const statusText = item.score >= 80 ? '优秀' : item.score >= 60 ? '良好' : '待提升';
+            
+            return `
+                <tr data-session-id="${item.session_id}">
+                    <td>${item.industry} - ${item.role}</td>
+                    <td>${item.date}</td>
+                    <td>${Math.round(item.duration / 60)} 分钟</td>
+                    <td style="font-weight: 700; color: #4318FF;">${item.score}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                </tr>
+            `;
+        }).join('');
         
-        container.querySelectorAll('.history-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const sessionId = item.dataset.sessionId;
-                loadAssessment(sessionId);
-                
-                tabs.forEach(t => t.classList.remove('active'));
-                document.querySelector('[data-tab="assessment"]').classList.add('active');
-                tabContents.forEach(c => c.classList.remove('active'));
-                document.getElementById('assessment-tab').classList.add('active');
+        container.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('click', () => {
+                const sessionId = row.dataset.sessionId;
+                if (sessionId) {
+                    loadAssessment(sessionId);
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelector('[data-tab="assessment"]').classList.add('active');
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    document.getElementById('assessment-tab').classList.add('active');
+                    pageTitle.textContent = '评估报告';
+                }
             });
         });
     }
@@ -225,17 +242,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: '得分',
                     data: sortedHistory.map(h => h.score),
-                    borderColor: 'rgba(102, 126, 234, 1)',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderColor: 'rgba(67, 24, 255, 1)',
+                    backgroundColor: 'rgba(67, 24, 255, 0.1)',
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 100
+                        max: 100,
+                        grid: { color: '#F4F7FE' },
+                        ticks: { color: '#707EAE' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#707EAE' }
                     }
                 },
                 plugins: {
@@ -281,52 +309,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function renderAssessment(assessment) {
+        document.getElementById('reportTitle').textContent = `${assessment.industry || ''} - ${assessment.role || ''} 评估报告`;
+        document.getElementById('reportDate').textContent = assessment.date || '';
+        document.getElementById('reportDuration').textContent = `时长: ${Math.round(assessment.duration_seconds / 60)} 分钟`;
         document.getElementById('reportScore').textContent = assessment.overall_score;
-        document.getElementById('reportDuration').textContent = 
-            `时长: ${Math.round(assessment.duration_seconds / 60)}分钟`;
         
         const dimensionsContainer = document.getElementById('reportDimensions');
         dimensionsContainer.innerHTML = assessment.dimension_scores.map(dim => {
-            const levelClass = dim.score >= 80 ? 'excellent' : 
-                              dim.score >= 60 ? 'good' : 
-                              dim.score >= 40 ? 'average' : 'weak';
-            const barColor = dim.score >= 80 ? '#28a745' : 
-                            dim.score >= 60 ? '#17a2b8' : 
-                            dim.score >= 40 ? '#ffc107' : '#dc3545';
+            const barColor = dim.score >= 80 ? '#05CD99' : 
+                            dim.score >= 60 ? '#4318FF' : 
+                            dim.score >= 40 ? '#FFB547' : '#EE5D50';
             
             return `
-                <div class="dimension-item">
-                    <div class="dimension-header">
-                        <span class="dimension-name-text">${dim.dimension}</span>
-                        <span class="dimension-score-badge">${dim.score}分</span>
+                <div class="dimension-row">
+                    <span class="dimension-label">${dim.dimension}</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${dim.score}%; background: ${barColor};"></div>
                     </div>
-                    <div class="dimension-bar-container">
-                        <div class="dimension-bar-fill" style="width: ${dim.score}%; background: ${barColor}"></div>
-                    </div>
-                    <p class="dimension-reason">${dim.reason}</p>
+                    <span class="dimension-value">${dim.score}</span>
                 </div>
+                <p style="font-size: 12px; color: #707EAE; margin-bottom: 16px; padding-left: 102px;">${dim.reason}</p>
             `;
         }).join('');
         
         document.getElementById('reportHighlights').innerHTML = 
-            assessment.highlights.map(h => `<li>${h}</li>`).join('');
+            assessment.highlights.map(h => `<li style="margin-bottom: 8px;">${h}</li>`).join('');
         
         document.getElementById('reportImprovements').innerHTML = 
-            assessment.improvements.map(i => `<li>${i}</li>`).join('');
+            assessment.improvements.map(i => `<li style="margin-bottom: 8px;">${i}</li>`).join('');
         
         document.getElementById('reportGolden').innerHTML = 
-            assessment.golden_sentences.map(s => `<div class="golden-quote">"${s}"</div>`).join('');
+            assessment.golden_sentences.map(s => `
+                <div style="background: #F8FAFC; padding: 14px 16px; border-radius: 10px; margin-bottom: 10px; border-left: 3px solid #4318FF; font-style: italic; color: #1B2559; font-size: 14px;">
+                    "${s}"
+                </div>
+            `).join('');
         
         document.getElementById('reportMoments').innerHTML = 
             assessment.key_moments.map(m => {
-                const badgeClass = m.handling === '较好' ? 'good' : 
-                                  m.handling === '一般' ? 'average' : 'poor';
+                const badgeClass = m.handling === '较好' ? 'high' : 
+                                  m.handling === '一般' ? 'medium' : 'low';
                 return `
-                    <div class="moment-item">
-                        <span class="moment-badge ${badgeClass}">${m.type}</span>
-                        <div class="moment-content">
-                            <p class="moment-text">${m.content}</p>
-                            ${m.suggestion ? `<p class="moment-suggestion">建议: ${m.suggestion}</p>` : ''}
+                    <div style="display: flex; gap: 12px; padding: 14px 16px; background: #F8FAFC; border-radius: 10px; margin-bottom: 10px; align-items: flex-start;">
+                        <span class="status-badge ${badgeClass}" style="white-space: nowrap; flex-shrink: 0;">${m.type}</span>
+                        <div style="flex: 1;">
+                            <p style="color: #1B2559; margin-bottom: 5px; font-size: 14px;">${m.content}</p>
+                            ${m.suggestion ? `<p style="font-size: 13px; color: #707EAE;">建议: ${m.suggestion}</p>` : ''}
                         </div>
                     </div>
                 `;
@@ -369,31 +397,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const learningPathContainer = document.getElementById('learningPath');
         if (suggestions.learning_path && suggestions.learning_path.length > 0) {
             learningPathContainer.innerHTML = suggestions.learning_path.map(step => `
-                <div class="learning-step">
-                    <span class="step-number">${step.step}</span>
-                    <div class="step-content">
-                        <h5>${step.action}</h5>
-                        <p>资源: ${step.resource} · 预计时间: ${step.estimated_time}</p>
+                <div class="suggestion-card">
+                    <div class="suggestion-header">
+                        <span class="step-circle">${step.step}</span>
+                        <span class="suggestion-title">${step.action}</span>
+                    </div>
+                    <div class="suggestion-body">
+                        资源: ${step.resource} · 预计时间: ${step.estimated_time}
                     </div>
                 </div>
             `).join('');
         } else {
-            learningPathContainer.innerHTML = '<p>暂无学习路径</p>';
+            learningPathContainer.innerHTML = '<p style="color: #707EAE;">暂无学习路径</p>';
         }
         
         const practiceContainer = document.getElementById('practiceScenarios');
         if (suggestions.practice_scenarios && suggestions.practice_scenarios.length > 0) {
             practiceContainer.innerHTML = suggestions.practice_scenarios
-                .map(s => `<span class="practice-scenario">${s}</span>`)
+                .map(s => `<span style="display: inline-block; padding: 8px 14px; background: rgba(67, 24, 255, 0.1); border-radius: 20px; font-size: 13px; color: #4318FF; font-weight: 500;">${s}</span>`)
                 .join('');
         } else {
-            practiceContainer.innerHTML = '<p>暂无推荐场景</p>';
+            practiceContainer.innerHTML = '<p style="color: #707EAE;">暂无推荐场景</p>';
         }
         
         const keyPointsList = document.getElementById('keyPoints');
         if (suggestions.key_points && suggestions.key_points.length > 0) {
             keyPointsList.innerHTML = suggestions.key_points
-                .map(p => `<li>${p}</li>`)
+                .map(p => `<li style="margin-bottom: 8px;">${p}</li>`)
                 .join('');
         } else {
             keyPointsList.innerHTML = '<li>暂无关键要点</li>';
