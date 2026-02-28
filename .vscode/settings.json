@@ -19,7 +19,7 @@
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
-                "& 'C:\\ProgramData\\Miniconda3\\shell\\condabin\\conda-hook.ps1'; conda activate ai-training; Write-Host '✅ 环境已激活' -ForegroundColor Green"
+                "& conda activate ai-training; Write-Host '✅ 环境已激活' -ForegroundColor Green"
             ]
         },
         "PowerShell": {
