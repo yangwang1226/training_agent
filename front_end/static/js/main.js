@@ -172,13 +172,84 @@ document.addEventListener('DOMContentLoaded', function() {
         userInput.focus();
     }
 
+    let progressWebSocket = null;
+    let progressMessageElement = null;
+
+    function connectProgressWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/progress/ws`;
+        
+        progressWebSocket = new WebSocket(wsUrl);
+        
+        progressWebSocket.onopen = () => {
+            console.log('Progress WebSocket connected');
+        };
+        
+        progressWebSocket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'progress') {
+                    updateProgressMessage(data.message, data.step);
+                }
+            } catch (error) {
+                console.error('Error parsing progress message:', error);
+            }
+        };
+        
+        progressWebSocket.onclose = () => {
+            console.log('Progress WebSocket closed');
+        };
+        
+        progressWebSocket.onerror = (error) => {
+            console.error('Progress WebSocket error:', error);
+        };
+    }
+
+    function updateProgressMessage(message, step) {
+        if (!progressMessageElement) {
+            progressMessageElement = document.createElement('div');
+            progressMessageElement.className = 'assistant-message';
+            progressMessageElement.style.opacity = '0.8';
+            progressMessageElement.innerHTML = `
+                <div class="message-content">
+                    <div class="progress-indicator">
+                        <div class="progress-bar" style="width: ${step}%"></div>
+                    </div>
+                    <p>${message}</p>
+                </div>
+            `;
+            chatMessages.appendChild(progressMessageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        } else {
+            progressMessageElement.innerHTML = `
+                <div class="message-content">
+                    <div class="progress-indicator">
+                        <div class="progress-bar" style="width: ${step}%"></div>
+                    </div>
+                    <p>${message}</p>
+                </div>
+            `;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    function clearProgressMessage() {
+        if (progressMessageElement) {
+            progressMessageElement.remove();
+            progressMessageElement = null;
+        }
+    }
+
     async function generatePrompt() {
         generateBtn.disabled = true;
         generateBtn.textContent = '生成中...';
         userInput.disabled = true;
         sendBtn.disabled = true;
 
-        addMessage('正在生成提示词，请稍候（可能需要10-30秒）...', false);
+        // 确保WebSocket连接
+        if (!progressWebSocket || progressWebSocket.readyState !== WebSocket.OPEN) {
+            connectProgressWebSocket();
+        }
 
         try {
             const controller = new AbortController();
@@ -196,10 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
 
-            const lastMessage = chatMessages.lastElementChild;
-            if (lastMessage && lastMessage.classList.contains('assistant-message')) {
-                lastMessage.remove();
-            }
+            clearProgressMessage();
 
             if (data.success) {
                 currentPrompt = data.full_prompt;
@@ -211,10 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
         } catch (error) {
-            const lastMessage = chatMessages.lastElementChild;
-            if (lastMessage && lastMessage.classList.contains('assistant-message')) {
-                lastMessage.remove();
-            }
+            clearProgressMessage();
             
             if (error.name === 'AbortError') {
                 addMessage('生成超时，请重试。');
@@ -230,6 +295,9 @@ document.addEventListener('DOMContentLoaded', function() {
         sendBtn.disabled = false;
         userInput.focus();
     }
+
+    // 页面加载时连接WebSocket
+    window.addEventListener('load', connectProgressWebSocket);
 
     async function resetConversation() {
         userInput.disabled = true;

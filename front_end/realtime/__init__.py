@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from flask import Blueprint, render_template, jsonify, request
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import db as db_module
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -21,7 +24,6 @@ realtime_bp = Blueprint('realtime', __name__,
                         static_folder=str(_realtime_dir / 'static'),
                         static_url_path='/realtime/static')
 
-SCENE_PROMPT_DIR = Path(__file__).parent.parent.parent / "scene_prompt"
 RECORD_DIR = Path(__file__).parent.parent.parent / "record"
 RECORD_DIR.mkdir(exist_ok=True)
 
@@ -104,43 +106,39 @@ class ConversationRecorder:
 
 @realtime_bp.route('/<scene_id>')
 def index(scene_id):
-    scene_file = find_scene_file(scene_id)
-    if not scene_file:
-        return "场景不存在", 404
-    
-    scene_name = scene_file.stem.rsplit('_', 2)[0] if '_' in scene_file.stem else scene_file.stem
-    
-    provider = request.args.get('provider', DEFAULT_PROVIDER)
-    
-    return render_template('realtime.html', 
-                          scene_id=scene_id, 
-                          scene_name=scene_name,
-                          provider=provider)
+    try:
+        scene_id_int = int(scene_id)
+        scene = db_module.get_scene_by_id(scene_id_int)
+        if not scene:
+            return "场景不存在", 404
+        
+        scene_name = scene.get('scene_name', '未知场景')
+        provider = request.args.get('provider', DEFAULT_PROVIDER)
+        
+        return render_template('realtime.html', 
+                              scene_id=scene_id, 
+                              scene_name=scene_name,
+                              provider=provider)
+    except ValueError:
+        return "无效的场景ID", 400
+    except Exception as e:
+        logger.error(f"获取场景失败: {e}")
+        return "获取场景失败", 500
 
 
 @realtime_bp.route('/prompt/<scene_id>')
 def get_prompt(scene_id):
-    scene_file = find_scene_file(scene_id)
-    if not scene_file:
-        return jsonify({'success': False, 'error': '场景不存在'})
-    
     try:
-        with open(scene_file, 'r', encoding='utf-8') as f:
-            prompt = f.read()
-        return jsonify({'success': True, 'prompt': prompt})
+        scene_id_int = int(scene_id)
+        prompt = db_module.get_prompt_by_scene_id(scene_id_int)
+        if prompt:
+            return jsonify({'success': True, 'prompt': prompt})
+        else:
+            return jsonify({'success': False, 'error': '场景不存在'})
+    except ValueError:
+        return jsonify({'success': False, 'error': '无效的场景ID'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-
-def find_scene_file(scene_id):
-    if not SCENE_PROMPT_DIR.exists():
-        return None
-    
-    for file in SCENE_PROMPT_DIR.glob('*.txt'):
-        if scene_id in file.name or file.name == scene_id:
-            return file
-    
-    return None
 
 
 def register_websocket(app, sock):
@@ -152,19 +150,22 @@ def register_websocket(app, sock):
         provider = request.args.get('provider', DEFAULT_PROVIDER).lower()
         logger.info(f"WebSocket connection for scene: {scene_id}, provider: {provider}")
         
-        scene_file = find_scene_file(scene_id)
-        if not scene_file:
-            ws.send(json.dumps({'type': 'error', 'message': '场景不存在'}))
+        try:
+            scene_id_int = int(scene_id)
+            scene = db_module.get_scene_by_id(scene_id_int)
+            if not scene:
+                ws.send(json.dumps({'type': 'error', 'message': '场景不存在'}))
+                ws.close()
+                return
+            
+            scene_name = scene.get('scene_name', '未知场景')
+            system_prompt = scene.get('scene_prompt', '')
+        except ValueError:
+            ws.send(json.dumps({'type': 'error', 'message': '无效的场景ID'}))
             ws.close()
             return
-        
-        scene_name = scene_file.stem.rsplit('_', 2)[0] if '_' in scene_file.stem else scene_file.stem
-        
-        try:
-            with open(scene_file, 'r', encoding='utf-8') as f:
-                system_prompt = f.read()
         except Exception as e:
-            ws.send(json.dumps({'type': 'error', 'message': f'读取提示词失败: {str(e)}'}))
+            ws.send(json.dumps({'type': 'error', 'message': f'获取场景失败: {str(e)}'}))
             ws.close()
             return
         

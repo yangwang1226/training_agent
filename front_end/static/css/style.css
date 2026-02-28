@@ -547,3 +547,27 @@ body {
 .option-button:active {
     transform: translateY(0);
 }
+
+/* 进度指示器样式 */
+.progress-indicator {
+    width: 100%;
+    height: 8px;
+    background: #f0f2f5;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-indicator + p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}

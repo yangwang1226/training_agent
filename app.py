@@ -1,8 +1,7 @@
 import sys
 import os
 import logging
-import re
-from datetime import datetime
+import json
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,14 +19,15 @@ from flask import Flask, render_template, request, jsonify, session, Blueprint, 
 from flask_sock import Sock
 from agent import ConversationalPromptAgent, InteractivePromptAgent
 from agent.evaluate_agent import assessment_service, DifficultyLevel
+import db as db_module
 
 app = Flask(__name__, template_folder='front_end/templates', static_folder='front_end/static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
 
 sock = Sock(app)
 
-SCENE_PROMPT_DIR = Path(__file__).parent / "scene_prompt"
-SCENE_PROMPT_DIR.mkdir(exist_ok=True)
+# 进度更新的WebSocket连接
+progress_connections = {}
 
 EVALUATE_STATIC_DIR = Path(__file__).parent / "front_end" / "evaluate" / "static"
 
@@ -113,7 +113,29 @@ def generate():
         })
     
     try:
+        # 发送开始生成的进度
+        send_progress(session_id, "开始生成提示词...", 10)
+        
+        # 模拟进度更新
+        send_progress(session_id, "分析场景信息...", 20)
+        
+        # 生成主问题
+        send_progress(session_id, "生成客户问题列表...", 40)
+        
+        # 生成关联问题
+        send_progress(session_id, "生成关联问题和触发条件...", 60)
+        
+        # 生成情绪描述
+        send_progress(session_id, "生成客户情绪描述...", 80)
+        
+        # 构建完整提示词
+        send_progress(session_id, "构建完整提示词...", 90)
+        
         full_prompt = agent.generate_prompt()
+        
+        # 完成
+        send_progress(session_id, "提示词生成完成！", 100)
+        
         logging.info("提示词生成成功")
         
         return jsonify({
@@ -204,29 +226,21 @@ def save():
             'error': '没有可保存的提示词'
         })
     
-    safe_name = re.sub(r'[<>:"/\\|?*]', '', name)
-    safe_name = safe_name.replace(' ', '_')
-    
-    if not safe_name:
-        safe_name = f"scene_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{safe_name}_{timestamp}.txt"
-    
-    filepath = SCENE_PROMPT_DIR / filename
-    
     try:
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(prompt)
+        scene_id = db_module.save_scene(name, prompt, status=0)
         
-        logging.info(f"场景保存成功: {filepath}")
-        
-        return jsonify({
-            'success': True,
-            'filename': filename,
-            'scene_id': filename,
-            'message': f'场景已保存为 {filename}'
-        })
+        if scene_id:
+            logging.info(f"场景保存成功: id={scene_id}, name={name}")
+            return jsonify({
+                'success': True,
+                'scene_id': scene_id,
+                'message': f'场景已保存'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': '保存失败'
+            })
     except Exception as e:
         logging.error(f"保存场景失败: {str(e)}", exc_info=True)
         return jsonify({
@@ -236,38 +250,35 @@ def save():
 
 @app.route('/api/scenes', methods=['GET'])
 def list_scenes():
-    scenes = []
-    if SCENE_PROMPT_DIR.exists():
-        for file in SCENE_PROMPT_DIR.glob('*.txt'):
-            scenes.append({
-                'id': file.name,
-                'name': file.stem.rsplit('_', 2)[0] if '_' in file.stem else file.stem,
-                'created_at': datetime.fromtimestamp(file.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-            })
-    return jsonify({'scenes': scenes})
+    try:
+        scenes = db_module.list_scenes()
+        scenes_list = [
+            {
+                'id': scene['id'],
+                'name': scene['scene_name'],
+                'created_at': scene['created_time'].strftime('%Y-%m-%d %H:%M:%S') if scene.get('created_time') else ''
+            }
+            for scene in scenes
+        ]
+        return jsonify({'scenes': scenes_list})
+    except Exception as e:
+        logging.error(f"获取场景列表失败: {str(e)}", exc_info=True)
+        return jsonify({'scenes': []})
 
 @app.route('/api/realtime/prompt/<scene_id>')
 def get_realtime_prompt(scene_id):
-    scene_file = find_scene_file(scene_id)
-    if not scene_file:
-        return jsonify({'success': False, 'error': '场景不存在'})
-    
     try:
-        with open(scene_file, 'r', encoding='utf-8') as f:
-            prompt = f.read()
-        return jsonify({'success': True, 'prompt': prompt})
+        scene_id_int = int(scene_id)
+        prompt = db_module.get_prompt_by_scene_id(scene_id_int)
+        if prompt:
+            return jsonify({'success': True, 'prompt': prompt})
+        else:
+            return jsonify({'success': False, 'error': '场景不存在'})
+    except ValueError:
+        return jsonify({'success': False, 'error': '无效的场景ID'})
     except Exception as e:
+        logging.error(f"获取场景提示词失败: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)})
-
-def find_scene_file(scene_id):
-    if not SCENE_PROMPT_DIR.exists():
-        return None
-    
-    for file in SCENE_PROMPT_DIR.glob('*.txt'):
-        if scene_id in file.name or file.name == scene_id:
-            return file
-    
-    return None
 
 
 @app.route('/api/interactive/init', methods=['GET'])
@@ -570,6 +581,39 @@ def evaluate_training_session(session_id):
             'success': False,
             'error': '评估失败'
         })
+
+
+@sock.route('/api/progress/ws')
+def progress_ws(ws):
+    session_id = session.get('session_id', 'default')
+    progress_connections[session_id] = ws
+    logger.info(f"Progress WebSocket connected for session: {session_id}")
+    
+    try:
+        while True:
+            data = ws.receive(timeout=300)
+            if data is None:
+                break
+    except Exception as e:
+        logger.error(f"Progress WebSocket error: {e}")
+    finally:
+        if session_id in progress_connections:
+            del progress_connections[session_id]
+        logger.info(f"Progress WebSocket closed for session: {session_id}")
+
+
+def send_progress(session_id, message, step):
+    """发送进度更新"""
+    if session_id in progress_connections:
+        try:
+            ws = progress_connections[session_id]
+            ws.send(json.dumps({
+                'type': 'progress',
+                'message': message,
+                'step': step
+            }))
+        except Exception as e:
+            logger.error(f"Send progress error: {e}")
 
 
 if __name__ == '__main__':
