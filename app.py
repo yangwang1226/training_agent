@@ -16,9 +16,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, Blueprint, send_from_directory
 from flask_sock import Sock
 from agent import ConversationalPromptAgent, InteractivePromptAgent
+from agent.evaluate_agent import assessment_service, DifficultyLevel
 
 app = Flask(__name__, template_folder='front_end/templates', static_folder='front_end/static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
@@ -27,6 +28,13 @@ sock = Sock(app)
 
 SCENE_PROMPT_DIR = Path(__file__).parent / "scene_prompt"
 SCENE_PROMPT_DIR.mkdir(exist_ok=True)
+
+EVALUATE_STATIC_DIR = Path(__file__).parent / "front_end" / "evaluate" / "static"
+
+
+@app.route('/evaluate/static/<path:filename>')
+def evaluate_static(filename):
+    return send_from_directory(EVALUATE_STATIC_DIR, filename)
 
 from front_end.realtime import register_websocket
 register_websocket(app, sock)
@@ -368,6 +376,200 @@ def interactive_generate():
     except Exception as e:
         logging.error(f"生成提示词失败: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/evaluate/')
+def evaluate_page():
+    evaluate_template_path = Path(__file__).parent / "front_end" / "evaluate" / "templates" / "evaluate.html"
+    with open(evaluate_template_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+@app.route('/api/evaluate/profile/<user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    profile = assessment_service.get_user_profile(user_id)
+    
+    if profile:
+        return jsonify({
+            'success': True,
+            'profile': {
+                'user_id': profile.user_id,
+                'overall_score': profile.overall_score,
+                'dimension_scores': profile.dimension_scores,
+                'training_count': profile.training_count,
+                'total_duration': profile.total_duration,
+                'level': profile.level,
+                'weak_points': profile.weak_points,
+                'strong_points': profile.strong_points,
+                'improvement_history': profile.improvement_history,
+                'achievements': profile.achievements
+            }
+        })
+    else:
+        return jsonify({
+            'success': True,
+            'profile': {
+                'user_id': user_id,
+                'overall_score': 0,
+                'dimension_scores': {
+                    '沟通技巧': 0,
+                    '产品知识': 0,
+                    '需求挖掘': 0,
+                    '异议处理': 0,
+                    '促成技巧': 0
+                },
+                'training_count': 0,
+                'total_duration': 0,
+                'level': '入门',
+                'weak_points': [],
+                'strong_points': [],
+                'improvement_history': [],
+                'achievements': []
+            }
+        })
+
+
+@app.route('/api/evaluate/history/<user_id>', methods=['GET'])
+def get_training_history(user_id):
+    industry_filter = request.args.get('industry', '')
+    
+    history = assessment_service.get_training_history(user_id, limit=20)
+    
+    if industry_filter:
+        history = [h for h in history if industry_filter in h.get('industry', '')]
+    
+    return jsonify({
+        'success': True,
+        'history': history
+    })
+
+
+@app.route('/api/evaluate/assessment/<session_id>', methods=['GET'])
+def get_assessment(session_id):
+    assessment = assessment_service.get_assessment(session_id)
+    
+    if assessment:
+        return jsonify({
+            'success': True,
+            'assessment': assessment
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': '评估报告不存在'
+        })
+
+
+@app.route('/api/evaluate/suggestions/<user_id>', methods=['POST'])
+def generate_suggestions(user_id):
+    suggestions = assessment_service.generate_improvement_suggestions(user_id)
+    
+    if suggestions:
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': '无法生成建议，请先完成训练'
+        })
+
+
+@app.route('/api/evaluate/session/create', methods=['POST'])
+def create_evaluation_session():
+    data = request.json
+    user_id = session.get('session_id', 'default')
+    
+    training_session = assessment_service.create_session(
+        user_id=user_id,
+        scene_id=data.get('scene_id', ''),
+        industry=data.get('industry', ''),
+        role=data.get('role', ''),
+        purchase_intent=data.get('purchase_intent', '一般'),
+        difficulty=DifficultyLevel(data.get('difficulty', '进阶')),
+        system_prompt=data.get('system_prompt', ''),
+        customer_persona=data.get('customer_persona', '')
+    )
+    
+    return jsonify({
+        'success': True,
+        'session_id': training_session.session_id
+    })
+
+
+@app.route('/api/evaluate/session/<session_id>/transcript', methods=['POST'])
+def add_transcript(session_id):
+    data = request.json
+    
+    assessment_service.add_transcript(
+        session_id=session_id,
+        role=data.get('role', 'user'),
+        content=data.get('content', ''),
+        timestamp=data.get('timestamp')
+    )
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/evaluate/session/<session_id>/end', methods=['POST'])
+def end_evaluation_session(session_id):
+    session = assessment_service.end_session(session_id)
+    
+    if session:
+        return jsonify({
+            'success': True,
+            'duration': session.duration_seconds
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': '会话不存在'
+        })
+
+
+@app.route('/api/evaluate/session/<session_id>/evaluate', methods=['POST'])
+def evaluate_training_session(session_id):
+    assessment = assessment_service.evaluate_session(session_id)
+    
+    if assessment:
+        return jsonify({
+            'success': True,
+            'assessment': {
+                'overall_score': assessment.overall_score,
+                'dimension_scores': [
+                    {
+                        'dimension': ds.dimension_name,
+                        'score': ds.score,
+                        'weight': ds.weight,
+                        'reason': ds.reason,
+                        'sub_scores': ds.sub_scores
+                    }
+                    for ds in assessment.dimension_scores
+                ],
+                'highlights': assessment.highlights,
+                'improvements': assessment.improvements,
+                'golden_sentences': assessment.golden_sentences,
+                'key_moments': [
+                    {
+                        'turn': km.time,
+                        'type': km.moment_type,
+                        'content': km.content,
+                        'handling': km.handling_quality,
+                        'suggestion': km.suggestion
+                    }
+                    for km in assessment.key_moments
+                ],
+                'completion_rate': assessment.completion_rate,
+                'total_turns': assessment.total_turns,
+                'duration_seconds': assessment.duration_seconds
+            }
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': '评估失败'
+        })
 
 
 if __name__ == '__main__':

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI教练 - 训练评估</title>
+    <link rel="stylesheet" href="/evaluate/static/css/evaluate.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎯 AI教练训练评估</h1>
+            <p class="subtitle">从陪练到教练，持续提升销售能力</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="profile">能力画像</button>
+            <button class="tab-btn" data-tab="history">训练历史</button>
+            <button class="tab-btn" data-tab="assessment">评估报告</button>
+            <button class="tab-btn" data-tab="suggestions">改进建议</button>
+        </nav>
+
+        <main class="content">
+            <section id="profile-tab" class="tab-content active">
+                <div class="profile-header">
+                    <div class="level-badge" id="levelBadge">
+                        <span class="level-icon">🌱</span>
+                        <span class="level-text">入门</span>
+                    </div>
+                    <div class="overall-score">
+                        <div class="score-circle">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="score-bg" cx="50" cy="50" r="45"/>
+                                <circle class="score-progress" cx="50" cy="50" r="45" id="scoreCircle"/>
+                            </svg>
+                            <div class="score-value">
+                                <span id="overallScore">0</span>
+                                <span class="score-label">综合得分</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="stat-value" id="trainingCount">0</span>
+                            <span class="stat-label">训练次数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalDuration">0</span>
+                            <span class="stat-label">训练时长(分钟)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dimension-scores">
+                    <h3>能力维度分析</h3>
+                    <div class="radar-chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="dimension-bars" id="dimensionBars">
+                    </div>
+                </div>
+
+                <div class="strengths-weaknesses">
+                    <div class="strengths">
+                        <h4>💪 优势领域</h4>
+                        <ul id="strengthsList"></ul>
+                    </div>
+                    <div class="weaknesses">
+                        <h4>📈 待提升</h4>
+                        <ul id="weaknessesList"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="history-tab" class="tab-content">
+                <div class="history-header">
+                    <h3>训练记录</h3>
+                    <div class="filter-group">
+                        <select id="industryFilter">
+                            <option value="">全部行业</option>
+                            <option value="教育">教育</option>
+                            <option value="汽车">汽车</option>
+                            <option value="房地产">房地产</option>
+                            <option value="金融">金融</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="history-list" id="historyList">
+                    <div class="loading">加载中...</div>
+                </div>
+
+                <div class="trend-chart">
+                    <h3>成绩趋势</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
+
+            <section id="assessment-tab" class="tab-content">
+                <div class="assessment-selector">
+                    <label for="sessionSelect">选择训练记录：</label>
+                    <select id="sessionSelect">
+                        <option value="">请选择...</option>
+                    </select>
+                </div>
+
+                <div class="assessment-report" id="assessmentReport" style="display: none;">
+                    <div class="report-header">
+                        <div class="report-title">
+                            <h3 id="reportTitle">评估报告</h3>
+                            <span class="report-date" id="reportDate"></span>
+                        </div>
+                        <div class="report-summary">
+                            <span class="report-score" id="reportScore">0</span>
+                            <span class="report-duration" id="reportDuration">时长: 0分钟</span>
+                        </div>
+                    </div>
+
+                    <div class="report-dimensions">
+                        <h4>维度得分</h4>
+                        <div id="reportDimensions"></div>
+                    </div>
+
+                    <div class="report-highlights">
+                        <h4>🎯 亮点表现</h4>
+                        <ul id="reportHighlights"></ul>
+                    </div>
+
+                    <div class="report-improvements">
+                        <h4>📈 改进建议</h4>
+                        <ul id="reportImprovements"></ul>
+                    </div>
+
+                    <div class="report-golden">
+                        <h4>💬 对话金句</h4>
+                        <div id="reportGolden"></div>
+                    </div>
+
+                    <div class="report-moments">
+                        <h4>🔑 关键节点</h4>
+                        <div id="reportMoments"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="suggestions-tab" class="tab-content">
+                <div class="suggestions-container">
+                    <button class="generate-btn" id="generateSuggestions">
+                        生成个性化学习建议
+                    </button>
+
+                    <div class="suggestions-content" id="suggestionsContent" style="display: none;">
+                        <div class="priority-area">
+                            <h4>🎯 重点提升领域</h4>
+                            <p id="priorityArea"></p>
+                        </div>
+
+                        <div class="learning-path">
+                            <h4>📚 学习路径</h4>
+                            <div id="learningPath"></div>
+                        </div>
+
+                        <div class="practice-scenarios">
+                            <h4>🏋️ 推荐练习场景</h4>
+                            <div id="practiceScenarios"></div>
+                        </div>
+
+                        <div class="key-points">
+                            <h4>💡 关键要点</h4>
+                            <ul id="keyPoints"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="actions">
+            <a href="/" class="action-btn secondary">返回首页</a>
+            <a href="/realtime" class="action-btn primary">开始训练</a>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/evaluate/static/js/evaluate.js"></script>
+</body>
+</html>
