@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>实时对话 - 智能提示词系统</title>
+    <title>实时对话 - AI智能训练系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('realtime.static', filename='css/realtime.css') }}">
 </head>
 <body>
     <div class="container">
         <header class="header">
+            <a href="/" class="back-link">返回主页</a>
             <h1>实时对话训练</h1>
             <p class="subtitle" id="sceneName">场景加载中...</p>
-            <a href="/" class="back-link">返回主页</a>
         </header>
 
         <div class="main-content">
@@ -24,7 +27,7 @@
                 </div>
 
                 <div class="status-bar" id="statusBar">
-                    <span class="status-icon" id="statusIcon">●</span>
+                    <span class="status-icon" id="statusIcon"></span>
                     <span class="status-text" id="statusText">未连接</span>
                 </div>
 
@@ -38,7 +41,7 @@
 
                     <div class="audio-controls">
                         <button class="btn btn-primary btn-large" id="startBtn" disabled>
-                            <span class="btn-icon">🎤</span>
+                            <span class="btn-icon">�️</span>
                             <span class="btn-text">开始对话</span>
                         </button>
                         <button class="btn btn-danger btn-large" id="stopBtn" style="display: none;">
@@ -57,11 +60,11 @@
                 <div class="info-panel">
                     <h3>对话信息</h3>
                     <div class="info-item">
-                        <span class="info-label">对话时长：</span>
+                        <span class="info-label">对话时长</span>
                         <span class="info-value" id="duration">00:00</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">消息数量：</span>
+                        <span class="info-label">消息数量</span>
                         <span class="info-value" id="messageCount">0</span>
                     </div>
                 </div>
@@ -92,9 +95,11 @@
             <p class="modal-subtitle">请选择要使用的语音模型服务商</p>
             <div class="provider-options">
                 <button class="provider-option" data-provider="qwen">
-                    <span class="provider-icon">🤖</span>
-                    <span class="provider-name">千问 (Qwen)</span>
-                    <span class="provider-desc">阿里云通义千问实时语音</span>
+                    <div class="provider-icon">🤖</div>
+                    <div class="provider-info">
+                        <span class="provider-name">千问 (Qwen)</span>
+                        <span class="provider-desc">阿里云通义千问实时语音</span>
+                    </div>
                 </button>
             </div>
         </div>

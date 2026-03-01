@@ -12,6 +12,9 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from .template_manager import TemplateManager
 from .models import MainQuestion, TriggerGroup, FollowUpQuestion
 
@@ -164,21 +167,41 @@ class ConversationalPromptAgent:
         self.state = ConversationState()
         self.messages: List = [SystemMessage(content=SYSTEM_PROMPT)]
         
-        self.llm = AzureChatOpenAI(
-            azure_deployment='gpt-4o',
-            api_key="c8575027653b42b1b47747f0b4ab135b",
-            azure_endpoint="https://menshen.test.xdf.cn/",
-            api_version="2024-12-01-preview",
-            temperature=0.7
+        import dashscope
+        from dashscope import MultiModalConversation
+        
+        dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
+        self.llm_model = os.getenv("QWEN_PLUS_MODEL", "qwen3.5-plus")
+        self.generation = MultiModalConversation
+    
+    def _call_model(self, messages: List, temperature: float = 0.7) -> str:
+        """调用通义千问API"""
+        formatted_messages = []
+        for msg in messages:
+            if isinstance(msg, SystemMessage):
+                formatted_messages.append({"role": "system", "content": [{"text": msg.content}]})
+            elif isinstance(msg, HumanMessage):
+                formatted_messages.append({"role": "user", "content": [{"text": msg.content}]})
+            elif isinstance(msg, AIMessage):
+                formatted_messages.append({"role": "assistant", "content": [{"text": msg.content}]})
+            elif isinstance(msg, dict):
+                if isinstance(msg.get("content"), list):
+                    formatted_messages.append(msg)
+                else:
+                    formatted_messages.append({"role": msg.get("role", "user"), "content": [{"text": msg.get("content", "")}]})
+            else:
+                formatted_messages.append({"role": "user", "content": [{"text": str(msg)}]})
+        
+        response = self.generation.call(
+            model=self.llm_model,
+            enable_thinking=False,
+            messages=formatted_messages
         )
         
-        self.extraction_llm = AzureChatOpenAI(
-            azure_deployment='gpt-4o',
-            api_key="c8575027653b42b1b47747f0b4ab135b",
-            azure_endpoint="https://menshen.test.xdf.cn/",
-            api_version="2024-12-01-preview",
-            temperature=0
-        )
+        if response.status_code == 200:
+            return response.output.choices[0].message.content[0]["text"]
+        else:
+            raise Exception(f"Qwen API error: {response.code} - {response.message}")
     
     def chat(self, user_input: str) -> Dict[str, Any]:
         self.messages.append(HumanMessage(content=user_input))
@@ -186,23 +209,18 @@ class ConversationalPromptAgent:
         extraction_result = self._extract_info(user_input)
         self._update_state(extraction_result)
         
-        response = self.llm.invoke(self.messages)
-        self.messages.append(AIMessage(content=response.content))
+        response_content = self._call_model(self.messages, temperature=0.7)
+        self.messages.append(AIMessage(content=response_content))
         
-        content = response.content
+        content = response_content
         options = []
-        
-        # 尝试解析JSON格式的回复
+            
         try:
-            # 提取JSON内容
             json_content = self._extract_json(content)
-            # 解析JSON
             parsed_response = json.loads(json_content)
-            # 提取content和options
             content = parsed_response.get('content', content)
             options = parsed_response.get('options', [])
         except Exception as e:
-            # 如果解析失败，使用原始内容
             logging.warning(f"解析JSON失败: {str(e)}")
         
         return {
@@ -230,10 +248,10 @@ class ConversationalPromptAgent:
         
         try:
             parser = JsonOutputParser(pydantic_object=InfoExtraction)
-            response = self.extraction_llm.invoke(
+            response_content = self._call_model(
                 [HumanMessage(content=extraction_prompt + "\n\n" + parser.get_format_instructions())]
             )
-            return parser.parse(response.content)
+            return parser.parse(response_content)
         except Exception as e:
             logging.error(f"信息提取失败: {str(e)}")
             return {}
@@ -328,10 +346,10 @@ class ConversationalPromptAgent:
         
         try:
             parser = JsonOutputParser(pydantic_object=ExtendedInfoJudge)
-            response = self.extraction_llm.invoke(
+            response_content = self._call_model(
                 [HumanMessage(content=prompt + "\n\n" + parser.get_format_instructions())]
             )
-            return parser.parse(response.content)
+            return parser.parse(response_content)
         except Exception as e:
             logging.error(f"延展信息判断失败: {str(e)}")
             if len(self.state.extended_info) >= 2:
@@ -411,8 +429,8 @@ class ConversationalPromptAgent:
         
         try:
             logging.info("正在调用LLM生成问题...")
-            response = self.extraction_llm.invoke([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
-            result = json.loads(self._extract_json(response.content))
+            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
+            result = json.loads(self._extract_json(response_content))
             self.state.main_questions = result.get("main_questions", [])
             self.state.background_info = result.get("background_info", "")
             logging.info(f"成功生成 {len(self.state.main_questions)} 个问题")
@@ -449,8 +467,8 @@ class ConversationalPromptAgent:
         
         try:
             logging.info("正在调用LLM生成关联问题...")
-            response = self.extraction_llm.invoke([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
-            result = json.loads(self._extract_json(response.content))
+            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
+            result = json.loads(self._extract_json(response_content))
             self.state.trigger_groups = result.get("trigger_groups", [])
             logging.info(f"成功生成 {len(self.state.trigger_groups)} 个关联问题分组")
         except Exception as e:
@@ -477,8 +495,8 @@ class ConversationalPromptAgent:
         
         try:
             logging.info("正在调用LLM生成情绪描述...")
-            response = self.extraction_llm.invoke([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
-            result = json.loads(self._extract_json(response.content))
+            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
+            result = json.loads(self._extract_json(response_content))
             self.state.emotion_type = result.get("emotion_type", "平和")
             self.state.emotion_description = result.get("emotion_description", "")
             self.state.speaking_style = result.get("speaking_style", "")

@@ -110,11 +110,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
             
+            const muteGain = audioContext.createGain();
+            muteGain.gain.value = 0;
+            
             source.connect(scriptProcessor);
-            scriptProcessor.connect(audioContext.destination);
+            scriptProcessor.connect(muteGain);
+            muteGain.connect(audioContext.destination);
             
             window.scriptProcessor = scriptProcessor;
             window.audioSource = source;
+            window.muteGain = muteGain;
 
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${wsProtocol}//${window.location.host}/api/realtime/ws/${SCENE_ID}?provider=${selectedProvider}`;
@@ -185,6 +190,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.audioSource) {
             window.audioSource.disconnect();
             window.audioSource = null;
+        }
+        
+        if (window.muteGain) {
+            window.muteGain.disconnect();
+            window.muteGain = null;
         }
 
         if (audioStream) {
