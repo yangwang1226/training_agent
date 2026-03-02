@@ -34,16 +34,13 @@ function renderOptions(options) {
         return;
     }
     
-    // 创建单选按钮组
-    const radioGroupName = 'option_' + Date.now(); // 使用时间戳确保唯一性
+    const radioGroupName = 'option_' + Date.now();
     
     options.forEach((option, index) => {
-        // 创建单选按钮容器
         const optionWrapper = document.createElement('label');
         optionWrapper.className = 'option-btn';
         optionWrapper.style.cursor = 'pointer';
         
-        // 创建隐藏的单选按钮
         const radio = document.createElement('input');
         radio.type = 'radio';
         radio.name = radioGroupName;
@@ -51,22 +48,17 @@ function renderOptions(options) {
         radio.id = `option_${index}_${Date.now()}`;
         radio.style.display = 'none';
         
-        // 创建显示文本
         const label = document.createElement('span');
         label.textContent = option;
         
-        // 点击事件
         optionWrapper.onclick = (e) => {
             e.preventDefault();
-            // 先清除所有选中状态
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
-            // 设置当前按钮为选中状态
             optionWrapper.classList.add('selected');
             radio.checked = true;
             
-            // 延迟执行选择，让用户看到选中效果
             setTimeout(() => {
                 handleModelOption(option);
             }, 200);
@@ -199,7 +191,7 @@ function processInput(value) {
 
 function showBackgroundSection() {
     document.getElementById('interactiveArea').style.display = 'none';
-    document.getElementById('backgroundSection').style.display = 'block';
+    document.getElementById('backgroundSection').classList.add('show');
     state.currentStep = 'background';
     updateStepIndicator();
 }
@@ -232,7 +224,7 @@ function updateState(step, value) {
 function updateStateDisplay(elementId, value) {
     const element = document.querySelector(`#${elementId} .state-value`);
     element.textContent = value;
-    element.style.color = '#667eea';
+    element.classList.add('collected');
 }
 
 function updateStepIndicator() {
@@ -260,10 +252,15 @@ function addMessage(text, role) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
     
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'message-avatar';
+    avatarDiv.textContent = role === 'user' ? '我' : 'AI';
+    
     const textDiv = document.createElement('div');
     textDiv.className = 'message-text';
     textDiv.textContent = text;
     
+    messageDiv.appendChild(avatarDiv);
     messageDiv.appendChild(textDiv);
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -372,7 +369,7 @@ document.getElementById('startRealtimeBtn').onclick = () => {
 function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
-    toast.classList.add('show');
+    toast.className = 'toast success show';
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);

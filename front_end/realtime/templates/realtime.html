@@ -3,86 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>实时对话 - AI智能训练系统</title>
+    <title>AI销售陪练专家 - 实战演练</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('realtime.static', filename='css/realtime.css') }}">
 </head>
 <body>
+    <div class="background-decoration">
+        <div class="geo-shape shape-1"></div>
+        <div class="geo-shape shape-2"></div>
+        <div class="geo-shape shape-3"></div>
+        <div class="wave-pattern"></div>
+    </div>
+
     <div class="container">
-        <header class="header">
-            <a href="/" class="back-link">返回主页</a>
-            <h1>实时对话训练</h1>
-            <p class="subtitle" id="sceneName">场景加载中...</p>
+        <header class="top-bar">
+            <a href="/" class="back-link">
+                <span class="back-icon">‹</span>
+                <span>返回主页</span>
+            </a>
+            <h1 class="app-title">AI销售陪练专家 - 实战演练</h1>
+            <div class="title-spacer"></div>
         </header>
 
         <div class="main-content">
-            <div class="chat-container">
+            <div class="dialog-panel">
                 <div class="chat-messages" id="chatMessages">
-                    <div class="welcome-message">
-                        <p>点击下方按钮开始语音对话</p>
-                        <p>系统将根据场景提示词与您进行实时互动</p>
-                    </div>
-                </div>
-
-                <div class="status-bar" id="statusBar">
-                    <span class="status-icon" id="statusIcon"></span>
-                    <span class="status-text" id="statusText">未连接</span>
-                </div>
-
-                <div class="control-panel">
-                    <div class="prompt-preview">
-                        <button class="btn btn-secondary" id="togglePrompt">查看场景提示词</button>
-                        <div class="prompt-content" id="promptContent" style="display: none;">
-                            <pre id="promptText"></pre>
+                    <div class="welcome-content">
+                        <div class="welcome-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
                         </div>
+                        <p class="welcome-title">点击下方按钮开始您的AI销售实战对练</p>
+                        <p class="welcome-desc">系统将根据您的场景和语音，进行实时的语音和文字互动</p>
                     </div>
+                </div>
 
-                    <div class="audio-controls">
-                        <button class="btn btn-primary btn-large" id="startBtn" disabled>
-                            <span class="btn-icon">�️</span>
-                            <span class="btn-text">开始对话</span>
-                        </button>
-                        <button class="btn btn-danger btn-large" id="stopBtn" style="display: none;">
-                            <span class="btn-icon">⏹️</span>
-                            <span class="btn-text">结束对话</span>
-                        </button>
-                    </div>
-
+                <div class="control-area">
                     <div class="visualizer" id="visualizer">
                         <canvas id="audioCanvas" width="400" height="60"></canvas>
+                    </div>
+
+                    <button class="start-button" id="startBtn" disabled>
+                        <span class="btn-glow"></span>
+                        <span class="btn-content">
+                            <svg class="btn-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            </svg>
+                            <span>开始对话</span>
+                        </span>
+                    </button>
+
+                    <button class="stop-button" id="stopBtn" style="display: none;">
+                        <span class="btn-glow"></span>
+                        <span class="btn-content">
+                            <svg class="btn-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="6" width="12" height="12" rx="2"/>
+                            </svg>
+                            <span>结束对话</span>
+                        </span>
+                    </button>
+
+                    <div class="status-indicator" id="statusBar">
+                        <span class="status-dot"></span>
+                        <span class="status-text" id="statusText">未连接 - 等待启动</span>
                     </div>
                 </div>
             </div>
 
-            <div class="sidebar">
-                <div class="info-panel">
-                    <h3>对话信息</h3>
-                    <div class="info-item">
-                        <span class="info-label">对话时长</span>
-                        <span class="info-value" id="duration">00:00</span>
+            <div class="side-panels">
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        <span>实战数据概览</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">消息数量</span>
-                        <span class="info-value" id="messageCount">0</span>
+                    <div class="panel-body">
+                        <div class="data-item">
+                            <span class="data-label">时长</span>
+                            <span class="data-value" id="duration">00:00</span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">交互轮数</span>
+                            <span class="data-value" id="messageCount">0</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="tips-panel">
-                    <h3>使用说明</h3>
-                    <ul>
-                        <li>点击"开始对话"启动语音交互</li>
-                        <li>说话时系统会实时识别</li>
-                        <li>AI会同时输出语音和文字</li>
-                        <li>点击"结束对话"停止会话</li>
-                    </ul>
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
+                        <span>实战培训背景</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="scenario-info">
+                            <div class="scenario-item">
+                                <span class="scenario-label">场景</span>
+                                <span class="scenario-value" id="scenarioName">加载中...</span>
+                            </div>
+                            <div class="scenario-item">
+                                <span class="scenario-label">客户档案</span>
+                                <span class="scenario-value" id="customerProfile">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="text-output">
-                    <h3>实时转写</h3>
-                    <div class="transcript" id="transcript">
-                        <p class="placeholder">等待对话开始...</p>
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span>快速使用指南</span>
+                    </div>
+                    <div class="panel-body">
+                        <ul class="guide-list">
+                            <li>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                <span>点击'开始'按钮启动语音实战</span>
+                            </li>
+                            <li>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                </svg>
+                                <span>AI将实时识别并分析您的声音</span>
+                            </li>
+                            <li>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span>AI将以语音和文字进行精准回应</span>
+                            </li>
+                            <li>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="9" y1="9" x2="15" y2="15"/>
+                                    <line x1="15" y1="9" x2="9" y2="15"/>
+                                </svg>
+                                <span>点击'结束'按钮停止对练并生成报告</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -90,7 +167,7 @@
     </div>
 
     <div class="modal-overlay" id="providerModal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-panel">
             <h2>选择对话模型</h2>
             <p class="modal-subtitle">请选择要使用的语音模型服务商</p>
             <div class="provider-options">

@@ -4,15 +4,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusText = document.getElementById('statusText');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
-    const togglePrompt = document.getElementById('togglePrompt');
-    const promptContent = document.getElementById('promptContent');
-    const promptText = document.getElementById('promptText');
     const durationEl = document.getElementById('duration');
     const messageCountEl = document.getElementById('messageCount');
-    const transcript = document.getElementById('transcript');
     const visualizer = document.getElementById('visualizer');
     const audioCanvas = document.getElementById('audioCanvas');
-    const sceneNameEl = document.getElementById('sceneName');
+    const scenarioNameEl = document.getElementById('scenarioName');
+    const customerProfileEl = document.getElementById('customerProfile');
     const providerModal = document.getElementById('providerModal');
 
     let ws = null;
@@ -20,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let isRecording = false;
     let audioContext = null;
     let audioStream = null;
-    let workletNode = null;
     let analyser = null;
     let animationId = null;
     let startTime = null;
@@ -29,38 +25,55 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentAudioContext = null;
     let audioQueue = [];
     let isPlayingAudio = false;
-    let nextPlayTime = 0;
     let currentAudioSource = null;
     let lastMessageDiv = null;
     let lastMessageRole = null;
     let lastMessageText = '';
     let selectedProvider = null;
+    let scenePrompt = '';
 
-    sceneNameEl.textContent = SCENE_NAME || '未命名场景';
+    loadSceneInfo();
 
-    loadPrompt();
-
-    async function loadPrompt() {
+    async function loadSceneInfo() {
         try {
             const response = await fetch(`/realtime/prompt/${SCENE_ID}`);
             const data = await response.json();
             if (data.success) {
-                promptText.textContent = data.prompt;
+                scenePrompt = data.prompt;
+                parseAndDisplaySceneInfo(data.prompt);
                 startBtn.disabled = false;
             } else {
-                promptText.textContent = '加载提示词失败: ' + data.error;
+                scenarioNameEl.textContent = '加载失败';
+                customerProfileEl.textContent = data.error;
             }
         } catch (error) {
-            promptText.textContent = '加载提示词失败';
+            scenarioNameEl.textContent = '加载失败';
+            customerProfileEl.textContent = '网络错误';
             console.error('Error:', error);
         }
     }
 
-    togglePrompt.addEventListener('click', () => {
-        const isVisible = promptContent.style.display !== 'none';
-        promptContent.style.display = isVisible ? 'none' : 'block';
-        togglePrompt.textContent = isVisible ? '查看场景提示词' : '隐藏场景提示词';
-    });
+    function parseAndDisplaySceneInfo(prompt) {
+        scenarioNameEl.textContent = SCENE_NAME || '销售实战演练';
+        
+        const lines = prompt.split('\n');
+        let profileInfo = '';
+        
+        for (const line of lines) {
+            if (line.includes('客户') || line.includes('背景') || line.includes('场景')) {
+                const cleanLine = line.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim();
+                if (cleanLine.length > 0 && cleanLine.length < 100) {
+                    profileInfo += cleanLine + '；';
+                }
+            }
+        }
+        
+        if (profileInfo) {
+            customerProfileEl.textContent = profileInfo.slice(0, -1);
+        } else {
+            customerProfileEl.textContent = 'AI模拟客户，与您进行销售实战演练';
+        }
+    }
 
     startBtn.addEventListener('click', showProviderModal);
     stopBtn.addEventListener('click', stopSession);
@@ -135,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 visualizer.classList.add('active');
                 startDurationTimer();
                 drawVisualizer();
+                hideWelcomeMessage();
             };
 
             ws.onmessage = (event) => {
@@ -226,12 +240,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleDisconnect() {
         isConnected = false;
         isRecording = false;
-        updateStatus('disconnected', '已断开');
+        updateStatus('disconnected', '已断开 - 对练结束');
         startBtn.style.display = 'inline-flex';
         stopBtn.style.display = 'none';
         startBtn.disabled = false;
         visualizer.classList.remove('active');
         stopDurationTimer();
+    }
+
+    function hideWelcomeMessage() {
+        const welcomeContent = chatMessages.querySelector('.welcome-content');
+        if (welcomeContent) {
+            welcomeContent.style.display = 'none';
+        }
     }
 
     function handleWebSocketMessage(data) {
@@ -251,7 +272,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             lastMessageText = text;
                             lastMessageRole = role;
                         }
-                        addTranscript(text.trim(), role);
                     } else {
                         if (lastMessageDiv && lastMessageRole === role) {
                             lastMessageText = text;
@@ -266,9 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             case 'audio':
                 if (data.audio) {
-                    console.log('Received audio data, length:', data.audio.length);
                     const audioData = base64ToArrayBuffer(data.audio);
-                    console.log('Decoded audio buffer size:', audioData.byteLength);
                     playAudio(audioData);
                 }
                 break;
@@ -278,13 +296,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (currentAudioSource) {
                         try {
                             currentAudioSource.stop();
-                        } catch (e) {
-                        }
+                        } catch (e) {}
                         currentAudioSource = null;
                     }
                     audioQueue = [];
                     isPlayingAudio = false;
-                    nextPlayTime = 0;
                     lastMessageDiv = null;
                     lastMessageRole = null;
                     lastMessageText = '';
@@ -299,22 +315,25 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearAudioQueue() {
         audioQueue = [];
         isPlayingAudio = false;
-        nextPlayTime = 0;
         
         if (currentAudioSource) {
             try {
                 currentAudioSource.stop();
-            } catch (e) {
-            }
+            } catch (e) {}
             currentAudioSource = null;
         }
-        
-        console.log('Audio queue cleared and playback stopped');
     }
 
     function addMessage(text, role) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+        
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.textContent = role === 'user' ? '我' : 'AI';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
         
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
@@ -324,8 +343,12 @@ document.addEventListener('DOMContentLoaded', function() {
         timeDiv.className = 'message-time';
         timeDiv.textContent = new Date().toLocaleTimeString();
         
-        messageDiv.appendChild(textDiv);
-        messageDiv.appendChild(timeDiv);
+        contentDiv.appendChild(textDiv);
+        contentDiv.appendChild(timeDiv);
+        
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+        
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
@@ -335,21 +358,8 @@ document.addEventListener('DOMContentLoaded', function() {
         messageCountEl.textContent = messageCount;
     }
 
-    function addTranscript(text, role) {
-        const existingPlaceholder = transcript.querySelector('.placeholder');
-        if (existingPlaceholder) {
-            existingPlaceholder.remove();
-        }
-
-        const div = document.createElement('div');
-        div.className = role === 'user' ? 'user-transcript' : 'ai-transcript';
-        div.innerHTML = `<strong>${role === 'user' ? '用户' : 'AI'}:</strong> ${text}`;
-        transcript.appendChild(div);
-        transcript.scrollTop = transcript.scrollHeight;
-    }
-
     function updateStatus(status, message) {
-        statusBar.className = 'status-bar ' + status;
+        statusBar.className = 'status-indicator ' + status;
         statusText.textContent = message;
     }
 
@@ -383,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
             animationId = requestAnimationFrame(draw);
             analyser.getByteFrequencyData(dataArray);
 
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillStyle = 'rgba(240, 250, 247, 0.3)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const barWidth = (canvas.width / bufferLength) * 2.5;
@@ -393,8 +403,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const barHeight = (dataArray[i] / 255) * canvas.height;
                 
                 const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-                gradient.addColorStop(0, '#667eea');
-                gradient.addColorStop(1, '#764ba2');
+                gradient.addColorStop(0, '#3EB489');
+                gradient.addColorStop(1, '#00CED1');
                 
                 ctx.fillStyle = gradient;
                 ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
@@ -414,26 +424,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (currentAudioContext.state === 'suspended') {
                 await currentAudioContext.resume();
             }
-
-            console.log('playAudio: audioData size =', audioData.byteLength);
             
             if (audioData.byteLength > 0) {
                 try {
                     const wavData = pcmToWav(audioData, 24000, 1, 16);
-                    console.log('playAudio: wavData size =', wavData.byteLength);
-                    
                     const audioBuffer = await currentAudioContext.decodeAudioData(wavData);
-                    console.log('playAudio: PCM decode success, duration =', audioBuffer.duration, 'channels =', audioBuffer.numberOfChannels);
                     
                     if (audioBuffer.duration > 0) {
                         audioQueue.push(audioBuffer);
-                        console.log('Audio queue length:', audioQueue.length);
                         
                         if (!isPlayingAudio) {
                             playNextInQueue();
                         }
-                    } else {
-                        console.warn('Audio buffer duration is 0, skipping');
                     }
                 } catch (e) {
                     console.error('Audio decode error:', e);
@@ -467,7 +469,6 @@ document.addEventListener('DOMContentLoaded', function() {
         writeString(view, 36, 'data');
         view.setUint32(40, dataSize, true);
         
-        const pcmView = new Uint8Array(pcmData);
         const pcmInt16View = new Int16Array(pcmData);
         const wavInt16View = new Int16Array(buffer, 44, pcmInt16View.length);
         
@@ -481,7 +482,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function playNextInQueue() {
         if (audioQueue.length === 0) {
             isPlayingAudio = false;
-            nextPlayTime = 0;
             currentAudioSource = null;
             return;
         }
@@ -493,13 +493,9 @@ document.addEventListener('DOMContentLoaded', function() {
         currentAudioSource.buffer = audioBuffer;
         currentAudioSource.connect(currentAudioContext.destination);
         
-        const currentTime = currentAudioContext.currentTime;
-        
-        console.log('Playing audio at time:', currentTime, 'duration:', audioBuffer.duration);
-        currentAudioSource.start(currentTime);
+        currentAudioSource.start(currentAudioContext.currentTime);
         
         currentAudioSource.onended = () => {
-            console.log('Audio ended, queue length:', audioQueue.length);
             currentAudioSource = null;
             if (isPlayingAudio) {
                 playNextInQueue();
