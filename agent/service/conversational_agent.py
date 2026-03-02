@@ -45,6 +45,9 @@ class ConversationState:
     extended_info: Dict[str, str] = field(default_factory=dict)
     extended_questions: List[str] = field(default_factory=list)
     extended_info_sufficient: bool = False
+    dimensions: List[Dict] = field(default_factory=list)
+    dimensions_confirmed: bool = False
+    training_goal: str = ""
     
     def __post_init__(self):
         self.collected_info = {
@@ -55,7 +58,17 @@ class ConversationState:
         }
     
     def is_complete(self) -> bool:
-        return all(self.collected_info.values())
+        basic_complete = all(self.collected_info.values())
+        extended_complete = self.extended_info_sufficient or len(self.extended_info) >= 2
+        return basic_complete and extended_complete
+    
+    def is_ready_for_dimensions(self) -> bool:
+        basic_complete = all(self.collected_info.values())
+        extended_complete = self.extended_info_sufficient or len(self.extended_info) >= 2
+        return basic_complete and extended_complete
+    
+    def is_dimensions_confirmed(self) -> bool:
+        return self.dimensions_confirmed and len(self.dimensions) > 0
     
     def get_missing_info(self) -> List[str]:
         missing = []
@@ -98,13 +111,16 @@ SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对�
 你的任务是通过对话了解以下信息：
 
 【基础信息】（必须收集）
-1. 行业：用户所在的行业领域（如教育培训、房地产、汽车、金融等）
-2. 角色：用户希望AI模拟的角色（如家长、购房者、购车者等）
+1. 行业：用户所在的行业领域（如教育培训、房地产、汽车、金融、客服、安保、心理咨询等）
+2. 角色：用户希望AI模拟的角色（如家长、购房者、购车者、客户、学生、患者等）
 3. 购买意愿：模拟客户的购买意愿程度（冷淡/一般/感兴趣/非常感兴趣）
 4. 问题：用户期望AI提出的问题，或者让系统自动生成
 
 【延展信息】（根据行业特点智能收集）
 当基础信息收集完成后，你需要根据行业特点，主动询问更多背景信息，让生成的提示词更加丰富和真实。
+
+【培训目标】（可选）
+询问用户的培训目标，如"提升沟通能力"、"学习异议处理"等。
 
 延展信息收集原则：
 - 根据行业特点设计针对性的问题，每个行业关注点不同
@@ -117,6 +133,9 @@ SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对�
 - 房地产行业：目标城市/区域、预算范围、学区需求、户型偏好等
 - 教育培训行业：学生年级、学科、学习目标、当前水平等
 - 金融行业：投资类型、风险偏好、资金规模、投资目标等
+- 客服行业：问题类型、客户情绪、服务场景等
+- 安保行业：工作场景、安全风险、应急类型等
+- 心理咨询：来访者问题类型、情绪状态、咨询目标等
 - 其他行业：根据行业特点自行判断关键信息
 
 对话风格要求：
@@ -133,8 +152,8 @@ SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对�
 
 示例1（选择问题）：
 {
-  "content": "好的，是哪个行业的销售培训呢？",
-  "options": ["房地产", "汽车", "教育", "金融", "其他"]
+  "content": "好的，是哪个行业的培训呢？",
+  "options": ["房地产", "汽车", "教育", "金融", "客服", "安保", "心理咨询", "其他"]
 }
 
 示例2（非选择问题）：
@@ -142,22 +161,6 @@ SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对�
   "content": "了解了，没有特别的问题，我会帮您自动生成。",
   "options": []
 }
-
-示例对话：
-用户：我想生成一个销售培训的提示词
-助手：{"content": "好的，是哪个行业的销售培训呢？", "options": ["房地产", "汽车", "教育", "金融", "其他"]}
-
-用户：汽车销售
-助手：{"content": "明白了，汽车销售培训。那您希望AI模拟什么角色呢？", "options": ["购车者", "试驾客户", "其他"]}
-
-用户：购车者
-助手：{"content": "好的，购车者角色。那这个购车者的购买意愿是怎样的呢？", "options": ["冷淡", "一般", "感兴趣", "非常感兴趣"]}
-
-用户：感兴趣
-助手：{"content": "了解了。您有没有特别想让AI提出的问题？比如关于价格、配置、售后这些？如果没有的话我可以帮您自动生成。", "options": []}
-
-用户：没有，自动生成吧
-助手：{"content": "好的，让我再了解一些背景信息，让生成的提示词更贴近实际场景。这个购车者有具体关注的车型或品牌吗？", "options": []}
 """
 
 
@@ -209,6 +212,12 @@ class ConversationalPromptAgent:
         extraction_result = self._extract_info(user_input)
         self._update_state(extraction_result)
         
+        if self._is_confirming_dimensions(user_input):
+            return self._handle_dimension_confirmation(user_input)
+        
+        if self.state.is_ready_for_dimensions() and not self.state.dimensions:
+            return self._generate_and_show_dimensions()
+        
         response_content = self._call_model(self.messages, temperature=0.7)
         self.messages.append(AIMessage(content=response_content))
         
@@ -225,8 +234,74 @@ class ConversationalPromptAgent:
         
         return {
             "content": content,
-            "options": options
+            "options": options,
+            "show_dimensions": False
         }
+    
+    def _is_confirming_dimensions(self, user_input: str) -> bool:
+        if not self.state.dimensions:
+            return False
+        confirm_keywords = ["确认", "可以", "没问题", "好的", "同意", "接受", "是", "对"]
+        reject_keywords = ["重新", "换", "不行", "不好", "修改", "调整"]
+        
+        user_input_lower = user_input.lower()
+        if any(kw in user_input_lower for kw in reject_keywords):
+            return True
+        if any(kw in user_input_lower for kw in confirm_keywords):
+            return True
+        return False
+    
+    def _handle_dimension_confirmation(self, user_input: str) -> Dict[str, Any]:
+        user_input_lower = user_input.lower()
+        reject_keywords = ["重新", "换", "不行", "不好", "修改", "调整"]
+        
+        if any(kw in user_input_lower for kw in reject_keywords):
+            self.state.dimensions = []
+            return self._generate_and_show_dimensions()
+        
+        self.state.dimensions_confirmed = True
+        return {
+            "content": "好的，维度已确认！现在可以生成完整的场景提示词了。点击「生成提示词」按钮即可。",
+            "options": [],
+            "show_dimensions": False,
+            "dimensions_confirmed": True
+        }
+    
+    def _generate_and_show_dimensions(self) -> Dict[str, Any]:
+        from agent.evaluate_agent.dimension_generator import DimensionGenerator
+        
+        generator = DimensionGenerator()
+        result = generator.generate_dimensions(
+            industry=self.state.industry,
+            role_type=self.state.role_type,
+            role_description=self.state.role_description or self.state.background_info,
+            training_goal=self.state.training_goal or f"提升{self.state.role_type}沟通能力"
+        )
+        
+        if result.success:
+            self.state.dimensions = [d.to_dict() for d in result.dimensions]
+            
+            dim_text = "我为您生成了以下考核维度，请确认：\n\n"
+            for i, dim in enumerate(self.state.dimensions, 1):
+                dim_text += f"**{i}. {dim['dimension_name']}** (权重: {dim['weight']*100:.0f}%)\n"
+                for criterion, desc in dim.get('sub_criteria', {}).items():
+                    dim_text += f"   - {criterion}: {desc}\n"
+                dim_text += "\n"
+            
+            dim_text += "您可以直接确认，或者说「重新生成」来调整。"
+            
+            return {
+                "content": dim_text,
+                "options": ["确认，继续", "重新生成"],
+                "show_dimensions": True,
+                "dimensions": self.state.dimensions
+            }
+        else:
+            return {
+                "content": f"维度生成遇到问题: {result.error_message}，将使用默认维度继续。",
+                "options": ["继续"],
+                "show_dimensions": False
+            }
     
     def _extract_info(self, user_input: str) -> Dict[str, Any]:
         extended_info_summary = self.state.get_extended_info_summary()
@@ -357,15 +432,18 @@ class ConversationalPromptAgent:
             return {"need_more_info": True, "reason": "需要更多信息"}
     
     def is_ready_to_generate(self) -> bool:
-        return self.state.is_complete()
+        return self.state.is_complete() and self.state.is_dimensions_confirmed()
     
     def get_current_state(self) -> ConversationState:
         return self.state
     
-    def generate_prompt(self) -> str:
-        if not self.is_ready_to_generate():
+    def generate_prompt(self, skip_dimensions: bool = False) -> str:
+        if not self.state.is_complete():
             missing = self.state.get_missing_info()
             return f"还需要收集以下信息：{', '.join(missing)}"
+        
+        if not skip_dimensions and not self.state.is_dimensions_confirmed():
+            return "请先确认考核维度后再生成提示词"
         
         logging.info("=" * 50)
         logging.info("开始生成提示词...")
@@ -373,6 +451,7 @@ class ConversationalPromptAgent:
         logging.info(f"角色: {self.state.role_type}")
         logging.info(f"购买意愿: {self.state.purchase_intent}")
         logging.info(f"延展信息: {self.state.extended_info}")
+        logging.info(f"考核维度: {len(self.state.dimensions)} 个")
         logging.info("=" * 50)
         
         self._generate_questions()
@@ -543,9 +622,41 @@ class ConversationalPromptAgent:
         if role_end_idx != -1:
             result = result[:role_end_idx + len(role_section_end)] + "\n\n" + emotion_text + result[role_end_idx + len(role_section_end):]
         
+        if self.state.dimensions:
+            dimension_text = self._format_dimensions_for_prompt()
+            result = result + "\n\n" + dimension_text
+            logging.info("已添加考核维度信息到提示词")
+        
         logging.info(f"提示词构建完成，总长度: {len(result)} 字符")
         
         return result
+    
+    def _format_dimensions_for_prompt(self) -> str:
+        if not self.state.dimensions:
+            return ""
+        
+        lines = ["# 考核维度说明", ""]
+        lines.append("本次训练将按以下维度进行能力评估：")
+        lines.append("")
+        
+        for dim in self.state.dimensions:
+            lines.append(f"## {dim['dimension_name']} (权重: {dim['weight']*100:.0f}%)")
+            lines.append("")
+            lines.append("评估要点：")
+            for criterion, desc in dim.get('sub_criteria', {}).items():
+                lines.append(f"- {criterion}：{desc}")
+            lines.append("")
+        
+        return "\n".join(lines)
+    
+    def get_dimension_config(self) -> Dict[str, Any]:
+        return {
+            "industry": self.state.industry,
+            "role_type": self.state.role_type,
+            "role_description": self.state.role_description,
+            "training_goal": self.state.training_goal,
+            "dimensions": self.state.dimensions
+        }
     
     def _format_trigger_groups(self) -> str:
         if not self.state.trigger_groups:

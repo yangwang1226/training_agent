@@ -31,6 +31,8 @@ from .evaluation_prompts import (
     QUICK_FEEDBACK_PROMPT,
     IMPROVEMENT_SUGGESTION_PROMPT
 )
+from .dimension_models import DimensionConfig, SceneDimensionConfig
+from .prompt_builder import build_evaluation_prompt
 
 
 RECORD_DIR = Path(__file__).parent.parent.parent / "record"
@@ -64,7 +66,8 @@ class AssessmentService:
         purchase_intent: str,
         difficulty: DifficultyLevel = DifficultyLevel.MEDIUM,
         system_prompt: str = "",
-        customer_persona: str = ""
+        customer_persona: str = "",
+        dimension_config: Optional[SceneDimensionConfig] = None
     ) -> TrainingSession:
         session_id = str(uuid.uuid4())
         
@@ -80,6 +83,9 @@ class AssessmentService:
             system_prompt=system_prompt,
             customer_persona=customer_persona
         )
+        
+        if dimension_config:
+            session.dimension_config = dimension_config
         
         self.sessions[session_id] = session
         logging.info(f"创建训练会话: {session_id}")
@@ -134,41 +140,48 @@ class AssessmentService:
             logging.warning(f"会话无对话记录: {session_id}")
             return None
         
-        weights = self._get_industry_weights(session.industry)
+        dimension_config = getattr(session, 'dimension_config', None)
+        
+        if dimension_config and dimension_config.dimensions:
+            evaluation_prompt = dimension_config.full_evaluation_prompt
+            dimensions = dimension_config.dimensions
+        else:
+            weights = self._get_industry_weights(session.industry)
+            dimensions = self._get_default_dimensions(weights)
+            evaluation_prompt = build_evaluation_prompt(dimensions)
         
         transcript_text = self._format_transcript(session.transcript)
         
-        prompt = EVALUATION_PROMPT_TEMPLATE.format(
-            industry=session.industry,
-            role=session.role,
-            purchase_intent=session.purchase_intent,
-            difficulty=session.difficulty.value,
-            duration=session.duration_seconds,
-            turn_count=len(session.transcript),
-            transcript=transcript_text,
-            weight_communication=int(weights.get("沟通技巧", 0.20) * 100),
-            weight_product=int(weights.get("产品知识", 0.20) * 100),
-            weight_needs=int(weights.get("需求挖掘", 0.20) * 100),
-            weight_objection=int(weights.get("异议处理", 0.20) * 100),
-            weight_closing=int(weights.get("促成技巧", 0.20) * 100)
-        )
+        full_prompt = f"""{evaluation_prompt}
+
+## 对话信息
+- 行业：{session.industry}
+- 客户角色：{session.role}
+- 购买意愿：{session.purchase_intent}
+- 难度等级：{session.difficulty.value}
+- 对话时长：{session.duration_seconds}秒
+- 对话轮次：{len(session.transcript)}
+
+## 完整对话记录
+{transcript_text}
+"""
         
         try:
             response = self.llm.invoke([
-                SystemMessage(content=EVALUATION_SYSTEM_PROMPT),
-                HumanMessage(content=prompt)
+                SystemMessage(content="你是一位专业的培训评估专家，请根据提供的评估维度对培训对话进行客观评估。"),
+                HumanMessage(content=full_prompt)
             ])
             
             result_json = self._extract_json(response.content)
             result_data = json.loads(result_json)
             
-            assessment = self._parse_assessment_result(result_data, session)
+            assessment = self._parse_assessment_result(result_data, session, dimensions)
             
             session.assessment = assessment
             
             self._save_assessment(session_id, assessment)
             
-            self._update_user_profile(session.user_id, assessment)
+            self._update_user_profile(session.user_id, assessment, dimensions)
             
             logging.info(f"评估完成: {session_id}, 综合得分: {assessment.overall_score}")
             
@@ -177,6 +190,19 @@ class AssessmentService:
         except Exception as e:
             logging.error(f"评估失败: {str(e)}", exc_info=True)
             return None
+    
+    def _get_default_dimensions(self, weights: Dict[str, float]) -> List[DimensionConfig]:
+        dimensions = []
+        for dim_name, weight in weights.items():
+            if dim_name in EVALUATION_DIMENSIONS:
+                dim_data = EVALUATION_DIMENSIONS[dim_name]
+                dimensions.append(DimensionConfig(
+                    dimension_name=dim_name,
+                    weight=weight,
+                    sub_criteria=dim_data.get("sub_criteria", {}),
+                    score_levels={}
+                ))
+        return dimensions
     
     def _get_industry_weights(self, industry: str) -> Dict[str, float]:
         for key, weights in INDUSTRY_ASSESSMENT_WEIGHTS.items():
@@ -237,17 +263,25 @@ class AssessmentService:
     def _parse_assessment_result(
         self, 
         data: Dict, 
-        session: TrainingSession
+        session: TrainingSession,
+        dimensions: Optional[List[DimensionConfig]] = None
     ) -> AssessmentResult:
         dimension_scores = []
+        dimension_weights = {d.dimension_name: d.weight for d in dimensions} if dimensions else {}
+        
         for dim_data in data.get("dimension_scores", []):
+            dim_name = dim_data.get("dimension", "")
+            weight = dimension_weights.get(dim_name, 0.20)
+            if dimensions:
+                for d in dimensions:
+                    if d.dimension_name == dim_name:
+                        weight = d.weight
+                        break
+            
             score = DimensionScore(
-                dimension_name=dim_data.get("dimension", ""),
+                dimension_name=dim_name,
                 score=dim_data.get("score", 0),
-                weight=EVALUATION_DIMENSIONS.get(
-                    dim_data.get("dimension", ""), 
-                    {"weight": 0.20}
-                )["weight"],
+                weight=weight,
                 reason=dim_data.get("reason", ""),
                 sub_scores=dim_data.get("sub_scores", {})
             )
@@ -348,9 +382,17 @@ class AssessmentService:
         
         logging.info(f"保存评估结果: {filepath}")
     
-    def _update_user_profile(self, user_id: str, assessment: AssessmentResult):
+    def _update_user_profile(
+        self, 
+        user_id: str, 
+        assessment: AssessmentResult,
+        dimensions: Optional[List[DimensionConfig]] = None
+    ):
         if user_id not in self.user_profiles:
-            self.user_profiles[user_id] = UserAbilityProfile(user_id=user_id)
+            self.user_profiles[user_id] = UserAbilityProfile(
+                user_id=user_id,
+                dimension_config=dimensions
+            )
         
         profile = self.user_profiles[user_id]
         

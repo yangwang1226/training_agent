@@ -18,16 +18,11 @@ from .models import (
     INDUSTRY_ASSESSMENT_WEIGHTS
 )
 
-from .assessment_service import (
-    AssessmentService,
-    assessment_service
-)
+from .assessment_service import AssessmentService
 
-from .evaluation_prompts import (
-    EVALUATION_SYSTEM_PROMPT,
-    EVALUATION_PROMPT_TEMPLATE,
-    QUICK_FEEDBACK_PROMPT
-)
+from .dimension_models import DimensionConfig, SceneDimensionConfig
+
+from .prompt_builder import build_evaluation_prompt
 
 
 __all__ = [

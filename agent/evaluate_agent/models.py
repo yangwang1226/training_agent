@@ -2,7 +2,7 @@
 AI教练评估模块 - 数据模型定义
 """
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 from enum import Enum
 
@@ -70,6 +70,7 @@ class TrainingSession:
     difficulty: DifficultyLevel
     status: TrainingStatus
     
+    
     transcript: List[TranscriptMessage] = field(default_factory=list)
     start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
@@ -79,6 +80,7 @@ class TrainingSession:
     
     system_prompt: str = ""
     customer_persona: str = ""
+    dimension_config: Optional[Any] = None
 
 
 @dataclass
@@ -86,13 +88,8 @@ class UserAbilityProfile:
     user_id: str
     overall_score: float = 0.0
     
-    dimension_scores: Dict[str, float] = field(default_factory=lambda: {
-        "沟通技巧": 0.0,
-        "产品知识": 0.0,
-        "需求挖掘": 0.0,
-        "异议处理": 0.0,
-        "促成技巧": 0.0
-    })
+    dimension_scores: Dict[str, float] = field(default_factory=dict)
+    dimension_config_snapshot: Optional[Dict] = None
     
     training_count: int = 0
     total_duration: int = 0
@@ -118,6 +115,8 @@ class UserAbilityProfile:
             self.level = "入门"
     
     def update_strengths_weaknesses(self):
+        if not self.dimension_scores:
+            return
         sorted_dims = sorted(
             self.dimension_scores.items(), 
             key=lambda x: x[1], 
