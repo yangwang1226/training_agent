@@ -26,48 +26,10 @@
                         <input type="text" id="userInput" placeholder="输入您的消息..." autocomplete="off">
                         <button id="sendBtn" class="btn btn-primary">发送</button>
                     </div>
-                    <div class="action-buttons">
-                        <button id="generateBtn" class="btn btn-success" disabled>开始生成</button>
+                    <div class="action-buttons" id="actionButtons" style="display: none;">
+                        <button id="generateBtn" class="btn btn-success">生成提示词</button>
                         <button id="resetBtn" class="btn btn-warning">重新开始</button>
                     </div>
-                </div>
-            </div>
-
-            <div class="sidebar">
-                <div class="state-panel">
-                    <h3>基础信息</h3>
-                    <div class="state-item" id="stateIndustry">
-                        <span class="state-label">行业</span>
-                        <span class="state-value">未收集</span>
-                    </div>
-                    <div class="state-item" id="stateRole">
-                        <span class="state-label">角色</span>
-                        <span class="state-value">未收集</span>
-                    </div>
-                    <div class="state-item" id="stateIntent">
-                        <span class="state-label">购买意愿</span>
-                        <span class="state-value">未收集</span>
-                    </div>
-                    <div class="state-item" id="stateQuestions">
-                        <span class="state-label">问题列表</span>
-                        <span class="state-value">未收集</span>
-                    </div>
-                </div>
-
-                <div class="state-panel extended-panel">
-                    <h3>延展信息 <span class="extended-status" id="extendedStatus"></span></h3>
-                    <div id="extendedInfoList" class="extended-info-list">
-                        <p class="no-extended-info">基础信息收集完成后，将根据行业特点收集延展信息</p>
-                    </div>
-                </div>
-
-                <div class="tips-panel">
-                    <h3>使用提示</h3>
-                    <ul>
-                        <li>输入 'quit' 退出对话</li>
-                        <li>输入 'reset' 重新开始</li>
-                        <li>信息收集完成后点击"开始生成"</li>
-                    </ul>
                 </div>
             </div>
         </div>

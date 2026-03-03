@@ -186,6 +186,59 @@ body::after {
     font-size: 15px;
 }
 
+.message-text p {
+    margin: 0 0 12px 0;
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text .formatted-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+}
+
+.message-text .formatted-list li {
+    padding: 8px 0;
+    line-height: 1.5;
+}
+
+.message-text .formatted-list .numbered-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.message-text .formatted-list .item-number {
+    color: var(--primary);
+    font-weight: 600;
+    min-width: 24px;
+}
+
+.message-text .formatted-list .bullet-item {
+    padding-left: 4px;
+}
+
+.message-text strong {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.message-text em {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+.message-text code {
+    background: rgba(0, 102, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+}
+
 .user-message .message-text {
     background: var(--gradient-primary);
     color: white;
@@ -332,100 +385,6 @@ body::after {
     box-shadow: 0 8px 24px rgba(0, 102, 255, 0.4);
 }
 
-.sidebar {
-    width: 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.state-panel, .tips-panel {
-    background: var(--bg-glass);
-    border-radius: 20px;
-    padding: 24px;
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-}
-
-.state-panel h3, .tips-panel h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-primary);
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.state-panel h3::before {
-    content: '';
-    width: 4px;
-    height: 16px;
-    background: var(--gradient-primary);
-    border-radius: 2px;
-}
-
-.tips-panel h3::before {
-    content: '';
-    width: 4px;
-    height: 16px;
-    background: var(--accent);
-    border-radius: 2px;
-}
-
-.state-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-}
-
-.state-item:last-child {
-    border-bottom: none;
-}
-
-.state-label {
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.state-value {
-    color: var(--text-muted);
-    font-weight: 600;
-}
-
-.state-value.collected {
-    color: var(--accent);
-}
-
-.tips-panel ul {
-    list-style: none;
-}
-
-.tips-panel li {
-    padding: 10px 0;
-    color: var(--text-secondary);
-    font-size: 14px;
-    position: relative;
-    padding-left: 24px;
-    line-height: 1.5;
-}
-
-.tips-panel li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 14px;
-    width: 8px;
-    height: 8px;
-    background: var(--accent);
-    border-radius: 50%;
-}
-
 .result-modal {
     display: none;
     position: fixed;
@@ -560,70 +519,6 @@ body::after {
     width: 100%;
 }
 
-.extended-panel {
-    background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
-}
-
-.extended-panel h3 {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.extended-status {
-    font-size: 0.75rem;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-weight: 500;
-}
-
-.extended-status.collecting {
-    background: rgba(255, 176, 32, 0.15);
-    color: var(--warning);
-}
-
-.extended-status.completed {
-    background: rgba(0, 212, 170, 0.15);
-    color: var(--accent);
-}
-
-.extended-info-list {
-    margin-top: 12px;
-}
-
-.no-extended-info {
-    color: var(--text-muted);
-    font-size: 13px;
-    font-style: italic;
-    text-align: center;
-    padding: 12px 0;
-}
-
-.extended-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--border);
-    font-size: 14px;
-}
-
-.extended-item:last-child {
-    border-bottom: none;
-}
-
-.extended-label {
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.extended-value {
-    color: var(--text-primary);
-    font-weight: 600;
-    max-width: 150px;
-    text-align: right;
-    word-break: break-all;
-}
-
 .toast {
     position: fixed;
     bottom: 32px;
@@ -653,6 +548,77 @@ body::after {
 
 .toast.error {
     background: linear-gradient(135deg, var(--danger) 0%, #FF8E8E 100%);
+}
+
+.dimensions-panel {
+    background: linear-gradient(135deg, #F0F9FF 0%, #E8F4FD 100%);
+    border: 2px solid var(--primary);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 16px 0;
+    max-width: 85%;
+    animation: messageIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dimensions-panel h4 {
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dimensions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dimension-item {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+}
+
+.dimension-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+.dimension-weight {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.dimension-criteria {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dimension-criteria .criterion {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding-left: 12px;
+    border-left: 2px solid var(--accent);
+}
+
+.dimension-criteria .criterion-key {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.dimensions-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: center;
 }
 
 .options-container {
@@ -713,17 +679,6 @@ body::after {
     .main-content {
         flex-direction: column;
     }
-    
-    .sidebar {
-        width: 100%;
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    
-    .state-panel, .tips-panel {
-        flex: 1;
-        min-width: 280px;
-    }
 }
 
 @media (max-width: 768px) {
@@ -733,14 +688,6 @@ body::after {
     
     .header h1 {
         font-size: 2rem;
-    }
-    
-    .sidebar {
-        flex-direction: column;
-    }
-    
-    .state-panel, .tips-panel {
-        min-width: 100%;
     }
     
     .message {

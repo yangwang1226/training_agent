@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const toast = document.getElementById('toast');
     const startRealtimeBtn = document.getElementById('startRealtimeBtn');
 
-    let isReady = false;
     let currentPrompt = '';
     let currentSceneId = '';
 
@@ -27,13 +26,70 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const text = document.createElement('div');
         text.className = 'message-text';
-        text.textContent = content;
+        
+        if (!isUser) {
+            text.innerHTML = formatMessage(content);
+        } else {
+            text.textContent = content;
+        }
         
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(text);
         chatMessages.appendChild(messageDiv);
         
         chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function formatMessage(content) {
+        let formatted = content;
+        
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        const lines = formatted.split('\n');
+        let result = [];
+        let inList = false;
+        let listItems = [];
+        
+        for (let line of lines) {
+            const numberedMatch = line.match(/^(\d+)[.、．]\s*(.*)$/);
+            const bulletMatch = line.match(/^[-•·]\s*(.*)$/);
+            
+            if (numberedMatch) {
+                if (!inList) {
+                    inList = true;
+                    listItems = [];
+                }
+                listItems.push(`<li class="numbered-item"><span class="item-number">${numberedMatch[1]}.</span> ${formatInline(numberedMatch[2])}</li>`);
+            } else if (bulletMatch) {
+                if (!inList) {
+                    inList = true;
+                    listItems = [];
+                }
+                listItems.push(`<li class="bullet-item">• ${formatInline(bulletMatch[1])}</li>`);
+            } else {
+                if (inList && listItems.length > 0) {
+                    result.push('<ul class="formatted-list">' + listItems.join('') + '</ul>');
+                    listItems = [];
+                    inList = false;
+                }
+                if (line.trim()) {
+                    result.push(`<p>${formatInline(line)}</p>`);
+                }
+            }
+        }
+        
+        if (inList && listItems.length > 0) {
+            result.push('<ul class="formatted-list">' + listItems.join('') + '</ul>');
+        }
+        
+        return result.join('');
+    }
+
+    function formatInline(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>');
     }
 
     function addLoadingMessage() {
@@ -60,70 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingMessage = document.getElementById('loadingMessage');
         if (loadingMessage) {
             loadingMessage.remove();
-        }
-    }
-
-    function updateState(state) {
-        const industryEl = document.querySelector('#stateIndustry .state-value');
-        const roleEl = document.querySelector('#stateRole .state-value');
-        const intentEl = document.querySelector('#stateIntent .state-value');
-        const questionsEl = document.querySelector('#stateQuestions .state-value');
-
-        industryEl.textContent = state.industry || '未收集';
-        industryEl.className = `state-value ${state.collected_info.industry ? 'collected' : ''}`;
-
-        roleEl.textContent = state.role_type || '未收集';
-        roleEl.className = `state-value ${state.collected_info.role ? 'collected' : ''}`;
-
-        intentEl.textContent = state.purchase_intent || '未收集';
-        intentEl.className = `state-value ${state.collected_info.intent ? 'collected' : ''}`;
-
-        if (state.custom_questions && state.custom_questions.length > 0) {
-            questionsEl.textContent = state.custom_questions.join(', ');
-            questionsEl.className = 'state-value collected';
-        } else {
-            questionsEl.textContent = '自动生成';
-            questionsEl.className = `state-value ${state.collected_info.questions ? 'collected' : ''}`;
-        }
-
-        updateExtendedInfo(state);
-    }
-
-    function updateExtendedInfo(state) {
-        const extendedStatusEl = document.getElementById('extendedStatus');
-        const extendedInfoListEl = document.getElementById('extendedInfoList');
-        
-        const basicInfoComplete = state.collected_info.industry && 
-                                   state.collected_info.role && 
-                                   state.collected_info.intent && 
-                                   state.collected_info.questions;
-        
-        if (!basicInfoComplete) {
-            extendedStatusEl.textContent = '';
-            extendedStatusEl.className = 'extended-status';
-            extendedInfoListEl.innerHTML = '<p class="no-extended-info">基础信息收集完成后，将根据行业特点收集延展信息</p>';
-            return;
-        }
-        
-        if (state.extended_info_sufficient) {
-            extendedStatusEl.textContent = '✓ 已完成';
-            extendedStatusEl.className = 'extended-status completed';
-        } else {
-            extendedStatusEl.textContent = '收集中...';
-            extendedStatusEl.className = 'extended-status collecting';
-        }
-        
-        if (state.extended_info && Object.keys(state.extended_info).length > 0) {
-            let html = '';
-            for (const [key, value] of Object.entries(state.extended_info)) {
-                html += `<div class="extended-item">
-                    <span class="extended-label">${key}：</span>
-                    <span class="extended-value">${value}</span>
-                </div>`;
-            }
-            extendedInfoListEl.innerHTML = html;
-        } else {
-            extendedInfoListEl.innerHTML = '<p class="no-extended-info">正在收集延展信息...</p>';
         }
     }
 
@@ -156,10 +148,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 showOptions(data.options);
             }
             
-            isReady = data.is_ready;
-            generateBtn.disabled = !isReady;
+            // 显示维度确认面板
+            if (data.show_dimensions && data.dimensions) {
+                showDimensionsPanel(data.dimensions);
+            }
             
-            updateState(data.state);
+            // 维度确认后显示生成按钮
+            if (data.dimensions_confirmed) {
+                document.getElementById('actionButtons').style.display = 'flex';
+            }
 
         } catch (error) {
             removeLoadingMessage();
@@ -170,6 +167,54 @@ document.addEventListener('DOMContentLoaded', function() {
         userInput.disabled = false;
         sendBtn.disabled = false;
         userInput.focus();
+    }
+
+    function showDimensionsPanel(dimensions) {
+        const panel = document.createElement('div');
+        panel.className = 'dimensions-panel';
+        panel.id = 'dimensionsPanel';
+        
+        let html = '<h4>考核维度确认</h4><div class="dimensions-list">';
+        for (let i = 0; i < dimensions.length; i++) {
+            const dim = dimensions[i];
+            html += `<div class="dimension-item">
+                <div class="dimension-name">${i + 1}. ${dim.dimension_name}</div>
+                <div class="dimension-weight">权重: ${(dim.weight * 100).toFixed(0)}%</div>
+                <div class="dimension-criteria">`;
+            for (const [key, value] of Object.entries(dim.sub_criteria || {})) {
+                html += `<div class="criterion"><span class="criterion-key">${key}:</span> ${value}</div>`;
+            }
+            html += '</div></div>';
+        }
+        html += '</div>';
+        
+        panel.innerHTML = html;
+        
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'dimensions-buttons';
+        
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'btn btn-success';
+        confirmBtn.textContent = '确认维度';
+        confirmBtn.onclick = () => {
+            sendMessage('确认，继续');
+            panel.remove();
+        };
+        
+        const regenerateBtn = document.createElement('button');
+        regenerateBtn.className = 'btn btn-warning';
+        regenerateBtn.textContent = '重新生成';
+        regenerateBtn.onclick = () => {
+            sendMessage('重新生成');
+            panel.remove();
+        };
+        
+        buttonsDiv.appendChild(confirmBtn);
+        buttonsDiv.appendChild(regenerateBtn);
+        panel.appendChild(buttonsDiv);
+        
+        chatMessages.appendChild(panel);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     let progressWebSocket = null;

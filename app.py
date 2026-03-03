@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template, request, jsonify, session, Blueprint, send_from_directory
 from flask_sock import Sock
-from agent import ConversationalPromptAgent, InteractivePromptAgent
+from agent import ConversationalPromptAgent
 from agent.evaluate_agent import assessment_service, DifficultyLevel
 import db as db_module
 
@@ -41,7 +41,6 @@ from front_end.realtime import register_websocket
 register_websocket(app, sock)
 
 agents = {}
-interactive_agents = {}
 
 
 def get_agent(session_id):
@@ -50,20 +49,9 @@ def get_agent(session_id):
     return agents[session_id]
 
 
-def get_interactive_agent(session_id):
-    if session_id not in interactive_agents:
-        interactive_agents[session_id] = InteractivePromptAgent()
-    return interactive_agents[session_id]
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
-@app.route('/interactive')
-def interactive():
-    return render_template('interactive.html')
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -71,20 +59,21 @@ def chat():
     user_input = data.get('message', '')
     session_id = session.get('session_id', 'default')
     
-    logging.info(f"收到用户消息: {user_input}")
+    logging.info(f"收到用户消息：{user_input}")
     
     agent = get_agent(session_id)
     response = agent.chat(user_input)
     
     state = agent.get_current_state()
     
-    logging.info(f"当前状态: industry={state.industry}, role={state.role_type}, intent={state.purchase_intent}")
-    logging.info(f"是否可以生成: {agent.is_ready_to_generate()}")
+    logging.info(f"当前状态：industry={state.industry}, role={state.role_type}, intent={state.purchase_intent}")
     
     return jsonify({
         'response': response.get('content', ''),
         'options': response.get('options', []),
-        'is_ready': agent.is_ready_to_generate(),
+        'show_dimensions': response.get('show_dimensions', False),
+        'dimensions': response.get('dimensions', []),
+        'dimensions_confirmed': response.get('dimensions_confirmed', False),
         'state': {
             'industry': state.industry,
             'role_type': state.role_type,
@@ -93,7 +82,8 @@ def chat():
             'collected_info': state.collected_info,
             'missing_info': state.get_missing_info(),
             'extended_info': state.extended_info,
-            'extended_info_sufficient': state.extended_info_sufficient
+            'extended_info_sufficient': state.extended_info_sufficient,
+            'dimensions_confirmed': state.dimensions_confirmed
         }
     })
 
@@ -102,16 +92,7 @@ def generate():
     session_id = session.get('session_id', 'default')
     agent = get_agent(session_id)
     
-    logging.info(f"开始生成提示词, session_id: {session_id}")
-    
-    if not agent.is_ready_to_generate():
-        state = agent.get_current_state()
-        missing = state.get_missing_info()
-        logging.warning(f"信息不完整，缺少: {missing}")
-        return jsonify({
-            'success': False,
-            'error': f"还需要以下信息：{', '.join(missing)}"
-        })
+    logging.info(f"开始生成提示词，session_id: {session_id}")
     
     try:
         # 发送开始生成的进度
@@ -279,114 +260,6 @@ def get_realtime_prompt(scene_id):
         return jsonify({'success': False, 'error': '无效的场景ID'})
     except Exception as e:
         logging.error(f"获取场景提示词失败: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/interactive/init', methods=['GET'])
-def interactive_init():
-    agent = get_interactive_agent(session.get('session_id', 'default'))
-    
-    response = agent.get_initial_message()
-    
-    return jsonify({
-        'message': response.content,
-        'options': response.options,
-        'next_step': response.next_step
-    })
-
-
-@app.route('/api/interactive/select', methods=['POST'])
-def interactive_select():
-    data = request.json
-    step = data.get('step')
-    value = data.get('value')
-    session_id = session.get('session_id', 'default')
-    
-    agent = get_interactive_agent(session_id)
-    
-    response = agent.process_selection(step, value)
-    
-    return jsonify({
-        'success': True,
-        'message': response.content,
-        'options': response.options,
-        'next_step': response.next_step,
-        'show_input': response.show_input,
-        'show_background': response.show_background
-    })
-
-
-@app.route('/api/interactive/input', methods=['POST'])
-def interactive_input():
-    data = request.json
-    step = data.get('step')
-    value = data.get('value')
-    session_id = session.get('session_id', 'default')
-    
-    agent = get_interactive_agent(session_id)
-    
-    if step == 'industry_input':
-        agent.set_industry(value)
-        return jsonify({
-            'success': True,
-            'next_step': 'product',
-            'message': '请选择您要销售/服务的产品：',
-            'options': agent.get_product_options()
-        })
-    elif step == 'product_input':
-        agent.set_product(value)
-        return jsonify({
-            'success': True,
-            'next_step': 'personality',
-            'message': '请选择模拟客户的性格：',
-            'options': agent.get_personality_options()
-        })
-    
-    return jsonify({'success': False, 'error': 'Invalid step'})
-
-
-@app.route('/api/interactive/generate-background', methods=['POST'])
-def interactive_generate_background():
-    session_id = session.get('session_id', 'default')
-    agent = get_interactive_agent(session_id)
-    
-    try:
-        result = agent.generate_questions_and_background()
-        background = result.get('background_info', '')
-        return jsonify({
-            'success': True,
-            'background': background
-        })
-    except Exception as e:
-        logging.error(f"生成背景失败: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/interactive/generate', methods=['POST'])
-def interactive_generate():
-    data = request.json
-    background_info = data.get('background_info', '')
-    session_id = session.get('session_id', 'default')
-    
-    agent = get_interactive_agent(session_id)
-    
-    if background_info:
-        agent.set_background_info(background_info)
-    
-    try:
-        result = agent.generate_full_prompt()
-        if result.success:
-            return jsonify({
-                'success': True,
-                'prompt': result.full_prompt
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result.error_message
-            })
-    except Exception as e:
-        logging.error(f"生成提示词失败: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 

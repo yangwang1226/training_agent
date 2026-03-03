@@ -1,167 +1,21 @@
 import os
 import json
 import logging
-from typing import Optional, List, Dict, Any, TypedDict, Annotated
-from dataclasses import dataclass, field
-from enum import Enum
-from operator import add
+from typing import Optional, List, Dict, Any
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_openai import AzureChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
-from pydantic import BaseModel, Field
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from .template_manager import TemplateManager
-from .models import MainQuestion, TriggerGroup, FollowUpQuestion
+from ..template_manager import TemplateManager
+from .state import ConversationState
+from .models import InfoExtraction, ExtendedInfoJudge
+from .prompts import SYSTEM_PROMPT, get_customer_questions_prompt, get_service_provider_questions_prompt
 
 
-class PurchaseIntent(Enum):
-    COLD = "冷淡"
-    NEUTRAL = "一般"
-    INTERESTED = "感兴趣"
-    VERY_INTERESTED = "非常感兴趣"
-
-
-@dataclass
-class ConversationState:
-    industry: str = ""
-    role_type: str = ""
-    role_description: str = ""
-    purchase_intent: str = "一般"
-    custom_questions: List[str] = field(default_factory=list)
-    additional_requirements: str = ""
-    emotion_type: str = ""
-    emotion_description: str = ""
-    speaking_style: str = ""
-    attitude: str = ""
-    background_info: str = ""
-    main_questions: List[Dict] = field(default_factory=list)
-    trigger_groups: List[Dict] = field(default_factory=list)
-    collected_info: Dict[str, bool] = field(default_factory=dict)
-    extended_info: Dict[str, str] = field(default_factory=dict)
-    extended_questions: List[str] = field(default_factory=list)
-    extended_info_sufficient: bool = False
-    dimensions: List[Dict] = field(default_factory=list)
-    dimensions_confirmed: bool = False
-    training_goal: str = ""
-    
-    def __post_init__(self):
-        self.collected_info = {
-            "industry": False,
-            "role": False,
-            "intent": False,
-            "questions": False
-        }
-    
-    def is_complete(self) -> bool:
-        basic_complete = all(self.collected_info.values())
-        extended_complete = self.extended_info_sufficient or len(self.extended_info) >= 2
-        return basic_complete and extended_complete
-    
-    def is_ready_for_dimensions(self) -> bool:
-        basic_complete = all(self.collected_info.values())
-        extended_complete = self.extended_info_sufficient or len(self.extended_info) >= 2
-        return basic_complete and extended_complete
-    
-    def is_dimensions_confirmed(self) -> bool:
-        return self.dimensions_confirmed and len(self.dimensions) > 0
-    
-    def get_missing_info(self) -> List[str]:
-        missing = []
-        if not self.collected_info.get("industry"):
-            missing.append("行业")
-        if not self.collected_info.get("role"):
-            missing.append("角色")
-        if not self.collected_info.get("intent"):
-            missing.append("购买意愿")
-        if not self.collected_info.get("questions"):
-            missing.append("问题列表")
-        return missing
-    
-    def get_extended_info_summary(self) -> str:
-        if not self.extended_info:
-            return ""
-        return "\n".join([f"- {k}: {v}" for k, v in self.extended_info.items()])
-
-
-class InfoExtraction(BaseModel):
-    industry: Optional[str] = Field(default=None, description="识别出的行业")
-    role_type: Optional[str] = Field(default=None, description="AI需要模拟的角色类型")
-    role_description: Optional[str] = Field(default=None, description="角色描述")
-    purchase_intent: Optional[str] = Field(default=None, description="购买意愿：冷淡/一般/感兴趣/非常感兴趣")
-    custom_questions: Optional[List[str]] = Field(default=None, description="用户期望的问题列表")
-    additional_requirements: Optional[str] = Field(default=None, description="其他要求")
-    extended_info: Optional[Dict[str, str]] = Field(default=None, description="延展信息，如车型、预算、城市等")
-    extended_info_sufficient: Optional[bool] = Field(default=None, description="延展信息是否已经足够丰富")
-
-
-class ExtendedInfoJudge(BaseModel):
-    need_more_info: bool = Field(description="是否需要继续收集延展信息")
-    next_question: Optional[str] = Field(default=None, description="下一个建议询问的问题")
-    reason: str = Field(description="判断理由")
-    current_extended_info: Dict[str, str] = Field(default_factory=dict, description="当前已收集的延展信息")
-
-
-SYSTEM_PROMPT = """你是一个友好的提示词生成助手，通过自然对话的方式收集用户需求信息。
-
-你的任务是通过对话了解以下信息：
-
-【基础信息】（必须收集）
-1. 行业：用户所在的行业领域（如教育培训、房地产、汽车、金融、客服、安保、心理咨询等）
-2. 角色：用户希望AI模拟的角色（如家长、购房者、购车者、客户、学生、患者等）
-3. 购买意愿：模拟客户的购买意愿程度（冷淡/一般/感兴趣/非常感兴趣）
-4. 问题：用户期望AI提出的问题，或者让系统自动生成
-
-【延展信息】（根据行业特点智能收集）
-当基础信息收集完成后，你需要根据行业特点，主动询问更多背景信息，让生成的提示词更加丰富和真实。
-
-【培训目标】（可选）
-询问用户的培训目标，如"提升沟通能力"、"学习异议处理"等。
-
-延展信息收集原则：
-- 根据行业特点设计针对性的问题，每个行业关注点不同
-- 一次只问一个问题，自然地引导用户
-- 收集2-4个关键延展信息即可，不要过于冗长
-- 用户如果表示"不需要"或"随便"，可以跳过继续下一个问题
-
-各行业延展信息示例（仅供参考，根据实际情况灵活调整）：
-- 汽车行业：咨询的车型/品牌、预算范围、新车还是二手车、购车用途等
-- 房地产行业：目标城市/区域、预算范围、学区需求、户型偏好等
-- 教育培训行业：学生年级、学科、学习目标、当前水平等
-- 金融行业：投资类型、风险偏好、资金规模、投资目标等
-- 客服行业：问题类型、客户情绪、服务场景等
-- 安保行业：工作场景、安全风险、应急类型等
-- 心理咨询：来访者问题类型、情绪状态、咨询目标等
-- 其他行业：根据行业特点自行判断关键信息
-
-对话风格要求：
-- 像朋友聊天一样自然，不要像在填表或审问
-- 一次只问一个问题，等待用户回答后再继续
-- 根据用户的回答灵活调整对话方向
-- 如果用户提供了部分信息，先确认理解是否正确
-- 基础信息收集完成后，自然过渡到延展信息收集
-- 当延展信息收集足够后，告诉用户可以开始生成提示词
-
-请以JSON格式返回你的回答，包含以下字段：
-- "content"：你的问题或回答内容
-- "options"：如果是需要用户选择的问题，填写选项数组；如果不是选择问题，填写空数组
-
-示例1（选择问题）：
-{
-  "content": "好的，是哪个行业的培训呢？",
-  "options": ["房地产", "汽车", "教育", "金融", "客服", "安保", "心理咨询", "其他"]
-}
-
-示例2（非选择问题）：
-{
-  "content": "了解了，没有特别的问题，我会帮您自动生成。",
-  "options": []
-}
-"""
+SERVICE_PROVIDER_ROLES = ["访客", "快递员", "外卖员", "送货员", "维修人员", "安装师傅", "保洁", "家政"]
 
 
 class ConversationalPromptAgent:
@@ -176,9 +30,8 @@ class ConversationalPromptAgent:
         dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
         self.llm_model = os.getenv("QWEN_PLUS_MODEL", "qwen3.5-plus")
         self.generation = MultiModalConversation
-    
+
     def _call_model(self, messages: List, temperature: float = 0.7) -> str:
-        """调用通义千问API"""
         formatted_messages = []
         for msg in messages:
             if isinstance(msg, SystemMessage):
@@ -205,39 +58,89 @@ class ConversationalPromptAgent:
             return response.output.choices[0].message.content[0]["text"]
         else:
             raise Exception(f"Qwen API error: {response.code} - {response.message}")
-    
+
     def chat(self, user_input: str) -> Dict[str, Any]:
         self.messages.append(HumanMessage(content=user_input))
-        
+
         extraction_result = self._extract_info(user_input)
         self._update_state(extraction_result)
-        
+
         if self._is_confirming_dimensions(user_input):
             return self._handle_dimension_confirmation(user_input)
-        
+
         if self.state.is_ready_for_dimensions() and not self.state.dimensions:
             return self._generate_and_show_dimensions()
-        
+
+        if self._should_ask_questions():
+            self._inject_role_context_for_questions()
+
         response_content = self._call_model(self.messages, temperature=0.7)
         self.messages.append(AIMessage(content=response_content))
-        
+
         content = response_content
         options = []
-            
+
         try:
             json_content = self._extract_json(content)
             parsed_response = json.loads(json_content)
             content = parsed_response.get('content', content)
             options = parsed_response.get('options', [])
         except Exception as e:
-            logging.warning(f"解析JSON失败: {str(e)}")
-        
+            logging.warning(f"解析 JSON 失败：{str(e)}")
+
         return {
             "content": content,
             "options": options,
             "show_dimensions": False
         }
-    
+
+    def _should_ask_questions(self) -> bool:
+        basic_info_complete = (
+            self.state.collected_info.get("industry") and
+            self.state.collected_info.get("role") and
+            self.state.collected_info.get("intent")
+        )
+        questions_not_collected = not self.state.collected_info.get("questions")
+        return basic_info_complete and questions_not_collected
+
+    def _inject_role_context_for_questions(self):
+        role_lower = self.state.role_type.lower() if self.state.role_type else ""
+        is_service_provider = any(r in role_lower for r in SERVICE_PROVIDER_ROLES)
+
+        if is_service_provider:
+            context_message = HumanMessage(content=f"""当前角色是"{self.state.role_type}"，这是一个服务提供者角色。
+
+在询问用户希望 AI 提出什么问题时，请注意：
+1. AI 将模拟服务人员（如访客、快递员等）
+2. 被培训人员是前台/接待人员/保安
+3. 因此示例问题应该是服务人员会说的话，而不是接待人员会问的问题
+
+正确的示例问题：
+- 访客："我是来拜访张经理的，约好了下午两点。"、"我找市场部，请问在几楼？"
+- 快递员："有您的快递，麻烦签收一下。"、"这个包裹需要本人签收，请问收件人在吗？"
+- 外卖员："您的外卖到了，请问放在前台还是送上去？"
+- 维修人员："我是来修空调的，请问是哪一台？"
+
+请根据角色类型给出合适的示例问题。""")
+        else:
+            context_message = HumanMessage(content=f"""当前角色是"{self.state.role_type}"，这是一个客户/咨询者角色。
+
+在询问用户希望 AI 提出什么问题时，请注意：
+1. AI 将模拟客户/咨询者
+2. 被培训人员是销售/顾问/服务人员
+3. 因此示例问题应该是客户会问的问题
+
+示例问题：
+- "这个多少钱？"
+- "你们和 XX 比有什么优势？"
+- "能便宜点吗？"
+- "有没有什么优惠活动？"
+
+请根据角色类型给出合适的示例问题。""")
+
+        self.messages.append(context_message)
+        self.messages.append(AIMessage(content='{"content": "明白了，我会根据角色类型给出合适的示例问题。", "options": []}'))
+
     def _is_confirming_dimensions(self, user_input: str) -> bool:
         if not self.state.dimensions:
             return False
@@ -250,23 +153,27 @@ class ConversationalPromptAgent:
         if any(kw in user_input_lower for kw in confirm_keywords):
             return True
         return False
-    
+
     def _handle_dimension_confirmation(self, user_input: str) -> Dict[str, Any]:
         user_input_lower = user_input.lower()
         reject_keywords = ["重新", "换", "不行", "不好", "修改", "调整"]
         
         if any(kw in user_input_lower for kw in reject_keywords):
             self.state.dimensions = []
+            self.state.dimensions_confirmed = False
             return self._generate_and_show_dimensions()
         
         self.state.dimensions_confirmed = True
+        logging.info(f"维度已确认，当前维度数量：{len(self.state.dimensions)}")
+        logging.info(f"is_complete: {self.state.is_complete()}, is_dimensions_confirmed: {self.state.is_dimensions_confirmed()}")
+        
         return {
-            "content": "好的，维度已确认！现在可以生成完整的场景提示词了。点击「生成提示词」按钮即可。",
+            "content": "好的，维度已确认！现在可以点击底部的「开始生成」按钮生成完整的场景提示词了。",
             "options": [],
             "show_dimensions": False,
             "dimensions_confirmed": True
         }
-    
+
     def _generate_and_show_dimensions(self) -> Dict[str, Any]:
         from agent.evaluate_agent.dimension_generator import DimensionGenerator
         
@@ -283,12 +190,12 @@ class ConversationalPromptAgent:
             
             dim_text = "我为您生成了以下考核维度，请确认：\n\n"
             for i, dim in enumerate(self.state.dimensions, 1):
-                dim_text += f"**{i}. {dim['dimension_name']}** (权重: {dim['weight']*100:.0f}%)\n"
+                dim_text += f"**{i}. {dim['dimension_name']}** (权重：{dim['weight']*100:.0f}%)\n"
                 for criterion, desc in dim.get('sub_criteria', {}).items():
                     dim_text += f"   - {criterion}: {desc}\n"
                 dim_text += "\n"
             
-            dim_text += "您可以直接确认，或者说「重新生成」来调整。"
+            dim_text += "您可以回复「确认」或「重新生成」来调整。"
             
             return {
                 "content": dim_text,
@@ -297,16 +204,23 @@ class ConversationalPromptAgent:
                 "dimensions": self.state.dimensions
             }
         else:
+            self.state.dimensions_confirmed = True
+            self.state.dimensions = [
+                {"dimension_name": "沟通能力", "weight": 0.3, "sub_criteria": {"表达清晰": "语言流畅，逻辑清晰", "倾听理解": "准确理解对方意图"}},
+                {"dimension_name": "专业素养", "weight": 0.3, "sub_criteria": {"专业知识": "熟悉产品/服务知识", "问题解决": "有效解决客户问题"}},
+                {"dimension_name": "服务态度", "weight": 0.4, "sub_criteria": {"礼貌待人": "态度友好，用语礼貌", "耐心细致": "耐心解答，关注细节"}}
+            ]
             return {
-                "content": f"维度生成遇到问题: {result.error_message}，将使用默认维度继续。",
-                "options": ["继续"],
-                "show_dimensions": False
+                "content": f"维度生成遇到问题：{result.error_message}，已使用默认维度。请点击底部的「开始生成」按钮继续。",
+                "options": [],
+                "show_dimensions": False,
+                "dimensions_confirmed": True
             }
-    
+
     def _extract_info(self, user_input: str) -> Dict[str, Any]:
         extended_info_summary = self.state.get_extended_info_summary()
         
-        extraction_prompt = f"""从以下用户输入中提取信息，如果某项信息未提及则返回null：
+        extraction_prompt = f"""从以下用户输入中提取信息，如果某项信息未提及则返回 null：
 
 用户输入：{user_input}
 
@@ -319,7 +233,7 @@ class ConversationalPromptAgent:
 当前已收集延展信息：
 {extended_info_summary or '暂无'}
 
-请返回JSON格式的提取结果。注意：extended_info字段用于提取行业相关的背景信息（如汽车行业的车型、预算；房地产行业的城市、户型等）。"""
+请返回 JSON 格式的提取结果。注意：extended_info 字段用于提取行业相关的背景信息（如汽车行业的车型、预算；房地产行业的城市、户型等）。"""
         
         try:
             parser = JsonOutputParser(pydantic_object=InfoExtraction)
@@ -328,9 +242,9 @@ class ConversationalPromptAgent:
             )
             return parser.parse(response_content)
         except Exception as e:
-            logging.error(f"信息提取失败: {str(e)}")
+            logging.error(f"信息提取失败：{str(e)}")
             return {}
-    
+
     def _update_state(self, extraction_result: Dict[str, Any]):
         if extraction_result.get("industry"):
             self.state.industry = extraction_result["industry"]
@@ -362,14 +276,17 @@ class ConversationalPromptAgent:
                 if value:
                     self.state.extended_info[key] = value
         
-        if self.state.collected_info.get("industry") and self.state.collected_info.get("role"):
+        # 当行业、角色、意愿都收集完成后，标记问题已收集（即使用户没有明确指定）
+        if (self.state.collected_info.get("industry") and 
+            self.state.collected_info.get("role") and 
+            self.state.collected_info.get("intent")):
             self.state.collected_info["questions"] = True
         
         if extraction_result.get("extended_info_sufficient") is not None:
             self.state.extended_info_sufficient = extraction_result["extended_info_sufficient"]
         
         self._check_extended_info_complete()
-    
+
     def _check_extended_info_complete(self):
         basic_info_complete = (
             self.state.collected_info.get("industry") and
@@ -396,7 +313,7 @@ class ConversationalPromptAgent:
                 for key, value in judge_result["current_extended_info"].items():
                     if value:
                         self.state.extended_info[key] = value
-    
+
     def _judge_extended_info(self) -> Dict[str, Any]:
         extended_info_summary = self.state.get_extended_info_summary()
         
@@ -411,13 +328,13 @@ class ConversationalPromptAgent:
 
 判断标准：
 1. 根据行业特点，判断是否收集了关键的背景信息
-2. 汽车行业：车型/品牌、预算、新车/二手车等至少收集2项
-3. 房地产行业：城市/区域、预算、户型等至少收集2项
-4. 教育培训：年级、学科、学习目标等至少收集2项
-5. 其他行业：根据行业特点判断，至少收集2项关键信息
+2. 汽车行业：车型/品牌、预算、新车/二手车等至少收集 2 项
+3. 房地产行业：城市/区域、预算、户型等至少收集 2 项
+4. 教育培训：年级、学科、学习目标等至少收集 2 项
+5. 其他行业：根据行业特点判断，至少收集 2 项关键信息
 6. 如果用户明确表示"不需要"或"随便"，也可以认为足够
 
-请返回JSON格式的判断结果。"""
+请返回 JSON 格式的判断结果。"""
         
         try:
             parser = JsonOutputParser(pydantic_object=ExtendedInfoJudge)
@@ -426,17 +343,27 @@ class ConversationalPromptAgent:
             )
             return parser.parse(response_content)
         except Exception as e:
-            logging.error(f"延展信息判断失败: {str(e)}")
+            logging.error(f"延展信息判断失败：{str(e)}")
             if len(self.state.extended_info) >= 2:
                 return {"need_more_info": False, "reason": "已收集足够信息"}
             return {"need_more_info": True, "reason": "需要更多信息"}
-    
+
     def is_ready_to_generate(self) -> bool:
-        return self.state.is_complete() and self.state.is_dimensions_confirmed()
-    
+        is_complete = self.state.is_complete()
+        is_dim_confirmed = self.state.is_dimensions_confirmed()
+        logging.info(f"is_ready_to_generate 检查:")
+        logging.info(f"  - is_complete: {is_complete}")
+        logging.info(f"    - collected_info: {self.state.collected_info}")
+        logging.info(f"    - extended_info_sufficient: {self.state.extended_info_sufficient}")
+        logging.info(f"    - extended_info count: {len(self.state.extended_info)}")
+        logging.info(f"  - is_dimensions_confirmed: {is_dim_confirmed}")
+        logging.info(f"    - dimensions_confirmed flag: {self.state.dimensions_confirmed}")
+        logging.info(f"    - dimensions count: {len(self.state.dimensions)}")
+        return is_complete and is_dim_confirmed
+
     def get_current_state(self) -> ConversationState:
         return self.state
-    
+
     def generate_prompt(self, skip_dimensions: bool = False) -> str:
         if not self.state.is_complete():
             missing = self.state.get_missing_info()
@@ -447,11 +374,11 @@ class ConversationalPromptAgent:
         
         logging.info("=" * 50)
         logging.info("开始生成提示词...")
-        logging.info(f"行业: {self.state.industry}")
-        logging.info(f"角色: {self.state.role_type}")
-        logging.info(f"购买意愿: {self.state.purchase_intent}")
-        logging.info(f"延展信息: {self.state.extended_info}")
-        logging.info(f"考核维度: {len(self.state.dimensions)} 个")
+        logging.info(f"行业：{self.state.industry}")
+        logging.info(f"角色：{self.state.role_type}")
+        logging.info(f"购买意愿：{self.state.purchase_intent}")
+        logging.info(f"延展信息：{self.state.extended_info}")
+        logging.info(f"考核维度：{len(self.state.dimensions)} 个")
         logging.info("=" * 50)
         
         self._generate_questions()
@@ -463,10 +390,10 @@ class ConversationalPromptAgent:
         logging.info("提示词生成完成!")
         
         return result
-    
+
     def _generate_questions(self):
-        logging.info("步骤1: 生成主问题列表...")
-        
+        logging.info("步骤 1: 生成主问题列表...")
+
         if self.state.custom_questions:
             logging.info("使用用户自定义问题")
             self.state.main_questions = [
@@ -474,116 +401,111 @@ class ConversationalPromptAgent:
                 for i, q in enumerate(self.state.custom_questions)
             ]
             return
-        
+
         extended_info_summary = self.state.get_extended_info_summary()
-        
-        prompt = f"""你是一个专业的销售培训场景设计专家。现在需要生成客户向销售/顾问提出的问题列表。
+        role_lower = self.state.role_type.lower() if self.state.role_type else ""
+        is_service_provider = any(r in role_lower for r in SERVICE_PROVIDER_ROLES)
 
-场景背景：
-- 行业：{self.state.industry}
-- AI模拟的角色：{self.state.role_type}（客户）
-- 购买意愿：{self.state.purchase_intent}
-- 其他要求：{self.state.additional_requirements or '无'}
+        if is_service_provider:
+            prompt = get_service_provider_questions_prompt(
+                self.state.industry,
+                self.state.role_type,
+                self.state.purchase_intent,
+                self.state.additional_requirements,
+                extended_info_summary
+            )
+        else:
+            prompt = get_customer_questions_prompt(
+                self.state.industry,
+                self.state.role_type,
+                self.state.purchase_intent,
+                self.state.additional_requirements,
+                extended_info_summary
+            )
 
-延展背景信息：
-{extended_info_summary or '无'}
-
-重要说明：
-1. 这些问题是AI模拟的客户向销售/顾问提出的问题，用于训练销售的话术和应变能力
-2. 问题必须口语化、接地气，像普通客户在电话里会问的话
-3. 避免专业术语，用通俗易懂的表达
-4. 问题要简短直接，不要太长太复杂
-5. 问题要涵盖客户关心的各个方面（价格、服务、效果、对比等）
-6. 问题数量必须不少于10个，根据购买意愿适当增加
-7. 问题要结合延展背景信息，体现具体场景（如特定车型、预算范围、城市等）
-
-问题风格示例：
-- "这个多少钱？"
-- "你们和XX比有什么优势？"
-- "要是出了问题找谁？"
-- "能便宜点吗？"
-- "有没有什么优惠活动？"
-
-返回JSON格式：{{"main_questions": [{{"question": "问题", "order": 1}}], "background_info": "背景描述（客户的基本情况和需求，要结合延展信息）"}}"""
-        
         try:
-            logging.info("正在调用LLM生成问题...")
-            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
+            logging.info("正在调用 LLM 生成问题...")
+            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回 JSON 格式结果。")])
             result = json.loads(self._extract_json(response_content))
             self.state.main_questions = result.get("main_questions", [])
             self.state.background_info = result.get("background_info", "")
             logging.info(f"成功生成 {len(self.state.main_questions)} 个问题")
-            logging.info(f"背景信息: {self.state.background_info[:100]}..." if len(self.state.background_info) > 100 else f"背景信息: {self.state.background_info}")
         except Exception as e:
-            logging.error(f"生成问题失败: {str(e)}")
+            logging.error(f"生成问题失败：{str(e)}")
             self.state.main_questions = []
-    
+
     def _generate_trigger_groups(self):
-        logging.info("步骤2: 生成关联问题分组...")
-        
+        logging.info("步骤 2: 生成关联问题分组...")
+
         if not self.state.main_questions:
             logging.warning("没有主问题，跳过关联问题生成")
             return
-        
+
         questions_text = "\n".join([
             f"{q.get('order', i+1)}. {q.get('question', '')}"
             for i, q in enumerate(self.state.main_questions)
         ])
-        
-        prompt = f"""根据主问题列表生成关联问题分组：
 
-角色：{self.state.role_type}
-购买意愿：{self.state.purchase_intent}
-主问题列表：
-{questions_text}
+        prompt_parts = [
+            "根据主问题列表生成关联问题分组:",
+            "",
+            f"角色：{self.state.role_type}",
+            f"购买意愿：{self.state.purchase_intent}",
+            "主问题列表:",
+            questions_text,
+            "",
+            "要求:",
+            "1. 问题口语化、接地气",
+            "2. 每个分组 1-2 个关联问题",
+            "3. 触发关键词要具体",
+            "",
+            '返回 JSON 格式：{"trigger_groups": [{"group_name": "A", "trigger_keywords": ["关键词"], "questions": [{"question": "问题", "order": 1}]}]}'
+        ]
+        prompt = "\n".join(prompt_parts)
 
-要求：
-1. 问题口语化、接地气
-2. 每个分组1-2个关联问题
-3. 触发关键词要具体
-
-返回JSON格式：{{"trigger_groups": [{{"group_name": "A", "trigger_keywords": ["关键词"], "questions": [{{"question": "问题", "order": 1}}]}}]}}"""
-        
         try:
-            logging.info("正在调用LLM生成关联问题...")
-            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
+            logging.info("正在调用 LLM 生成关联问题...")
+            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回 JSON 格式结果。")])
             result = json.loads(self._extract_json(response_content))
             self.state.trigger_groups = result.get("trigger_groups", [])
             logging.info(f"成功生成 {len(self.state.trigger_groups)} 个关联问题分组")
         except Exception as e:
-            logging.error(f"生成关联问题失败: {str(e)}")
+            logging.error(f"生成关联问题失败：{str(e)}")
             self.state.trigger_groups = []
-    
+
     def _generate_emotion(self):
-        logging.info("步骤3: 生成情绪描述...")
+        logging.info("步骤 3: 生成情绪描述...")
         
         extended_info_summary = self.state.get_extended_info_summary()
         
-        prompt = f"""根据角色和购买意愿生成情绪描述：
-
-角色：{self.state.role_type}
-购买意愿：{self.state.purchase_intent}
-行业：{self.state.industry}
-
-延展背景信息：
-{extended_info_summary or '无'}
-
-请结合以上信息，生成符合角色特点的情绪和说话风格。
-
-返回JSON格式：{{"emotion_type": "情绪类型", "emotion_description": "情绪描述", "speaking_style": "说话风格", "attitude": "沟通态度"}}"""
+        prompt_parts = [
+            "根据角色和购买意愿生成情绪描述:",
+            "",
+            f"角色：{self.state.role_type}",
+            f"购买意愿：{self.state.purchase_intent}",
+            f"行业：{self.state.industry}",
+            "",
+            "延展背景信息:",
+            extended_info_summary or "无",
+            "",
+            "请结合以上信息，生成符合角色特点的情绪和说话风格。",
+            "",
+            '返回 JSON 格式：{"emotion_type": "情绪类型", "emotion_description": "情绪描述", "speaking_style": "说话风格", "attitude": "沟通态度"}'
+        ]
+        prompt = "\n".join(prompt_parts)
         
         try:
-            logging.info("正在调用LLM生成情绪描述...")
-            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回JSON格式结果。")])
+            logging.info("正在调用 LLM 生成情绪描述...")
+            response_content = self._call_model([HumanMessage(content=prompt + "\n\n请返回 JSON 格式结果。")])
             result = json.loads(self._extract_json(response_content))
             self.state.emotion_type = result.get("emotion_type", "平和")
             self.state.emotion_description = result.get("emotion_description", "")
             self.state.speaking_style = result.get("speaking_style", "")
             self.state.attitude = result.get("attitude", "")
-            logging.info(f"情绪类型: {self.state.emotion_type}")
+            logging.info(f"情绪类型：{self.state.emotion_type}")
         except Exception as e:
-            logging.error(f"生成情绪描述失败: {str(e)}")
-    
+            logging.error(f"生成情绪描述失败：{str(e)}")
+
     def _build_full_prompt(self) -> str:
         logging.info("正在加载模板...")
         template = self.template_manager.get_template("training_salse")
@@ -602,11 +524,11 @@ class ConversationalPromptAgent:
         
         trigger_groups_text = self._format_trigger_groups()
         
-        emotion_text = f"""# 情绪与态度：
-- 情绪基调：{self.state.emotion_type}
-- 情绪描述：{self.state.emotion_description}
-- 说话风格：{self.state.speaking_style}
-- 沟通态度：{self.state.attitude}"""
+        emotion_text = "# 情绪与态度:\n"
+        emotion_text += f"- 情绪基调：{self.state.emotion_type}\n"
+        emotion_text += f"- 情绪描述：{self.state.emotion_description}\n"
+        emotion_text += f"- 说话风格：{self.state.speaking_style}\n"
+        emotion_text += f"- 沟通态度：{self.state.attitude}"
         
         logging.info("正在填充背景信息...")
         result = self.template_manager.fill_background_info(template, self.state.background_info)
@@ -627,10 +549,10 @@ class ConversationalPromptAgent:
             result = result + "\n\n" + dimension_text
             logging.info("已添加考核维度信息到提示词")
         
-        logging.info(f"提示词构建完成，总长度: {len(result)} 字符")
+        logging.info(f"提示词构建完成，总长度：{len(result)} 字符")
         
         return result
-    
+
     def _format_dimensions_for_prompt(self) -> str:
         if not self.state.dimensions:
             return ""
@@ -640,7 +562,7 @@ class ConversationalPromptAgent:
         lines.append("")
         
         for dim in self.state.dimensions:
-            lines.append(f"## {dim['dimension_name']} (权重: {dim['weight']*100:.0f}%)")
+            lines.append(f"## {dim['dimension_name']} (权重：{dim['weight']*100:.0f}%)")
             lines.append("")
             lines.append("评估要点：")
             for criterion, desc in dim.get('sub_criteria', {}).items():
@@ -648,7 +570,7 @@ class ConversationalPromptAgent:
             lines.append("")
         
         return "\n".join(lines)
-    
+
     def get_dimension_config(self) -> Dict[str, Any]:
         return {
             "industry": self.state.industry,
@@ -657,7 +579,7 @@ class ConversationalPromptAgent:
             "training_goal": self.state.training_goal,
             "dimensions": self.state.dimensions
         }
-    
+
     def _format_trigger_groups(self) -> str:
         if not self.state.trigger_groups:
             return ""
@@ -670,15 +592,16 @@ class ConversationalPromptAgent:
                 for i, q in enumerate(group.get("questions", []))
             ])
             
-            group_text = f"""\t分组{group.get('group_name', 'A')}:
-\t- 对方话术中触发问题的关键信息：{keywords_str}
-\t- 触发问题列表的提问方式：按该分组中【触发问题列表】中标号顺序提问
-\t- 触发问题列表：
-\t\t{questions_text}"""
+            group_name = group.get('group_name', 'A')
+            group_text = f"\t分组{group_name}:\n"
+            group_text += f"\t- 对方话术中触发问题的关键信息：{keywords_str}\n"
+            group_text += "\t- 触发问题列表的提问方式：按该分组中【触发问题列表】中标号顺序提问\n"
+            group_text += "\t- 触发问题列表:\n"
+            group_text += f"\t\t{questions_text}"
             groups_text.append(group_text)
         
         return "\n\n".join(groups_text)
-    
+
     def _extract_json(self, text: str) -> str:
         text = text.strip()
         if text.startswith("```json"):
@@ -721,7 +644,7 @@ class ConversationalPromptAgent:
                         return text[start_idx:i + 1]
         
         return text[start_idx:]
-    
+
     def reset(self):
         self.state = ConversationState()
         self.messages = [SystemMessage(content=SYSTEM_PROMPT)]
