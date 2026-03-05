@@ -157,9 +157,9 @@ class ConversationRecorder:
     
     def get_text_content(self) -> str:
         lines = []
-        lines.append(f"场景: {self.scene_name}")
-        lines.append(f"服务商: {self.provider}")
-        lines.append(f"时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append(f"场景：{self.scene_name}")
+        lines.append(f"服务商：{self.provider}")
+        lines.append(f"时间：{self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append("=" * 50)
         lines.append("")
         
@@ -170,3 +170,19 @@ class ConversationRecorder:
             lines.append("")
         
         return "\n".join(lines)
+    
+    def get_transcript_text(self) -> str:
+        """获取对话转录文本 (用于评估)"""
+        lines = []
+        for msg in self.messages:
+            role_name = "用户" if msg['role'] == 'user' else "AI"
+            lines.append(f"[{msg['timestamp']}] {role_name}: {msg['text']}")
+        return "\n".join(lines)
+    
+    def get_messages(self) -> List[Dict[str, Any]]:
+        """获取对话消息列表"""
+        return self.messages
+    
+    def get_duration(self) -> int:
+        """获取通话时长 (秒)"""
+        return self._calculate_duration()

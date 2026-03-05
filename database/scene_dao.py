@@ -6,18 +6,35 @@ from .connection import get_db
 logger = logging.getLogger(__name__)
 
 
-def save_scene(scene_name: str, scene_prompt: str, status: int = 0, org_id: int = None, 
-               creator_id: int = None, create_name: str = None) -> Optional[int]:
+def save_scene(
+    scene_name: str, 
+    scene_prompt: str, 
+    status: int = 0, 
+    org_id: int = None, 
+    creator_id: int = None, 
+    create_name: str = None,
+    dimension_config: str = None,
+    role_type: str = None,
+    role_description: str = None,
+    industry: str = None,
+    training_goal: str = None,
+    full_evaluation_prompt: str = None
+) -> Optional[int]:
     with get_db() as conn:
         with conn.cursor() as cursor:
             sql = """
-                INSERT INTO ai_coach_scene (scene_name, scene_prompt, status, org_id, creator_id, create_name)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO ai_coach_scene 
+                (scene_name, scene_prompt, status, org_id, creator_id, create_name,
+                 dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(sql, (scene_name, scene_prompt, status, org_id, creator_id, create_name))
+            cursor.execute(sql, (
+                scene_name, scene_prompt, status, org_id, creator_id, create_name,
+                dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt
+            ))
             conn.commit()
             scene_id = cursor.lastrowid
-            logger.info(f"场景保存成功: id={scene_id}, scene_name={scene_name}")
+            logger.info(f"场景保存成功：id={scene_id}, scene_name={scene_name}")
             return scene_id
 
 

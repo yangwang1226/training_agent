@@ -79,18 +79,21 @@ class ConversationalPromptAgent:
 
         content = response_content
         options = []
+        multi_select = False
 
         try:
             json_content = self._extract_json(content)
             parsed_response = json.loads(json_content)
             content = parsed_response.get('content', content)
             options = parsed_response.get('options', [])
+            multi_select = parsed_response.get('multi_select', False)
         except Exception as e:
             logging.warning(f"解析 JSON 失败：{str(e)}")
 
         return {
             "content": content,
             "options": options,
+            "multi_select": multi_select,
             "show_dimensions": False
         }
 
@@ -365,21 +368,25 @@ class ConversationalPromptAgent:
         return self.state
 
     def generate_prompt(self, skip_dimensions: bool = False) -> str:
-        if not self.state.is_complete():
-            missing = self.state.get_missing_info()
-            return f"还需要收集以下信息：{', '.join(missing)}"
-        
-        if not skip_dimensions and not self.state.is_dimensions_confirmed():
-            return "请先确认考核维度后再生成提示词"
+        # 不再检查信息完整性，基于已有信息生成
+        # 如果缺少关键信息，会自动使用默认值或智能补充
         
         logging.info("=" * 50)
         logging.info("开始生成提示词...")
-        logging.info(f"行业：{self.state.industry}")
-        logging.info(f"角色：{self.state.role_type}")
-        logging.info(f"购买意愿：{self.state.purchase_intent}")
-        logging.info(f"延展信息：{self.state.extended_info}")
+        logging.info(f"行业：{self.state.industry or '（未提供，将基于上下文推断）'}")
+        logging.info(f"角色：{self.state.role_type or '（未提供，将基于上下文推断）'}")
+        logging.info(f"购买意愿：{self.state.purchase_intent or '（未提供，使用默认值）'}")
+        logging.info(f"延展信息：{self.state.extended_info or '（未提供，将自动生成）'}")
         logging.info(f"考核维度：{len(self.state.dimensions)} 个")
         logging.info("=" * 50)
+        
+        # 如果缺少行业或角色，基于已有信息智能推断
+        self._infer_missing_info()
+        
+        # 如果没有确认维度，自动生成维度
+        if not skip_dimensions and not self.state.is_dimensions_confirmed():
+            logging.info("维度未确认，正在自动生成...")
+            self._auto_generate_dimensions()
         
         self._generate_questions()
         self._generate_trigger_groups()
@@ -648,3 +655,113 @@ class ConversationalPromptAgent:
     def reset(self):
         self.state = ConversationState()
         self.messages = [SystemMessage(content=SYSTEM_PROMPT)]
+
+    def _infer_missing_info(self):
+        """基于已有信息智能推断缺失的行业、角色等信息"""
+        if not self.state.industry or not self.state.role_type:
+            logging.info("正在推断缺失的行业/角色信息...")
+            
+            # 构建对话历史摘要
+            conversation_summary = "\n".join([
+                f"{type(msg).__name__}: {msg.content}"
+                for msg in self.messages[-6:]  # 使用最近 6 条消息
+            ])
+            
+            prompt = """根据对话历史，推断用户的行业和角色信息。
+
+对话历史：
+{conversation_summary}
+
+当前已知信息：
+- 行业：{industry}
+- 角色：{role_type}
+- 购买意愿：{purchase_intent}
+- 延展信息：{extended_info}
+
+请基于上下文推断缺失的信息，返回 JSON 格式：
+{{"industry": "推断的行业", "role_type": "推断的角色", "purchase_intent": "推断的意愿", "background_info": "背景信息摘要"}}""".format(
+                conversation_summary=conversation_summary,
+                industry=self.state.industry or '未知',
+                role_type=self.state.role_type or '未知',
+                purchase_intent=self.state.purchase_intent or '未知',
+                extended_info=self.state.get_extended_info_summary() or '无'
+            )
+            
+            try:
+                response = self._call_model([HumanMessage(content=prompt)])
+                result = json.loads(self._extract_json(response))
+                
+                if not self.state.industry and result.get("industry"):
+                    self.state.industry = result["industry"]
+                    self.state.collected_info["industry"] = True
+                    logging.info(f"推断行业：{self.state.industry}")
+                
+                if not self.state.role_type and result.get("role_type"):
+                    self.state.role_type = result["role_type"]
+                    self.state.collected_info["role"] = True
+                    logging.info(f"推断角色：{self.state.role_type}")
+                
+                if not self.state.purchase_intent and result.get("purchase_intent"):
+                    self.state.purchase_intent = result["purchase_intent"]
+                    self.state.collected_info["intent"] = True
+                
+                if result.get("background_info"):
+                    self.state.background_info = result["background_info"]
+                    
+            except Exception as e:
+                logging.warning(f"推断信息失败：{str(e)}，将使用默认值")
+                # 使用默认值
+                if not self.state.industry:
+                    self.state.industry = "通用服务行业"
+                    self.state.collected_info["industry"] = True
+                if not self.state.role_type:
+                    self.state.role_type = "客户"
+                    self.state.collected_info["role"] = True
+                if not self.state.purchase_intent:
+                    self.state.purchase_intent = "一般"
+                    self.state.collected_info["intent"] = True
+
+    def _auto_generate_dimensions(self):
+        """自动生成考核维度，无需用户确认"""
+        logging.info("正在自动生成考核维度...")
+        
+        try:
+            prompt = """根据以下培训场景，生成 3-4 个合理的考核维度。
+
+场景信息：
+- 行业：{industry}
+- 角色：{role_type}
+- 购买意愿/态度：{purchase_intent}
+- 背景信息：{background_info}
+
+要求：
+1. 维度应该符合行业特点和角色职责
+2. 每个维度包含 2-3 个评估要点
+3. 权重总和为 1.0
+4. 返回 JSON 格式：{{"dimensions": [{{"dimension_name": "维度名", "weight": 0.3, "sub_criteria": {{"评估要点 1": "描述"}}}]}}""".format(
+                industry=self.state.industry,
+                role_type=self.state.role_type,
+                purchase_intent=self.state.purchase_intent,
+                background_info=self.state.background_info or '无'
+            )
+            
+            response = self._call_model([HumanMessage(content=prompt)])
+            result = json.loads(self._extract_json(response))
+            
+            dimensions = result.get("dimensions", [])
+            if dimensions:
+                self.state.dimensions = dimensions
+                self.state.dimensions_confirmed = True
+                logging.info(f"自动生成 {len(dimensions)} 个维度")
+            else:
+                raise ValueError("未生成维度")
+                
+        except Exception as e:
+            logging.warning(f"自动生成维度失败：{str(e)}，使用默认维度")
+            # 使用通用维度
+            self.state.dimensions = [
+                {"dimension_name": "沟通能力", "weight": 0.35, "sub_criteria": {"表达清晰": "语言流畅，逻辑清晰，表达准确", "倾听理解": "准确理解对方意图，及时回应"}},
+                {"dimension_name": "专业素养", "weight": 0.35, "sub_criteria": {"专业知识": "熟悉岗位所需的专业知识和技能", "问题解决": "能够有效分析和解决问题"}},
+                {"dimension_name": "服务态度", "weight": 0.3, "sub_criteria": {"礼貌待人": "态度友好，使用礼貌用语", "耐心细致": "耐心解答问题，关注细节"}}
+            ]
+            self.state.dimensions_confirmed = True

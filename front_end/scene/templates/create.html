@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建场景 - AI 培训教练</title>
+    <link rel="stylesheet" href="/scene/static/css/create.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 场景智能创建</h1>
+            <p class="subtitle">通过对话式交互，智能生成培训场景</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 对话区域 -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message ai-message">
+                        <div class="message-content">
+                            你好！我是场景创建助手。请告诉我你想创建什么行业的培训场景？比如"我想创建一个汽车销售的培训场景"。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <input 
+                        type="text" 
+                        id="user-input" 
+                        placeholder="请输入你的想法..."
+                        autocomplete="off"
+                    >
+                    <button id="send-btn" class="send-btn">发送</button>
+                </div>
+            </div>
+
+            <!-- 状态面板 -->
+            <div class="status-panel">
+                <h3>📊 信息收集状态</h3>
+                <div class="status-items">
+                    <div class="status-item" id="status-industry">
+                        <span class="status-icon">🏢</span>
+                        <span class="status-label">行业</span>
+                        <span class="status-value" id="industry-value">-</span>
+                        <span class="status-indicator"></span>
+                    </div>
+                    <div class="status-item" id="status-role">
+                        <span class="status-icon">👤</span>
+                        <span class="status-label">角色</span>
+                        <span class="status-value" id="role-value">-</span>
+                        <span class="status-indicator"></span>
+                    </div>
+                    <div class="status-item" id="status-extended">
+                        <span class="status-icon">📝</span>
+                        <span class="status-label">背景信息</span>
+                        <span class="status-value" id="extended-value">-</span>
+                        <span class="status-indicator"></span>
+                    </div>
+                </div>
+
+                <div class="progress-section" id="progress-section" style="display: none;">
+                    <h3>⚙️ 生成进度</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p class="progress-text" id="progress-text">正在生成...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <div class="action-bar" id="action-bar" style="display: none;">
+            <div class="action-content">
+                <div class="success-message">
+                    ✅ <span id="success-text">场景内容生成成功！</span>
+                </div>
+                <div class="action-buttons">
+                    <button id="view-btn" class="btn btn-secondary">查看生成的内容</button>
+                    <button id="start-btn" class="btn btn-primary">保存并开始对练</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看内容模态框 -->
+    <div class="modal" id="content-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📄 生成的场景内容</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- 动态填充内容 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="close-modal-btn">关闭</button>
+                <button class="btn btn-primary" id="confirm-start-btn">开始对练</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/scene/static/js/create.js"></script>
+</body>
+</html>

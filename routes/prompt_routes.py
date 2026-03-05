@@ -115,7 +115,8 @@ def reset():
             },
             'missing_info': ['行业', '角色', '购买意愿', '问题列表'],
             'extended_info': {},
-            'extended_info_sufficient': False
+            'extended_info_sufficient': False,
+            'dimensions_confirmed': False
         }
     })
 
@@ -140,7 +141,8 @@ def init():
             'collected_info': state.collected_info,
             'missing_info': state.get_missing_info(),
             'extended_info': state.extended_info,
-            'extended_info_sufficient': state.extended_info_sufficient
+            'extended_info_sufficient': state.extended_info_sufficient,
+            'dimensions_confirmed': state.dimensions_confirmed
         }
     })
 

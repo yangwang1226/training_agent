@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 显示选项按钮
             if (data.options && data.options.length > 0) {
-                showOptions(data.options);
+                showOptions(data.options, data.multi_select);
             }
             
             // 显示维度确认面板
@@ -155,6 +155,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 维度确认后显示生成按钮
             if (data.dimensions_confirmed) {
+                document.getElementById('actionButtons').style.display = 'flex';
+            }
+            
+            // 检测信息收集完成的消息，显示生成按钮
+            if (data.response && (data.response.includes('开始生成') || data.response.includes('信息已收集完成'))) {
                 document.getElementById('actionButtons').style.display = 'flex';
             }
 
@@ -369,9 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.options && data.options.length > 0) {
                 showOptions(data.options);
             }
-            
-            isReady = data.is_ready;
-            updateState(data.state);
 
         } catch (error) {
             removeLoadingMessage();
@@ -398,9 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.options && data.options.length > 0) {
                 showOptions(data.options);
             }
-            
-            isReady = data.is_ready;
-            updateState(data.state);
 
         } catch (error) {
             removeLoadingMessage();
@@ -451,20 +450,56 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    function showOptions(options) {
+    function showOptions(options, multiSelect = false) {
         const optionsContainer = document.createElement('div');
         optionsContainer.className = 'options-container';
         
-        options.forEach(option => {
-            const button = document.createElement('button');
-            button.className = 'option-button';
-            button.textContent = option;
-            button.onclick = () => {
-                sendMessage(option);
+        if (multiSelect) {
+            // 多选模式
+            const selectedOptions = [];
+            
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option;
+                button.onclick = () => {
+                    button.classList.toggle('selected');
+                    if (selectedOptions.includes(option)) {
+                        selectedOptions.splice(selectedOptions.indexOf(option), 1);
+                    } else {
+                        selectedOptions.push(option);
+                    }
+                };
+                optionsContainer.appendChild(button);
+            });
+            
+            // 添加确认按钮
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'btn btn-success';
+            confirmBtn.textContent = '确认选择';
+            confirmBtn.style.marginTop = '10px';
+            confirmBtn.onclick = () => {
+                if (selectedOptions.length === 0) {
+                    showToast('请至少选择一个选项', 'error');
+                    return;
+                }
+                sendMessage(selectedOptions.join(', '));
                 optionsContainer.remove();
             };
-            optionsContainer.appendChild(button);
-        });
+            optionsContainer.appendChild(confirmBtn);
+        } else {
+            // 单选模式
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option;
+                button.onclick = () => {
+                    sendMessage(option);
+                    optionsContainer.remove();
+                };
+                optionsContainer.appendChild(button);
+            });
+        }
         
         chatMessages.appendChild(optionsContainer);
         chatMessages.scrollTop = chatMessages.scrollHeight;

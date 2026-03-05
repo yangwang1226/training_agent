@@ -652,6 +652,12 @@ body::after {
     transform: translateY(0);
 }
 
+.option-button.selected {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.4);
+}
+
 .progress-indicator {
     width: 100%;
     height: 6px;

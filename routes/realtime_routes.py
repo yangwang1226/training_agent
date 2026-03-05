@@ -10,16 +10,23 @@ from flask import Blueprint, render_template, jsonify, request
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import db as db_module
 from agent.service.conversational import ConversationRecorder
+from agent.service.scene.assessment_service import assessment_service as scene_assessment_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 _realtime_dir = Path(__file__).parent
 
+# 模板和静态文件实际在 front_end/realtime 目录下
+# 从 routes/ 目录向上两级到项目根目录，然后到 front_end/realtime
+project_root = _realtime_dir.parent
+_realtime_template_dir = project_root / 'front_end' / 'realtime' / 'templates'
+_realtime_static_dir = project_root / 'front_end' / 'realtime' / 'static'
+
 realtime_bp = Blueprint('realtime', __name__, 
                         url_prefix='/realtime',
-                        template_folder=str(_realtime_dir / 'templates'),
-                        static_folder=str(_realtime_dir / 'static'),
+                        template_folder=str(_realtime_template_dir),
+                        static_folder=str(_realtime_static_dir),
                         static_url_path='/realtime/static')
 
 DEFAULT_PROVIDER = os.getenv("REALTIME_PROVIDER", "qwen").lower()
@@ -197,5 +204,52 @@ def register_websocket(app, sock):
             saved_path = recorder.save()
             if saved_path:
                 logger.info(f"Conversation record saved: {saved_path}")
+                
+                # 生成评估报告
+                try:
+                    logger.info("正在生成评估报告...")
+                    
+                    # 获取场景信息
+                    scene = db_module.get_scene_by_id(scene_id_int)
+                    dimension_config = scene.get('dimension_config') if scene else None
+                    
+                    dimensions = []
+                    if dimension_config:
+                        try:
+                            config_data = json.loads(dimension_config)
+                            dimensions = config_data.get('dimensions', [])
+                        except:
+                            logger.warning("解析维度配置失败")
+                    
+                    # 获取对话转录
+                    transcript = recorder.get_transcript_text()
+                    
+                    # 生成评估报告
+                    report = scene_assessment_service.generate_report(
+                        session_id=recorder.session_id,
+                        transcript=transcript,
+                        dimensions=dimensions,
+                        industry=scene.get('industry', '') if scene else '',
+                        role_type=scene.get('role_type', '') if scene else '',
+                        background_info=scene.get('scene_prompt', '')[:1000] if scene else ''
+                    )
+                    
+                    if report:
+                        # 保存到数据库
+                        scene_assessment_service.save_to_database(
+                            session_id=recorder.session_id,
+                            report=report,
+                            scene_id=scene_id_int,
+                            user_id=1,  # TODO: 从 session 获取真实用户 ID
+                            word_content=json.dumps(recorder.get_messages(), ensure_ascii=False),
+                            oss_file_path=saved_path,
+                            call_duration=recorder.get_duration()
+                        )
+                        logger.info(f"评估报告已保存：session_id={recorder.session_id}")
+                    else:
+                        logger.error("评估报告生成失败")
+                        
+                except Exception as e:
+                    logger.error(f"生成评估报告失败：{str(e)}", exc_info=True)
             
             logger.info(f"WebSocket closed for scene: {scene_id}")
