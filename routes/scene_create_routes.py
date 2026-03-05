@@ -34,8 +34,22 @@ def create_scene_session():
         # 重置智能体
         agent.reset()
         
-        # 初始化对话
-        response = agent.chat("你好，我想创建一个培训场景")
+        # 初始化对话 - 精简版（200 字以内）
+        initial_message = """你好！我是场景创建助手，帮你设计 AI 培训教练场景。
+
+**关键问题：你希望 AI 扮演什么角色？**
+
+常见场景：
+- 🎯 销售培训：AI 模拟客户，你扮演销售
+- 💁 客服培训：AI 模拟客户，你扮演客服
+
+请告诉我：
+1. 什么行业？
+2. AI 扮演什么？（如"模拟客户"）
+
+例如："汽车销售培训，AI 模拟想看车的客户" """
+        
+        response = agent.chat(initial_message)
         
         return jsonify({
             'success': True,
@@ -80,6 +94,7 @@ def chat():
             'options': response.get('options', []),
             'multi_select': response.get('multi_select', False),
             'is_ready': response.get('is_ready', False),
+            'conversation_ended': response.get('conversation_ended', False),  # ✅ 新增
             'state': response.get('state', {})
         })
     except Exception as e:
@@ -131,8 +146,8 @@ def generate_scene():
         
         # 保存到数据库
         scene_id = db_module.save_scene(
-            name=scene_name,
-            prompt=full_prompt,
+            scene_name=scene_name,
+            scene_prompt=full_prompt,
             dimension_config=dimension_config,
             role_type=scene_content.role_type,
             role_description=scene_content.role_description,

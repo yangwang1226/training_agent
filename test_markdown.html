@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 渲染测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .test-section h2 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .message-content {
+            padding: 15px 20px;
+            border-radius: 15px;
+            background: white;
+            border: 2px solid #667eea;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .message-content p {
+            margin-bottom: 1em;
+        }
+        .message-content ul,
+        .message-content ol {
+            margin-left: 20px;
+            margin-bottom: 1em;
+        }
+        .message-content li {
+            margin-bottom: 0.5em;
+        }
+        .message-content strong {
+            font-weight: 600;
+            color: #333;
+        }
+        .message-content em {
+            font-style: italic;
+        }
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin: 1em 0;
+            color: #666;
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+        .raw-text {
+            font-family: 'Courier New', monospace;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Markdown 渲染效果测试</h1>
+        
+        <div class="test-section">
+            <h2>测试 1: 原始文本 (未格式化)</h2>
+            <div class="label">原始文本:</div>
+            <div class="raw-text">收到!"模拟想看车的客户"是一个非常经典且高价值的训练场景。这个场景的核心在于"挖掘需求"、"建立信任"以及"引导试驾"。为了生成最精准的 AI 教练剧本，我需要您确认以下三个关键细节 (您可以直接回答，或者让我为您随机生成一个典型画像):###1."目标客户是谁？"**A."新人购车顾问"(需要练习标准接待流程、基础话术、避免冷场)**B."资深销售/销冠"(需要练习高阶需求挖掘、处理复杂异议、逼单技巧)**C."全员适用"(侧重标准化服务礼仪与话术合规检查)###2."这位客户的'画像是什么？"(请快速勾勒要点)**不同客户类型，AI 的反应逻辑完全不同:**"选 A: 放慢节奏，多引导互动"**"特征":关注安全性、空间、油耗，但还在纠结品牌，容易受家人意见影响，说话比较慢吞吞。**"选项 B: 懂行的技术控/参数党"**"特征":对配置表倒背如流，喜欢问具体参数 (扭矩、电池密度、芯片型号)，对销售的话术很反感，只信数据。**"选项 C: 价格敏感型/比价型"**"特征":一上来就说竞品，拿着竞品 (如特斯拉 Model Y 或同级别合资车) 的价格压价，对车辆本身兴趣一般，更看重性价比。**"选项 D: 情绪化/情感型"**"特征:对展厅环境、销售态度非常敏感，稍微不耐烦或冷淡就会引发反感，很看重"被重视感"。###3."本次训练重点是什么？"**"A.破冰与需求挖掘"(如何从"随便看看"过渡到了解真实购车意向)**"B.产品介绍与价值传递"(如何把枯燥的参数转化为客户的利益点)**"C.异议处理"(当客户提出"太贵了"、"再对比看看"时的应对)**"D.促成成交"(如何成功邀请客户上车体验)###建议方案:</div>
+        </div>
+        
+        <div class="test-section">
+            <h2>测试 2: 优化后的文本 (支持 Markdown 格式化)</h2>
+            <div class="label">渲染后效果:</div>
+            <div class="message-content" id="test2"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>测试 3: 完整 Markdown 示例</h2>
+            <div class="label">Markdown 源码:</div>
+            <div class="raw-text"># 场景背景
+
+您是一家**高端汽车品牌**的销售顾问。
+
+## 客户特征
+
+- **预算**: 20-30 万
+- **关注**: SUV 车型
+- **需求**: 家庭使用
+
+### 主问题列表
+
+1. 这款车的油耗怎么样？
+2. 安全配置有哪些？
+3. 保养费用贵吗？
+
+> 客户比较关注性价比，会拿竞品车型对比
+
+#### 考核维度
+
+- **需求挖掘**: 能否准确识别客户需求
+- **产品知识**: 对车辆参数的熟悉程度
+- **沟通能力**: 表达清晰，有亲和力</div>
+            <div class="label">渲染后效果:</div>
+            <div class="message-content" id="test3"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Markdown 渲染函数
+        function renderMarkdown(text) {
+            if (!text) return '';
+            
+            let html = text;
+            
+            // 转义 HTML 特殊字符
+            html = html.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;');
+            
+            // 标题 (h1-h4)
+            html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // 粗体
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            
+            // 斜体
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+            
+            // 引用
+            html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+            
+            // 列表项
+            html = html.replace(/^\s*[-*+]\s+(.*$)/gim, '<li>$1</li>');
+            html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>');
+            
+            // 段落 - 将双换行转换为段落标签
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+            
+            // 清理空的段落标签
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            html = html.replace(/<p>\s*(<h[1-4]>)/g, '$1');
+            html = html.replace(/(<\/h[1-4]>)\s*<\/p>/g, '$1');
+            html = html.replace(/<p>\s*(<blockquote>)/g, '$1');
+            html = html.replace(/(<\/blockquote>)\s*<\/p>/g, '$1');
+            
+            // 换行 - 将单个换行转换为<br>
+            html = html.replace(/\n/g, '<br>');
+            
+            return html;
+        }
+        
+        // 测试文本 2
+        const test2Text = `收到!"模拟想看车的客户"是一个非常经典且高价值的训练场景。这个场景的核心在于**"挖掘需求"**、**"建立信任"**以及**"引导试驾"**。
+
+为了生成最精准的 AI 教练剧本，我需要您确认以下三个关键细节 (您可以直接回答，或者让我为您随机生成一个典型画像):
+
+### 1. "目标客户是谁？"
+- **A. "新人购车顾问"** (需要练习标准接待流程、基础话术、避免冷场)
+- **B. "资深销售/销冠"** (需要练习高阶需求挖掘、处理复杂异议、逼单技巧)
+- **C. "全员适用"** (侧重标准化服务礼仪与话术合规检查)
+
+### 2. "这位客户的'画像是什么？"(请快速勾勒要点)
+不同客户类型，AI 的反应逻辑完全不同:
+- **选 A: 放慢节奏，多引导互动**
+  - **特征**: 关注安全性、空间、油耗，但还在纠结品牌，容易受家人意见影响，说话比较慢吞吞。
+- **选项 B: 懂行的技术控/参数党**
+  - **特征**: 对配置表倒背如流，喜欢问具体参数 (扭矩、电池密度、芯片型号)，对销售的话术很反感，只信数据。
+- **选项 C: 价格敏感型/比价型**
+  - **特征**: 一上来就说竞品，拿着竞品 (如特斯拉 Model Y 或同级别合资车) 的价格压价，对车辆本身兴趣一般，更看重性价比。
+- **选项 D: 情绪化/情感型**
+  - **特征**: 对展厅环境、销售态度非常敏感，稍微不耐烦或冷淡就会引发反感，很看重"被重视感"。
+
+### 3. "本次训练重点是什么？"
+- **A. 破冰与需求挖掘** (如何从"随便看看"过渡到了解真实购车意向)
+- **B. 产品介绍与价值传递** (如何把枯燥的参数转化为客户的利益点)
+- **C. 异议处理** (当客户提出"太贵了"、"再对比看看"时的应对)
+- **D. 促成成交** (如何成功邀请客户上车体验)
+
+> 建议方案：根据客户类型选择合适的训练重点`;
+        
+        // 测试文本 3
+        const test3Text = `# 场景背景
+
+您是一家**高端汽车品牌**的销售顾问。
+
+## 客户特征
+
+- **预算**: 20-30 万
+- **关注**: SUV 车型
+- **需求**: 家庭使用
+
+### 主问题列表
+
+1. 这款车的油耗怎么样？
+2. 安全配置有哪些？
+3. 保养费用贵吗？
+
+> 客户比较关注性价比，会拿竞品车型对比
+
+#### 考核维度
+
+- **需求挖掘**: 能否准确识别客户需求
+- **产品知识**: 对车辆参数的熟悉程度
+- **沟通能力**: 表达清晰，有亲和力`;
+        
+        // 渲染测试
+        document.getElementById('test2').innerHTML = renderMarkdown(test2Text);
+        document.getElementById('test3').innerHTML = renderMarkdown(test3Text);
+    </script>
+</body>
+</html>

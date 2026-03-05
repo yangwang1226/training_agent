@@ -97,11 +97,22 @@ class SceneAgent:
             generation_result = self.generate_scene_content()
             
             if generation_result:
+                # ✅ 关键修改：明确告知用户场景已创建完成，引导点击按钮
                 return {
-                    "content": "场景内容已生成完成！包括背景信息、问题列表、关联问题和考核维度。可以点击「开始生成」按钮保存场景并开始对练。",
+                    "content": f"""🎉 **场景创建完成！**
+
+**场景名称**：{self.scene_content.industry}·{self.scene_content.ai_role or self.scene_content.role_type}训练
+
+**场景已保存到数据库**，现在请：
+
+1. 点击底部 **"查看生成的内容"** 预览场景详情
+2. 点击 **"保存并开始对练"** 进入语音实时对练界面
+
+> 💡 说明：场景创建已完成，接下来将由语音对练系统（Realtime 智能体）与您进行对话练习。""",
                     "options": ["查看生成的内容", "保存并开始对练"],
                     "is_ready": True,
-                    "state": self._get_state()
+                    "state": self._get_state(),
+                    "conversation_ended": True  # ✅ 标记对话已结束
                 }
         
         # 正常对话回复
@@ -136,6 +147,7 @@ class SceneAgent:
             user_input=user_input,
             industry=self.state.industry or '未收集',
             role_type=self.state.role_type or '未收集',
+            ai_role=self.state.ai_role or '未确认',
             role_description=self.state.role_description or '未收集',
             extended_info=self.state.get_extended_info_summary()
         )
@@ -161,6 +173,11 @@ class SceneAgent:
             self.state.role_type = extraction_result["role_type"]
             self.state.collected_info["role"] = True
         
+        # 更新 AI 角色
+        if extraction_result.get("ai_role"):
+            self.state.ai_role = extraction_result["ai_role"]
+            self.state.collected_info["ai_role"] = True
+        
         if extraction_result.get("role_description"):
             self.state.role_description = extraction_result["role_description"]
         
@@ -181,6 +198,7 @@ class SceneAgent:
         return {
             "industry": self.state.industry,
             "role_type": self.state.role_type,
+            "ai_role": self.state.ai_role,  # AI 扮演的角色
             "role_description": self.state.role_description,
             "purchase_intent": self.state.purchase_intent,
             "custom_questions": self.state.custom_questions,
@@ -234,6 +252,7 @@ class SceneAgent:
             self.scene_content = SceneContent(
                 industry=self.state.industry,
                 role_type=self.state.role_type,
+                ai_role=self.state.ai_role,  # ✅ 新增：保存 AI 角色
                 role_description=self.state.role_description,
                 background_info=background_info,
                 main_questions=main_questions,
@@ -260,9 +279,10 @@ class SceneAgent:
         logger.info("步骤 1: 生成背景信息...")
         
         context_info = self._build_context_info()
+        # ✅ 关键修改：传入 ai_role 而不是 role_type
         prompt = CHAIN_OF_THOUGHT_BACKGROUND.format(
             industry=self.state.industry,
-            role_type=self.state.role_type,
+            ai_role=self.state.ai_role or self.state.role_type,  # ← 改为 ai_role
             context_info=context_info
         )
         
@@ -489,10 +509,14 @@ class SceneAgent:
         
         content = self.scene_content
         
+        # ✅ 关键修改：使用 ai_role 而不是 role_type
+        # 确定 AI 应该扮演的角色
+        ai_character = content.ai_role if hasattr(content, 'ai_role') and content.ai_role else content.role_type
+        
         # 构建提示词
         prompt_parts = [
             "# 角色设定",
-            f"你是一名{content.industry}行业的{content.role_type}。",
+            f"你是一名{content.industry}行业的{ai_character}。",
             "",
             "# 场景背景",
             content.background_info,

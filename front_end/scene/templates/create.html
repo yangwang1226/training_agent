@@ -3,88 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>创建场景 - AI 培训教练</title>
-    <link rel="stylesheet" href="/scene/static/css/create.css">
+    <title>创建场景 - AI 智能训练系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* 消息样式 */
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-content {
+            padding: 15px 20px;
+            border-radius: 15px;
+            max-width: 80%;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .ai-message .message-content {
+            background: white;
+            border: 2px solid #667eea;
+            color: #333;
+        }
+        
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+        }
+        
+        /* Markdown 样式 */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .message-content strong {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* 状态面板样式 */
+        .status-items {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .status-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-icon {
+            font-size: 1.2em;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 70px;
+            font-size: 0.9em;
+        }
+        
+        .status-value {
+            flex: 1;
+            color: #333;
+            font-size: 0.9em;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            transition: background 0.3s;
+        }
+        
+        .status-item.completed .status-indicator {
+            background: #4caf50;
+        }
+        
+        .status-item.in-progress .status-indicator {
+            background: #ff9800;
+        }
+        
+        /* 底部操作栏 */
+        .action-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .action-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .success-message {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        /* Toast 动画 */
+        @keyframes slideDown {
+            from {
+                transform: translate(-50%, -100px);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+            to {
+                transform: translate(-50%, -100px);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🎯 场景智能创建</h1>
-            <p class="subtitle">通过对话式交互，智能生成培训场景</p>
+        <header class="header">
+            <h1>🚀 创建新场景</h1>
+            <p class="subtitle">智能体创建 - 像和朋友聊天一样告诉我您的需求</p>
         </header>
 
         <div class="main-content">
             <!-- 对话区域 -->
             <div class="chat-container">
                 <div class="chat-messages" id="chat-messages">
-                    <div class="message ai-message">
-                        <div class="message-content">
-                            你好！我是场景创建助手。请告诉我你想创建什么行业的培训场景？比如"我想创建一个汽车销售的培训场景"。
-                        </div>
-                    </div>
+                    <!-- 初始为空，等待 AI 回复 -->
                 </div>
 
-                <div class="chat-input-area">
-                    <input 
-                        type="text" 
-                        id="user-input" 
-                        placeholder="请输入你的想法..."
-                        autocomplete="off"
-                    >
-                    <button id="send-btn" class="send-btn">发送</button>
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="user-input" 
+                            placeholder="输入你的想法..."
+                            autocomplete="off"
+                        >
+                        <button id="send-btn" class="btn btn-primary">发送</button>
+                    </div>
                 </div>
             </div>
 
             <!-- 状态面板 -->
-            <div class="status-panel">
-                <h3>📊 信息收集状态</h3>
-                <div class="status-items">
-                    <div class="status-item" id="status-industry">
-                        <span class="status-icon">🏢</span>
-                        <span class="status-label">行业</span>
-                        <span class="status-value" id="industry-value">-</span>
-                        <span class="status-indicator"></span>
+            <div class="side-panels">
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        <span>📊 信息收集状态</span>
                     </div>
-                    <div class="status-item" id="status-role">
-                        <span class="status-icon">👤</span>
-                        <span class="status-label">角色</span>
-                        <span class="status-value" id="role-value">-</span>
-                        <span class="status-indicator"></span>
+                    <div class="panel-body">
+                        <div class="status-items">
+                            <div class="status-item" id="status-industry">
+                                <span class="status-icon">🏢</span>
+                                <span class="status-label">行业</span>
+                                <span class="status-value" id="industry-value">-</span>
+                                <span class="status-indicator"></span>
+                            </div>
+                            <div class="status-item" id="status-role">
+                                <span class="status-icon">👤</span>
+                                <span class="status-label">你的角色</span>
+                                <span class="status-value" id="role-value">-</span>
+                                <span class="status-indicator"></span>
+                            </div>
+                            <div class="status-item" id="status-ai-role">
+                                <span class="status-icon">🤖</span>
+                                <span class="status-label">AI 扮演</span>
+                                <span class="status-value" id="ai-role-value">-</span>
+                                <span class="status-indicator"></span>
+                            </div>
+                            <div class="status-item" id="status-extended">
+                                <span class="status-icon">📝</span>
+                                <span class="status-label">背景信息</span>
+                                <span class="status-value" id="extended-value">-</span>
+                                <span class="status-indicator"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="status-item" id="status-extended">
-                        <span class="status-icon">📝</span>
-                        <span class="status-label">背景信息</span>
-                        <span class="status-value" id="extended-value">-</span>
-                        <span class="status-indicator"></span>
-                    </div>
-                </div>
-
-                <div class="progress-section" id="progress-section" style="display: none;">
-                    <h3>⚙️ 生成进度</h3>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
-                    </div>
-                    <p class="progress-text" id="progress-text">正在生成...</p>
                 </div>
             </div>
         </div>
 
         <!-- 底部操作栏 -->
-        <div class="action-bar" id="action-bar" style="display: none;">
+        <div class="action-bar" id="action-bar">
             <div class="action-content">
                 <div class="success-message">
-                    ✅ <span id="success-text">场景内容生成成功！</span>
+                    <span id="success-text">💡 随时可以开始对练</span>
                 </div>
                 <div class="action-buttons">
                     <button id="view-btn" class="btn btn-secondary">查看生成的内容</button>
-                    <button id="start-btn" class="btn btn-primary">保存并开始对练</button>
+                    <button id="start-btn" class="btn btn-success">保存并开始对练</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- 查看内容模态框 -->
-    <div class="modal" id="content-modal">
+    <div class="result-modal" id="content-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>📄 生成的场景内容</h2>
@@ -95,7 +258,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="close-modal-btn">关闭</button>
-                <button class="btn btn-primary" id="confirm-start-btn">开始对练</button>
+                <button class="btn btn-success" id="confirm-start-btn">开始对练</button>
             </div>
         </div>
     </div>

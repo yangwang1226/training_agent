@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, render_template, send_from_directory, session
+from flask import Flask, render_template, send_from_directory, session, redirect
 from flask_sock import Sock
 import uuid
 
@@ -46,7 +46,10 @@ def evaluate_static(filename):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """
+    首页 - 直接跳转到场景创建页面
+    """
+    return redirect('/scene/create/')
 
 
 @app.route('/evaluate/')
@@ -80,6 +83,7 @@ app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)
 
 register_progress_websocket(sock)
+register_websocket(sock)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

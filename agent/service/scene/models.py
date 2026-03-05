@@ -120,6 +120,7 @@ class SceneContent:
     """场景内容数据模型"""
     industry: str = ""
     role_type: str = ""
+    ai_role: str = ""  # ✅ 新增：AI 扮演的角色
     role_description: str = ""
     background_info: str = ""
     main_questions: List[MainQuestion] = field(default_factory=list)
@@ -132,6 +133,7 @@ class SceneContent:
         return {
             "industry": self.industry,
             "role_type": self.role_type,
+            "ai_role": self.ai_role,  # ✅ 新增
             "role_description": self.role_description,
             "background_info": self.background_info,
             "main_questions": [q.to_dict() for q in self.main_questions],
@@ -172,6 +174,7 @@ class ConversationState:
     industry: str = ""
     role_type: str = ""
     role_description: str = ""
+    ai_role: str = ""  # AI 应该扮演的角色（如"客户"、"访客"等）
     purchase_intent: str = ""
     custom_questions: List[str] = field(default_factory=list)
     extended_info: Dict[str, str] = field(default_factory=dict)
@@ -180,6 +183,7 @@ class ConversationState:
     collected_info: Dict[str, bool] = field(default_factory=lambda: {
         "industry": False,
         "role": False,
+        "ai_role": False,  # AI 角色是否确认
         "intent": False,
         "questions": False
     })
@@ -189,11 +193,8 @@ class ConversationState:
     
     def is_ready_for_generation(self) -> bool:
         """检查是否可以开始生成场景内容"""
-        return (
-            self.collected_info.get("industry", False) and
-            self.collected_info.get("role", False) and
-            self.extended_info_sufficient
-        )
+        # ✅ 修改：只要收集了行业信息就可以生成
+        return self.collected_info.get("industry", False)
     
     def get_extended_info_summary(self) -> str:
         """获取延展信息摘要"""
@@ -208,6 +209,8 @@ class ConversationState:
             missing.append("行业")
         if not self.collected_info.get("role"):
             missing.append("角色")
+        if not self.collected_info.get("ai_role"):
+            missing.append("AI 扮演角色")
         if not self.collected_info.get("intent"):
             missing.append("购买意愿")
         if not self.collected_info.get("questions"):

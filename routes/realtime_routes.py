@@ -69,9 +69,9 @@ def get_prompt(scene_id):
         return jsonify({'success': False, 'error': str(e)})
 
 
-def register_websocket(app, sock):
-    app.register_blueprint(realtime_bp)
-    logger.info("Registered realtime blueprint")
+def register_websocket(sock):
+    """注册 WebSocket 路由"""
+    logger.info("Registering WebSocket routes")
     
     @sock.route('/api/realtime/ws/<scene_id>')
     def realtime_ws(ws, scene_id):

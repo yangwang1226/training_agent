@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastMessageDiv = null;
     let lastMessageRole = null;
     let lastMessageText = '';
-    let selectedProvider = null;
+    let selectedProvider = 'qwen';  // 默认使用 qwen 模型
     let scenePrompt = '';
 
     loadSceneInfo();
@@ -75,20 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    startBtn.addEventListener('click', showProviderModal);
+    startBtn.addEventListener('click', startSession);  // 直接开始，不再选择模型
     stopBtn.addEventListener('click', stopSession);
-
-    document.querySelectorAll('.provider-option').forEach(btn => {
-        btn.addEventListener('click', function() {
-            selectedProvider = this.dataset.provider;
-            providerModal.style.display = 'none';
-            startSession();
-        });
-    });
-
-    function showProviderModal() {
-        providerModal.style.display = 'flex';
-    }
 
     async function startSession() {
         try {
@@ -135,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             window.muteGain = muteGain;
 
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/api/realtime/ws/${SCENE_ID}?provider=${selectedProvider}`;
+            const wsUrl = `${wsProtocol}//${window.location.host}/api/realtime/ws/${SCENE_ID}?provider=qwen`;
             ws = new WebSocket(wsUrl);
             ws.binaryType = 'arraybuffer';
 
