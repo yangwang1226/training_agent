@@ -33,7 +33,12 @@ class SceneAgent:
     
     def __init__(self):
         self.state = ConversationState()
-        self.messages: List = [SystemMessage(content=SYSTEM_PROMPT)]
+        self.extract_info = None
+        # self.messages: List = [SystemMessage(content=SYSTEM_PROMPT)]
+        self.messages: List = [SystemMessage(content=INFO_EXTRACTION_PROMPT.format(
+            user_input="",
+            collected_info="暂无"
+        ))]
         self.scene_content: Optional[SceneContent] = None
         
         # 初始化 LLM
@@ -74,6 +79,21 @@ class SceneAgent:
         else:
             raise Exception(f"Qwen API error: {response.code} - {response.message}")
 
+    # def get_collected_info(self) -> Dict[str, Any]:
+    #     """获取当前已经收集的信息"""
+    #     info = None
+    #     if self.state.collected_info.get("Industry", None):
+    #         info = "已经收集了行业信息"
+    #     if self.state.collected_info.get("Role", None):
+    #         info = info + "\n" + "已经收集了角色信息"
+    #     if self.state.collected_info.get("AiRole", None):
+    #         info = info + "\n" + "已经收集了AI扮演的角色信息"
+    #     if self.state.collected_info.get("Intent", None):
+    #         info = info + "\n" + "已经收集了购买意愿信息"
+    #     if self.state.collected_info.get("Questions", None):
+    #         info = info + "\n" + "已经收集了问题列表信息"
+    #     return info
+
     def chat(self, user_input: str) -> Dict[str, Any]:
         """
         对话交互
@@ -88,77 +108,87 @@ class SceneAgent:
         
         # 提取信息
         extraction_result = self._extract_info(user_input)
-        self._update_state(extraction_result)
+        # 根据提取结果拼接返回内容
+        content_parts = ["感谢您的反馈，目前收到的信息包括："]
+        missing_parts = []
         
-        # 检查是否可以生成场景
-        if self.state.is_ready_for_generation() and not self.scene_content:
-            # 自动生成场景内容
-            logger.info("信息收集完成，开始自动生成场景内容...")
-            generation_result = self.generate_scene_content()
-            
-            if generation_result:
-                # ✅ 关键修改：明确告知用户场景已创建完成，引导点击按钮
-                return {
-                    "content": f"""🎉 **场景创建完成！**
-
-**场景名称**：{self.scene_content.industry}·{self.scene_content.ai_role or self.scene_content.role_type}训练
-
-**场景已保存到数据库**，现在请：
-
-1. 点击底部 **"查看生成的内容"** 预览场景详情
-2. 点击 **"保存并开始对练"** 进入语音实时对练界面
-
-> 💡 说明：场景创建已完成，接下来将由语音对练系统（Realtime 智能体）与您进行对话练习。""",
-                    "options": ["查看生成的内容", "保存并开始对练"],
-                    "is_ready": True,
-                    "state": self._get_state(),
-                    "conversation_ended": True  # ✅ 标记对话已结束
-                }
+        # 映射字段到中文描述
+        field_map = {
+            "industry": "所属行业",
+            "training_role": "希望AI模拟的角色",
+            "ai_role": "被训练者岗位",
+            "training_scene": "训练场景的描述"
+        }
         
-        # 正常对话回复
-        response_content = self._call_model(self.messages, temperature=0.7)
+        # 遍历提取结果，拼接已存在的信息
+        for field, desc in field_map.items():
+            item_obj = extraction_result.get(field, "")
+            item_exist = item_obj.get("exist", False)
+            if item_exist is True:
+                content_parts.append(f"1.{desc}：{item_obj.get('content', '')}")
+            else:
+                missing_parts.append(f"【{desc}】")
+        
+        # 如果有缺失字段，拼接提示语句
+        if missing_parts:
+            content_parts.append("请您再介绍一下" + "、".join(missing_parts)
+             + "，例如：“希望AI模拟购车客户，帮我生成一个用于训练问界汽车销售的训练场景，”谢谢。")
+        
+        response_content = "\n".join(content_parts)
+        
+        # 将拼接好的内容加入消息列表并返回
         self.messages.append(AIMessage(content=response_content))
         
-        # 解析响应
-        content = response_content
-        options = []
-        multi_select = False
-        
-        try:
-            json_content = self._extract_json(content)
-            parsed_response = json.loads(json_content)
-            content = parsed_response.get('content', content)
-            options = parsed_response.get('options', [])
-            multi_select = parsed_response.get('multi_select', False)
-        except Exception as e:
-            logger.warning(f"解析 JSON 失败：{str(e)}")
-        
         return {
-            "content": content,
-            "options": options,
-            "multi_select": multi_select,
-            "is_ready": False,
-            "state": self._get_state()
+            "content": response_content,
         }
+        # self._update_state(extraction_result)
+        
+        # # 获取当前已经提取的信息
+        # current_info = self.get_collected_info()
+        # if current_info:
+        #     self.messages.append(AIMessage(content=current_info))
+        
+        # # 正常对话回复
+        # response_content = self._call_model(self.messages, temperature=0.7)
+        # self.messages.append(AIMessage(content=response_content))
+        
+        # # 解析响应
+        # content = response_content
+        # # options = []
+        # # multi_select = False
+        
+        # try:
+        #     json_content = self._extract_json(content)
+        #     parsed_response = json.loads(json_content)
+        #     content = parsed_response.get('content', content)
+        #     # options = parsed_response.get('options', [])
+        #     # multi_select = parsed_response.get('multi_select', False)
+        # except Exception as e:
+        #     logger.warning(f"解析 JSON 失败：{str(e)}")
+        
+        # return {
+        #     "content": content,
+        #     # "options": options,
+        #     # "multi_select": multi_select,
+        #     # "is_ready": False,
+        #     # "state": self._get_state()
+        # }
 
     def _extract_info(self, user_input: str) -> Dict[str, Any]:
         """从用户输入中提取信息"""
         prompt = INFO_EXTRACTION_PROMPT.format(
             user_input=user_input,
-            industry=self.state.industry or '未收集',
-            role_type=self.state.role_type or '未收集',
-            ai_role=self.state.ai_role or '未确认',
-            role_description=self.state.role_description or '未收集',
-            extended_info=self.state.get_extended_info_summary()
+            collected_info=self.extract_info is None and "暂无" or json.dumps(self.extract_info)
         )
         
         try:
-            parser = JsonOutputParser()
+            # parser = JsonOutputParser()
             response_content = self._call_model(
                 [HumanMessage(content=prompt + "\n\n请返回 JSON 格式结果。")]
             )
-            result = json.loads(self._extract_json(response_content))
-            return result
+            self.extract_info = json.loads(self._extract_json(response_content))
+            return self.extract_info
         except Exception as e:
             logger.error(f"信息提取失败：{str(e)}")
             return {}
@@ -282,7 +312,7 @@ class SceneAgent:
         # ✅ 关键修改：传入 ai_role 而不是 role_type
         prompt = CHAIN_OF_THOUGHT_BACKGROUND.format(
             industry=self.state.industry,
-            ai_role=self.state.ai_role or self.state.role_type,  # ← 改为 ai_role
+            ai_role=self.state.ai_role,  # ← 改为 ai_role
             context_info=context_info
         )
         

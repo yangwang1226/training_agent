@@ -193,8 +193,8 @@ class ConversationState:
     
     def is_ready_for_generation(self) -> bool:
         """检查是否可以开始生成场景内容"""
-        # ✅ 修改：只要收集了行业信息就可以生成
-        return self.collected_info.get("industry", False)
+        # 有行业信息、AI扮演的角色信息就可以开始生成场景内容
+        return self.collected_info.get("industry", False) and self.collected_info.get("ai_role", False)
     
     def get_extended_info_summary(self) -> str:
         """获取延展信息摘要"""
