@@ -1,6 +1,7 @@
 // 场景创建页面 JavaScript
 
 let currentSceneId = null;
+let prefilledParams = null;  // 从行业选择页面传递的参数
 let generatedSceneContent = null;
 let isSessionInitialized = false;  // 防止重复初始化
 
@@ -9,20 +10,18 @@ const chatMessages = document.getElementById('chat-messages');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const actionBar = document.getElementById('action-bar');
-const viewBtn = document.getElementById('view-btn');
 const startBtn = document.getElementById('start-btn');
 const modal = document.getElementById('content-modal');
 const modalBody = document.getElementById('modal-body');
 const closeModalBtn = document.getElementById('close-modal');
 const closeModalFooterBtn = document.getElementById('close-modal-btn');
 const confirmStartBtn = document.getElementById('confirm-start-btn');
-const progressSection = document.getElementById('progress-section');
-const progressFill = document.getElementById('progress-fill');
-const progressText = document.getElementById('progress-text');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initEventListeners();
+    // 解析 URL 参数（从行业选择页面传递）
+    parseUrlParams();
     // 自动开始对话（只调用一次）
     if (!isSessionInitialized) {
         setTimeout(() => {
@@ -30,6 +29,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 });
+
+// 解析 URL 参数
+function parseUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const industry = urlParams.get('industry');
+    const scene = urlParams.get('scene');
+    const sceneDesc = urlParams.get('scene_desc');
+    
+    if (industry || scene) {
+        prefilledParams = {
+            industry: industry || '',
+            scene: scene || '',
+            sceneDesc: sceneDesc || ''
+        };
+        console.log('从行业选择页面获取参数:', prefilledParams);
+    }
+}
 
 function initEventListeners() {
     sendBtn.addEventListener('click', sendMessage);
@@ -39,7 +55,6 @@ function initEventListeners() {
         }
     });
     
-    viewBtn.addEventListener('click', showGeneratedContent);
     startBtn.addEventListener('click', saveAndStartTraining);
     
     closeModalBtn.addEventListener('click', hideModal);
@@ -65,12 +80,77 @@ async function createSceneSession() {
         if (data.success) {
             addMessage('ai', data.response);
             updateOptions(data.options);
+            
+            // 如果有预填充参数，自动发送初始消息
+            if (prefilledParams) {
+                setTimeout(() => {
+                    sendPrefilledMessage();
+                }, 500);
+            }
         } else {
             addMessage('ai', '初始化失败，请刷新页面重试。');
         }
     } catch (error) {
         console.error('创建会话失败:', error);
         addMessage('ai', '连接服务器失败，请刷新页面重试。');
+    }
+}
+
+// 发送预填充消息（从行业选择页面跳转时）
+async function sendPrefilledMessage() {
+    if (!prefilledParams) return;
+    
+    // 构建预填充消息
+    let message = '';
+    if (prefilledParams.industry && prefilledParams.scene) {
+        message = `我是${prefilledParams.industry}行业的，想训练「${prefilledParams.scene}」场景`;
+        if (prefilledParams.sceneDesc) {
+            message += `，${prefilledParams.sceneDesc}`;
+        }
+    } else if (prefilledParams.industry) {
+        message = `我是${prefilledParams.industry}行业的`;
+    }
+    
+    if (!message) return;
+    
+    // 显示用户消息
+    addMessage('user', message);
+    
+    // 禁用输入
+    setInputEnabled(false);
+    
+    try {
+        const response = await fetch('/api/scene/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            addMessage('ai', data.response);
+            updateOptions(data.options);
+            updateStatus(data.state);
+            
+            // 检查对话是否已结束
+            if (data.conversation_ended) {
+                userInput.disabled = true;
+                userInput.placeholder = '场景已创建完成，请点击下方按钮开始对练';
+                sendBtn.disabled = true;
+            }
+        } else {
+            addMessage('ai', '对话失败：' + data.error);
+        }
+    } catch (error) {
+        console.error('发送预填充消息失败:', error);
+        addMessage('ai', '发送消息失败，请手动输入您的需求。');
+    } finally {
+        setInputEnabled(true);
+        // 清除预填充参数，防止重复发送
+        prefilledParams = null;
     }
 }
 
@@ -102,7 +182,7 @@ async function sendMessage() {
             updateOptions(data.options);
             updateStatus(data.state);
             
-            // ✅ 检查对话是否已结束
+            // 检查对话是否已结束
             if (data.conversation_ended) {
                 // 禁用输入框，提示用户点击按钮
                 userInput.disabled = true;
@@ -247,61 +327,6 @@ function updateStatus(state) {
     }
 }
 
-// 显示操作栏
-// ✅ 移除 showActionBar 函数，按钮始终显示
-// function showActionBar() {
-//     actionBar.style.display = 'block';
-// }
-
-// 显示生成进度
-function showProgress(show) {
-    if (show) {
-        progressSection.style.display = 'block';
-        progressFill.style.width = '0%';
-        progressText.textContent = '正在分析场景信息...';
-    } else {
-        progressSection.style.display = 'none';
-    }
-}
-
-// 更新进度
-function updateProgress(percent, text) {
-    progressFill.style.width = `${percent}%`;
-    progressText.textContent = text;
-}
-
-// 查看生成的内容 (不保存，只预览)
-async function showGeneratedContent() {
-    try {
-        // 先显示加载状态
-        viewBtn.disabled = true;
-        viewBtn.textContent = '生成中...';
-        
-        const response = await fetch('/api/scene/generate', {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            currentSceneId = data.scene_id;
-            generatedSceneContent = data.scene_content;
-            
-            // 显示模态框
-            displayContent(generatedSceneContent);
-            showModal();
-        } else {
-            showToast('生成失败：' + data.error, 'error');
-        }
-    } catch (error) {
-        console.error('生成内容失败:', error);
-        showToast('生成失败，请重试。', 'error');
-    } finally {
-        viewBtn.disabled = false;
-        viewBtn.textContent = '查看生成的内容';
-    }
-}
-
 // Toast 提示（使用首页样式）
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
@@ -329,67 +354,6 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// 显示内容
-function displayContent(content) {
-    if (!content) return;
-    
-    let html = '';
-    
-    // 背景信息
-    if (content.background_info) {
-        html += '<h3>📍 场景背景</h3>';
-        html += `<p>${content.background_info.replace(/\n/g, '<br>')}</p>`;
-    }
-    
-    // 主问题列表
-    if (content.main_questions && content.main_questions.length > 0) {
-        html += '<h3>❓ 主问题列表</h3>';
-        html += '<ol>';
-        content.main_questions.forEach(q => {
-            html += `<li>${q.question}</li>`;
-        });
-        html += '</ol>';
-    }
-    
-    // 关联问题分组
-    if (content.trigger_groups && content.trigger_groups.length > 0) {
-        html += '<h3>🔗 关联问题分组</h3>';
-        content.trigger_groups.forEach(group => {
-            html += `<h4>${group.group_name}</h4>`;
-            html += `<p><strong>触发关键词:</strong> ${group.trigger_keywords.join(', ')}</p>`;
-            html += '<ul>';
-            group.questions.forEach(q => {
-                html += `<li>${q.question}</li>`;
-            });
-            html += '</ul>';
-        });
-    }
-    
-    // 考核维度
-    if (content.dimensions && content.dimensions.length > 0) {
-        html += '<h3>📊 考核维度</h3>';
-        content.dimensions.forEach(dim => {
-            html += `<h4>${dim.dimension_name} (权重：${(dim.weight * 100).toFixed(0)}%)</h4>`;
-            html += '<ul>';
-            for (const [criterion, desc] of Object.entries(dim.sub_criteria || {})) {
-                html += `<li><strong>${criterion}:</strong> ${desc}</li>`;
-            }
-            html += '</ul>';
-        });
-    }
-    
-    // 情绪画像
-    if (content.emotion_profile) {
-        html += '<h3>😊 情绪画像</h3>';
-        html += `<p><strong>情绪类型:</strong> ${content.emotion_profile.emotion_type}</p>`;
-        html += `<p><strong>情绪描述:</strong> ${content.emotion_profile.emotion_description}</p>`;
-        html += `<p><strong>说话风格:</strong> ${content.emotion_profile.speaking_style}</p>`;
-        html += `<p><strong>沟通态度:</strong> ${content.emotion_profile.attitude}</p>`;
-    }
-    
-    modalBody.innerHTML = html;
-}
-
 // 保存并开始对练
 async function saveAndStartTraining() {
     try {
@@ -397,38 +361,29 @@ async function saveAndStartTraining() {
         startBtn.disabled = true;
         startBtn.textContent = '保存中...';
         
-        if (!currentSceneId) {
-            // 如果还没有生成，先调用生成接口保存场景
-            const response = await fetch('/api/scene/generate', {
-                method: 'POST'
-            });
+        // 直接调用生成接口保存场景
+        const response = await fetch('/api/scene/generate', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const currentSceneId = data.scene_id;
+            console.log('场景保存成功:', currentSceneId);
             
-            const data = await response.json();
+            // 显示成功提示
+            showToast('场景保存成功！正在跳转到对练页面...', 'success');
             
-            if (data.success) {
-                currentSceneId = data.scene_id;
-                generatedSceneContent = data.scene_content;
-                console.log('场景保存成功:', currentSceneId);
-                
-                // 显示成功提示
-                showToast('场景保存成功！正在跳转到对练页面...', 'success');
-                
-                // 延迟跳转，让用户看到提示
-                setTimeout(() => {
-                    window.location.href = `/realtime/${currentSceneId}`;
-                }, 1000);
-            } else {
-                showToast('保存失败：' + data.error, 'error');
-                startBtn.disabled = false;
-                startBtn.textContent = '开始对练';
-                return;
-            }
-        } else {
-            // 已经生成过了，直接跳转
-            showToast('正在跳转到对练页面...', 'success');
+            // 延迟跳转，让用户看到提示
             setTimeout(() => {
                 window.location.href = `/realtime/${currentSceneId}`;
-            }, 500);
+            }, 1000);
+        } else {
+            showToast('保存失败：' + data.error, 'error');
+            startBtn.disabled = false;
+            startBtn.textContent = '开始对练';
+            return;
         }
     } catch (error) {
         console.error('保存场景失败:', error);

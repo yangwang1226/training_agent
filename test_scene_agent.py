@@ -37,7 +37,7 @@ def test_imports():
         return False
     
     try:
-        from routes.scene_create_routes import scene_create_bp
+        from routes.scene_agent_routes import scene_create_bp
         print("✓ scene_create_bp 导入成功")
     except Exception as e:
         print(f"✗ scene_create_bp 导入失败：{e}")

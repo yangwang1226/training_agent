@@ -35,28 +35,22 @@ def create_scene_session():
         agent.reset()
         
         # 初始化对话 - 精简版（200 字以内）
-        initial_message = """你好！我是场景创建助手，帮你设计 AI 培训教练场景。
-
-**关键问题：你希望 AI 扮演什么角色？**
-
-常见场景：
-- 🎯 销售培训：AI 模拟客户，你扮演销售
-- 💁 客服培训：AI 模拟客户，你扮演客服
-
-请告诉我：
-1. 什么行业？
-2. AI 扮演什么？（如"模拟客户"）
-
-例如："汽车销售培训，AI 模拟想看车的客户" """
+        initial_message = """你好，我是你的AI培训教练小新，
+        我会根据你的需求，为你创建一个定制化的AI培训场景。
+        我需要你告诉我：
+        1. 您所在的行业？ （例如：汽车行业、金融行业、医疗行业等）
+        2. 需要AI模拟的角色？（例如：挑剔的客户、陌生的访客、接电话的客户等）
+        3. 被训练者的角色？（例如：新销售、客户服务代表等）
         
-        response = agent.chat(initial_message)
+        当然你也可以一句话告诉我您培训的这个场景？
+        例如：“我们是汽车行业，最近公司来了很多新的销售，我想让AI模拟客户，训练新销售的销售技巧。让他们快速熟悉汽车销售流程。”"""
+        
+        # response = agent.chat(initial_message)
         
         return jsonify({
             'success': True,
             'session_id': session_id,
-            'response': response.get('content', ''),
-            'options': response.get('options', []),
-            'state': response.get('state', {})
+            'response': initial_message
         })
     except Exception as e:
         logger.error(f"创建场景会话失败：{str(e)}", exc_info=True)

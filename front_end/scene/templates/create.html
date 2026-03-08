@@ -138,7 +138,7 @@
             gap: 15px;
         }
         
-        /* Toast 动画 */
+                /* Toast 动画 */
         @keyframes slideDown {
             from {
                 transform: translate(-50%, -100px);
@@ -160,14 +160,88 @@
                 opacity: 0;
             }
         }
+        
+        /* 场景信息提示栏 */
+        .scene-info-bar {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .scene-info-bar.show {
+            display: flex;
+        }
+        
+        .scene-info-bar .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        
+        .scene-info-bar .back-link:hover {
+            color: #764ba2;
+        }
+        
+        .scene-info-bar .divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(102, 126, 234, 0.3);
+        }
+        
+        .scene-info-bar .info-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .scene-info-bar .info-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .scene-info-bar .info-text {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .scene-info-bar .info-scene-name {
+            color: #333;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
+                <header class="header">
             <h1>🚀 创建新场景</h1>
             <p class="subtitle">智能体创建 - 像和朋友聊天一样告诉我您的需求</p>
         </header>
+
+        <!-- 场景信息提示栏（从行业选择页面跳转时显示） -->
+        <div class="scene-info-bar" id="sceneInfoBar">
+            <a href="/industry/" class="back-link">← 返回选择</a>
+            <div class="divider"></div>
+            <div class="info-content">
+                <span class="info-tag" id="infoIndustry"></span>
+                <span class="info-text">场景：</span>
+                <span class="info-scene-name" id="infoSceneName"></span>
+            </div>
+        </div>
 
         <div class="main-content">
             <!-- 对话区域 -->
@@ -189,57 +263,13 @@
                 </div>
             </div>
 
-            <!-- 状态面板 -->
-            <div class="side-panels">
-                <div class="panel">
-                    <div class="panel-header">
-                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10"/>
-                            <line x1="12" y1="20" x2="12" y2="4"/>
-                            <line x1="6" y1="20" x2="6" y2="14"/>
-                        </svg>
-                        <span>📊 信息收集状态</span>
-                    </div>
-                    <div class="panel-body">
-                        <div class="status-items">
-                            <div class="status-item" id="status-industry">
-                                <span class="status-icon">🏢</span>
-                                <span class="status-label">行业</span>
-                                <span class="status-value" id="industry-value">-</span>
-                                <span class="status-indicator"></span>
-                            </div>
-                            <div class="status-item" id="status-role">
-                                <span class="status-icon">👤</span>
-                                <span class="status-label">你的角色</span>
-                                <span class="status-value" id="role-value">-</span>
-                                <span class="status-indicator"></span>
-                            </div>
-                            <div class="status-item" id="status-ai-role">
-                                <span class="status-icon">🤖</span>
-                                <span class="status-label">AI 扮演</span>
-                                <span class="status-value" id="ai-role-value">-</span>
-                                <span class="status-indicator"></span>
-                            </div>
-                            <div class="status-item" id="status-extended">
-                                <span class="status-icon">📝</span>
-                                <span class="status-label">背景信息</span>
-                                <span class="status-value" id="extended-value">-</span>
-                                <span class="status-indicator"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    
         </div>
 
         <!-- 底部操作栏 -->
         <div class="action-bar" id="action-bar">
             <div class="action-content">
-                <div class="success-message">
-                    <span id="success-text">💡 随时可以开始对练</span>
-                </div>
                 <div class="action-buttons">
-                    <button id="view-btn" class="btn btn-secondary">查看生成的内容</button>
                     <button id="start-btn" class="btn btn-success">保存并开始对练</button>
                 </div>
             </div>
@@ -264,5 +294,30 @@
     </div>
 
     <script src="/scene/static/js/create.js"></script>
+    <script>
+        // 显示场景信息栏（如果有参数）
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const industry = urlParams.get('industry');
+            const scene = urlParams.get('scene');
+            
+            if (industry || scene) {
+                const infoBar = document.getElementById('sceneInfoBar');
+                const infoIndustry = document.getElementById('infoIndustry');
+                const infoSceneName = document.getElementById('infoSceneName');
+                
+                if (industry) {
+                    infoIndustry.textContent = industry;
+                }
+                if (scene) {
+                    infoSceneName.textContent = scene;
+                } else {
+                    infoSceneName.textContent = '自定义场景';
+                }
+                
+                infoBar.classList.add('show');
+            }
+        })();
+    </script>
 </body>
 </html>

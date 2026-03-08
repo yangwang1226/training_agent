@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能教练 - 选择你的行业</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/industry/static/css/industry.css">
+</head>
+<body>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <a href="/industry/" class="navbar-brand">
+            <div class="navbar-logo">🎓</div>
+            <span class="navbar-title">AI智能教练</span>
+        </a>
+        <div class="navbar-actions">
+            <button class="btn-login" id="loginBtn">登录</button>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="page-container">
+
+        <!-- 英雄区域 -->
+        <section class="hero-section">
+            <h1 class="hero-title">
+                一分钟开始，让每个用户都拥有自己的专属AI教练
+            </h1>
+            <div class="hero-subtitle-box">
+                <p class="hero-subtitle">选择你的行业，立即开始训练</p>
+            </div>
+        </section>
+
+        <!-- 行业卡片网格 -->
+        <section class="industry-section">
+            <div class="industry-grid" id="industryGrid">
+                <!-- 卡片由 JS 动态渲染 -->
+            </div>
+        </section>
+
+        <!-- 使用步骤 -->
+        <section class="steps-section">
+            <div class="steps-header">
+                <span class="steps-header-icon">💡</span>
+                <span class="steps-header-text">如何使用？</span>
+            </div>
+            <div class="steps-flow">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-text">选择行业</div>
+                </div>
+                <span class="step-arrow">→</span>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-text">选择场景</div>
+                </div>
+                <span class="step-arrow">→</span>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-text">一句话调整</div>
+                </div>
+                <span class="step-arrow">→</span>
+                <div class="step-item">
+                    <div class="step-number">4</div>
+                    <div class="step-text">开始训练</div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- 场景选择模态框 -->
+    <div class="scene-modal-overlay" id="sceneModalOverlay">
+        <div class="scene-modal">
+            <div class="scene-modal-header">
+                <h2>
+                    <span id="modalIndustryIcon"></span>
+                    <span id="modalIndustryName"></span> - 选择训练场景
+                </h2>
+                <button class="scene-modal-close" id="sceneModalClose">&times;</button>
+            </div>
+            <div class="scene-modal-body">
+                <div class="scene-list" id="sceneList">
+                    <!-- 场景列表由 JS 动态渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/industry/static/js/industry.js"></script>
+</body>
+</html>

@@ -20,7 +20,8 @@ from flask_sock import Sock
 import uuid
 
 from routes import scene_bp, prompt_bp, evaluate_bp, dimension_bp, progress_bp, realtime_bp
-from routes.scene_create_routes import scene_create_bp
+from routes.scene_agent_routes import scene_create_bp
+from routes.preset_scene_routes import preset_scene_bp
 from routes.progress_routes import register_progress_websocket
 from routes.realtime_routes import register_websocket
 
@@ -47,9 +48,9 @@ def evaluate_static(filename):
 @app.route('/')
 def index():
     """
-    首页 - 直接跳转到场景创建页面
+    首页 - 跳转到行业选择页面
     """
-    return redirect('/scene/create/')
+    return redirect('/industry/')
 
 
 @app.route('/evaluate/')
@@ -66,6 +67,23 @@ def scene_create_page():
         return f.read()
 
 
+INDUSTRY_TEMPLATE_DIR = Path(__file__).parent / "front_end" / "industry" / "templates"
+INDUSTRY_STATIC_DIR = Path(__file__).parent / "front_end" / "industry" / "static"
+
+
+@app.route('/industry/')
+def industry_page():
+    """行业选择页面"""
+    industry_template_path = INDUSTRY_TEMPLATE_DIR / "index.html"
+    with open(industry_template_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+@app.route('/industry/static/<path:filename>')
+def industry_static(filename):
+    return send_from_directory(INDUSTRY_STATIC_DIR, filename)
+
+
 SCENE_STATIC_DIR = Path(__file__).parent / "front_end" / "scene" / "static"
 
 
@@ -76,6 +94,7 @@ def scene_static(filename):
 
 app.register_blueprint(scene_bp)
 app.register_blueprint(scene_create_bp)
+app.register_blueprint(preset_scene_bp)
 app.register_blueprint(prompt_bp)
 app.register_blueprint(evaluate_bp)
 app.register_blueprint(dimension_bp)
