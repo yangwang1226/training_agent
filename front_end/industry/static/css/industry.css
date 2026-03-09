@@ -677,6 +677,436 @@ body::after {
 }
 
 /* ============================================
+   背景补充模态框
+   ============================================ */
+.bg-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 31, 54, 0.6);
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+    backdrop-filter: blur(8px);
+}
+
+.bg-modal-overlay.show {
+    display: flex;
+}
+
+.bg-modal {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 580px;
+    padding: 32px;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    animation: bgModalIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes bgModalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 进度指示条 */
+.bg-modal-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 28px;
+    padding: 0 8px;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.progress-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #E2E8F0;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.3s;
+}
+
+.progress-step.completed .progress-dot {
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 13px;
+}
+
+.progress-step.active .progress-dot {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.15);
+}
+
+.progress-step span {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.progress-step.completed span,
+.progress-step.active span {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.progress-line {
+    width: 40px;
+    height: 2px;
+    background: #E2E8F0;
+    margin: 0 6px;
+    margin-bottom: 20px;
+    border-radius: 1px;
+    transition: background 0.3s;
+}
+
+.progress-line.completed {
+    background: var(--gradient-primary);
+}
+
+.progress-line.active {
+    background: linear-gradient(90deg, var(--primary) 0%, #E2E8F0 100%);
+}
+
+/* 关闭按钮 */
+.bg-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--text-muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.bg-modal-close:hover {
+    color: var(--danger);
+    background: rgba(255, 107, 107, 0.1);
+}
+
+/* 场景信息卡片 */
+.bg-scene-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #EEF2FF 0%, #E8F4FD 100%);
+    border: 1px solid rgba(0, 102, 255, 0.1);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+}
+
+.bg-scene-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.bg-scene-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: white;
+}
+
+.bg-scene-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bg-scene-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.bg-scene-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* 角色分配 */
+.bg-role-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #FAFBFC;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.bg-role-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.bg-role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.bg-role-badge.ai {
+    background: linear-gradient(135deg, rgba(0, 102, 255, 0.1) 0%, rgba(0, 212, 170, 0.1) 100%);
+    color: var(--primary);
+}
+
+.bg-role-badge.user {
+    background: linear-gradient(135deg, rgba(255, 176, 32, 0.12) 0%, rgba(255, 107, 107, 0.1) 100%);
+    color: #E67E22;
+}
+
+.bg-role-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.bg-role-vs {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+/* 输入区域 */
+.bg-input-section {
+    margin-bottom: 24px;
+}
+
+.bg-input-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.bg-input-label-icon {
+    font-size: 1rem;
+}
+
+.bg-input-optional {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.bg-input-wrapper {
+    position: relative;
+}
+
+.bg-input-wrapper textarea {
+    width: 100%;
+    padding: 14px 16px;
+    padding-bottom: 30px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: #FAFBFC;
+    resize: none;
+    transition: all 0.3s;
+    line-height: 1.5;
+}
+
+.bg-input-wrapper textarea::placeholder {
+    color: #B0BEC5;
+    font-size: 0.82rem;
+}
+
+.bg-input-wrapper textarea:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.08);
+}
+
+.bg-input-counter {
+    position: absolute;
+    bottom: 8px;
+    right: 14px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* 快捷示例标签 */
+.bg-quick-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.bg-quick-tag {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: white;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s;
+    white-space: nowrap;
+}
+
+.bg-quick-tag:hover {
+    border-color: var(--primary-light);
+    background: rgba(0, 102, 255, 0.04);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.bg-quick-tag.selected {
+    border-color: var(--primary);
+    background: rgba(0, 102, 255, 0.08);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* 底部操作按钮 */
+.bg-modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.bg-btn-skip {
+    flex: 1;
+    padding: 14px 24px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bg-btn-skip:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+    background: #F8FAFC;
+}
+
+.bg-btn-start {
+    flex: 1.5;
+    padding: 14px 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.3);
+}
+
+.bg-btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 102, 255, 0.4);
+}
+
+.bg-btn-start:active {
+    transform: translateY(0);
+}
+
+.bg-btn-arrow {
+    font-size: 1.1rem;
+    transition: transform 0.3s;
+}
+
+.bg-btn-start:hover .bg-btn-arrow {
+    transform: translateX(4px);
+}
+
+/* 加载状态 */
+.bg-btn-start.loading {
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.bg-btn-start.loading .bg-btn-arrow {
+    display: none;
+}
+
+.bg-btn-start.loading::after {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: btnSpin 0.7s linear infinite;
+}
+
+@keyframes btnSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
    响应式设计
    ============================================ */
 @media (max-width: 1024px) {
@@ -757,9 +1187,31 @@ body::after {
         margin: 0;
     }
 
-    .scene-modal {
+        .scene-modal {
         width: 95%;
         max-height: 90vh;
+    }
+
+    .bg-modal {
+        width: 95%;
+        padding: 24px 20px;
+    }
+
+    .bg-role-section {
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .bg-modal-progress {
+        gap: 0;
+    }
+
+    .progress-line {
+        width: 24px;
+    }
+
+    .progress-step span {
+        font-size: 0.62rem;
     }
 }
 

@@ -91,6 +91,89 @@
         </div>
     </div>
 
+        <!-- 背景补充模态框 -->
+    <div class="bg-modal-overlay" id="bgModalOverlay">
+        <div class="bg-modal">
+            <!-- 顶部进度指示 -->
+            <div class="bg-modal-progress">
+                <div class="progress-step completed">
+                    <div class="progress-dot">✓</div>
+                    <span>选择行业</span>
+                </div>
+                <div class="progress-line completed"></div>
+                <div class="progress-step completed">
+                    <div class="progress-dot">✓</div>
+                    <span>选择场景</span>
+                </div>
+                <div class="progress-line active"></div>
+                <div class="progress-step active">
+                    <div class="progress-dot">3</div>
+                    <span>补充背景</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step">
+                    <div class="progress-dot">4</div>
+                    <span>开始训练</span>
+                </div>
+            </div>
+
+            <!-- 关闭按钮 -->
+            <button class="bg-modal-close" id="bgModalClose">&times;</button>
+
+            <!-- 场景信息卡片 -->
+            <div class="bg-scene-card">
+                <div class="bg-scene-icon" id="bgSceneIcon"></div>
+                <div class="bg-scene-info">
+                    <div class="bg-scene-name" id="bgSceneName">客户首次到店接待</div>
+                    <div class="bg-scene-desc" id="bgSceneDesc">模拟客户首次进入4S店的接待场景</div>
+                </div>
+            </div>
+
+            <!-- 角色分配 -->
+            <div class="bg-role-section">
+                <div class="bg-role-item">
+                    <div class="bg-role-badge ai">AI扮演</div>
+                    <div class="bg-role-name" id="bgAiRole">想看车的客户</div>
+                </div>
+                <div class="bg-role-vs">VS</div>
+                <div class="bg-role-item">
+                    <div class="bg-role-badge user">你扮演</div>
+                    <div class="bg-role-name" id="bgUserRole">汽车销售顾问</div>
+                </div>
+            </div>
+
+            <!-- 一句话背景输入 -->
+            <div class="bg-input-section">
+                <label class="bg-input-label">
+                    <span class="bg-input-label-icon">✏️</span>
+                    补充一句话场景背景 <span class="bg-input-optional">(可选)</span>
+                </label>
+                <div class="bg-input-wrapper">
+                    <textarea id="bgBackgroundInput" 
+                        placeholder="例如：客户是30岁女性，预算20万左右，关注安全性和外观，周末带家人来看车"
+                        maxlength="200"
+                        rows="3"></textarea>
+                    <div class="bg-input-counter"><span id="bgCharCount">0</span>/200</div>
+                </div>
+                <!-- 快捷示例标签 -->
+                <div class="bg-quick-tags" id="bgQuickTags">
+                    <!-- 由 JS 动态渲染 -->
+                </div>
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="bg-modal-actions">
+                <button class="bg-btn-skip" id="bgBtnSkip">
+                    跳过，直接开始
+                </button>
+                <button class="bg-btn-start" id="bgBtnStart">
+                    开始训练
+                    <span class="bg-btn-arrow">→</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast 提示 -->
     <div class="toast" id="toast"></div>
 

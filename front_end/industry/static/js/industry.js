@@ -245,14 +245,24 @@ function closeSceneModal() {
 }
 
 // ============================================
-// 选择场景 → 跳转到场景创建页面
+// 选择场景 → 打开背景补充弹窗
 // ============================================
+
+// 当前选中的场景信息（供弹窗使用）
+let selectedIndustry = null;
+let selectedScene = null;
+
 async function selectScene(industryId, sceneId) {
     const industry = INDUSTRY_DATA.find(item => item.id === industryId);
     const scene = industry ? industry.scenes.find(s => s.id === sceneId) : null;
 
     if (!industry || !scene) return;
 
+    // 保存选中信息
+    selectedIndustry = industry;
+    selectedScene = scene;
+
+    // 关闭场景选择弹窗
     closeSceneModal();
 
     // 增加场景使用次数
@@ -262,15 +272,182 @@ async function selectScene(industryId, sceneId) {
         console.error('更新使用次数失败:', error);
     }
 
-    // 跳转到场景创建页面，带上行业和场景信息
+    // 打开背景补充弹窗
+    setTimeout(() => {
+        openBackgroundModal(industry, scene);
+    }, 300);
+}
+
+// ============================================
+// 背景补充弹窗
+// ============================================
+const bgModalOverlay = document.getElementById('bgModalOverlay');
+const bgModalClose = document.getElementById('bgModalClose');
+const bgBackgroundInput = document.getElementById('bgBackgroundInput');
+const bgCharCount = document.getElementById('bgCharCount');
+const bgQuickTags = document.getElementById('bgQuickTags');
+const bgBtnSkip = document.getElementById('bgBtnSkip');
+const bgBtnStart = document.getElementById('bgBtnStart');
+
+// 各场景对应的快捷示例
+const QUICK_TAG_MAP = {
+    // 汽车销售
+    'auto_first_visit': [
+        '年轻白领，首次购车，预算15万',
+        '中年男性，换车需求，关注商务感',
+        '带家人来看，关注空间和安全性',
+        '客户对比了多家4S店，比较谨慎'
+    ],
+    'auto_test_drive': [
+        '客户已看过车，想体验驾驶感受',
+        '客户犹豫不决，需要推一把',
+        '客户时间紧张，需要高效安排'
+    ],
+    'auto_price_nego': [
+        '客户拿到了竞品的更低报价',
+        '客户预算有限，但很喜欢这款车',
+        '客户想要更多赠品和优惠'
+    ],
+    'auto_competitor': [
+        '客户在对比同级别日系车',
+        '客户觉得竞品性价比更高',
+        '客户朋友推荐了竞品品牌'
+    ],
+    'auto_followup': [
+        '客户上周来看过车，还没决定',
+        '客户已经3天没回消息了',
+        '客户说再考虑考虑'
+    ],
+    // 教育培训
+    'edu_consult': [
+        '家长关心师资力量和教学效果',
+        '孩子成绩中等，想提升数学',
+        '家长对比了多家机构'
+    ],
+    'edu_trial': [
+        '家长时间不太方便',
+        '孩子对学习不太感兴趣',
+        '家长想先了解课程体系'
+    ],
+    'edu_needs': [
+        '初二学生，数学基础薄弱',
+        '高一学生，想冲刺重点大学',
+        '小学生，注意力不集中'
+    ],
+    'edu_price': [
+        '家长觉得课时费偏高',
+        '家长想要分期付款',
+        '家长要求打折优惠'
+    ],
+    'edu_renew': [
+        '家长对学习效果不太满意',
+        '家长觉得课程太贵想换机构',
+        '学生自己不想继续上课了'
+    ]
+};
+
+// 默认快捷标签（通用）
+const DEFAULT_QUICK_TAGS = [
+    '客户态度友好，比较容易沟通',
+    '客户比较谨慎，需要耐心引导',
+    '客户时间紧张，希望高效沟通'
+];
+
+function openBackgroundModal(industry, scene) {
+    // 填充场景信息
+    document.getElementById('bgSceneIcon').innerHTML = scene.icon;
+    document.getElementById('bgSceneName').textContent = scene.name;
+    document.getElementById('bgSceneDesc').textContent = scene.desc;
+    document.getElementById('bgAiRole').textContent = scene.aiRole || 'AI客户';
+    document.getElementById('bgUserRole').textContent = scene.userRole || '销售顾问';
+
+    // 清空输入
+    bgBackgroundInput.value = '';
+    bgCharCount.textContent = '0';
+
+    // 渲染快捷标签
+    const tags = QUICK_TAG_MAP[scene.id] || DEFAULT_QUICK_TAGS;
+        bgQuickTags.innerHTML = tags.map(tag =>
+        `<button class="bg-quick-tag" onclick="fillQuickTag(this, '${tag.replace(/'/g, "\\'")}')">${tag}</button>`
+    ).join('');
+
+    // 重置按钮状态
+    bgBtnStart.classList.remove('loading');
+    bgBtnStart.innerHTML = '开始训练 <span class="bg-btn-arrow">→</span>';
+
+    // 显示弹窗
+    bgModalOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeBackgroundModal() {
+    bgModalOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// 填充快捷标签
+function fillQuickTag(el, text) {
+    bgBackgroundInput.value = text;
+    bgCharCount.textContent = text.length;
+
+    // 切换选中状态
+    document.querySelectorAll('.bg-quick-tag').forEach(tag => tag.classList.remove('selected'));
+    el.classList.add('selected');
+
+    // 聚焦输入框方便编辑
+    bgBackgroundInput.focus();
+}
+
+// 字符计数
+bgBackgroundInput.addEventListener('input', () => {
+    bgCharCount.textContent = bgBackgroundInput.value.length;
+    // 取消快捷标签选中
+    document.querySelectorAll('.bg-quick-tag').forEach(tag => tag.classList.remove('selected'));
+});
+
+// 关闭弹窗事件
+bgModalClose.addEventListener('click', closeBackgroundModal);
+bgModalOverlay.addEventListener('click', (e) => {
+    if (e.target === bgModalOverlay) closeBackgroundModal();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && bgModalOverlay.classList.contains('show')) {
+        closeBackgroundModal();
+    }
+});
+
+// 跳过按钮 → 不带背景直接进入
+bgBtnSkip.addEventListener('click', () => {
+    submitWithBackground('');
+});
+
+// 开始训练按钮 → 带背景进入
+bgBtnStart.addEventListener('click', () => {
+    const background = bgBackgroundInput.value.trim();
+    submitWithBackground(background);
+});
+
+// 提交并跳转
+async function submitWithBackground(backgroundHint) {
+    if (!selectedIndustry || !selectedScene) return;
+
+    // 按钮加载状态
+    bgBtnStart.classList.add('loading');
+    bgBtnStart.innerHTML = '正在生成场景...';
+    bgBtnSkip.disabled = true;
+
+    // 跳转到场景创建页面，带上所有信息
     const params = new URLSearchParams({
-        industry: industry.name,
-        scene: scene.name,
-        scene_desc: scene.desc,
-        scene_code: sceneId
+        industry: selectedIndustry.name,
+        scene: selectedScene.name,
+        scene_desc: selectedScene.desc,
+        scene_code: selectedScene.id,
+        ai_role: selectedScene.aiRole || '',
+        user_role: selectedScene.userRole || '',
+        background: backgroundHint
     });
 
-    showToast(`正在进入「${scene.name}」场景...`, 'success');
+    showToast(`正在进入「${selectedScene.name}」场景...`, 'success');
 
     setTimeout(() => {
         window.location.href = `/scene/create/?${params.toString()}`;
