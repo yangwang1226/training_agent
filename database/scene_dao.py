@@ -6,10 +6,18 @@ from .connection import get_db
 logger = logging.getLogger(__name__)
 
 
+class SceneStatus:
+    """场景状态枚举"""
+    DRAFT = 0           # 草稿（对话创建中，未完成）
+    PRESET_TEMPLATE = 1 # 预设模板（从预设场景快速生成，可直接使用）
+    CUSTOMIZED = 2      # 已定制（对话创建完成，包含个性化背景）
+    ARCHIVED = 9        # 已归档（禁用/删除）
+
+
 def save_scene(
     scene_name: str, 
     scene_prompt: str, 
-    status: int = 0, 
+    status: int = SceneStatus.CUSTOMIZED, 
     org_id: int = None, 
     creator_id: int = None, 
     create_name: str = None,
@@ -39,27 +47,40 @@ def save_scene(
 
 
 def get_scene_by_id(scene_id: int) -> Optional[Dict[str, Any]]:
+    """获取场景详情（不限制状态）"""
     with get_db() as conn:
         with conn.cursor() as cursor:
-            sql = "SELECT * FROM ai_coach_scene WHERE id = %s AND deleted = 0 AND status = 0"
+            sql = "SELECT * FROM ai_coach_scene WHERE id = %s AND deleted = 0"
             cursor.execute(sql, (scene_id,))
             return cursor.fetchone()
 
 
 def get_scene_by_name(scene_name: str) -> Optional[Dict[str, Any]]:
+    """获取场景详情（不限制状态）"""
     with get_db() as conn:
         with conn.cursor() as cursor:
-            sql = "SELECT * FROM ai_coach_scene WHERE scene_name = %s AND deleted = 0 AND status = 0"
+            sql = "SELECT * FROM ai_coach_scene WHERE scene_name = %s AND deleted = 0"
             cursor.execute(sql, (scene_name,))
             return cursor.fetchone()
 
 
 def list_scenes() -> List[Dict[str, Any]]:
+    """获取所有可用场景（排除草稿和归档）"""
     with get_db() as conn:
         with conn.cursor() as cursor:
-            sql = "SELECT id, scene_name, created_time, auto_update_time FROM ai_coach_scene WHERE deleted = 0 AND status = 0 ORDER BY created_time DESC"
-            cursor.execute(sql)
+            sql = """
+                SELECT id, scene_name, status, created_time, auto_update_time 
+                FROM ai_coach_scene 
+                WHERE deleted = 0 AND status IN (%s, %s)
+                ORDER BY created_time DESC
+            """
+            cursor.execute(sql, (SceneStatus.PRESET_TEMPLATE, SceneStatus.CUSTOMIZED))
             return cursor.fetchall()
+
+
+def get_active_scenes() -> List[Dict[str, Any]]:
+    """获取所有可用场景（排除草稿和归档）- 别名函数"""
+    return list_scenes()
 
 
 def get_prompt_by_scene_id(scene_id: int) -> Optional[str]:

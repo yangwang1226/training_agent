@@ -4,8 +4,10 @@ from .scene_dao import (
     get_scene_by_id,
     get_scene_by_name,
     list_scenes,
+    get_active_scenes,
     get_prompt_by_scene_id,
-    get_prompt_by_name
+    get_prompt_by_name,
+    SceneStatus
 )
 from .record_dao import (
     save_coach_record,
@@ -22,7 +24,9 @@ from .preset_scene_dao import (
     get_preset_scene_by_code,
     get_all_active_preset_scenes,
     increment_usage_count,
-    get_industries_with_scene_count
+    get_industries_with_scene_count,
+    create_scene_from_preset,
+    build_preset_prompt
 )
 
 __all__ = [
@@ -32,8 +36,10 @@ __all__ = [
     'get_scene_by_id',
     'get_scene_by_name',
     'list_scenes',
+    'get_active_scenes',
     'get_prompt_by_scene_id',
     'get_prompt_by_name',
+    'SceneStatus',
     'save_coach_record',
     'get_coach_record_by_session_id',
     'update_coach_record',
@@ -44,5 +50,7 @@ __all__ = [
     'get_preset_scene_by_code',
     'get_all_active_preset_scenes',
     'increment_usage_count',
-    'get_industries_with_scene_count'
+    'get_industries_with_scene_count',
+    'create_scene_from_preset',
+    'build_preset_prompt'
 ]

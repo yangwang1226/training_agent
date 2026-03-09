@@ -286,7 +286,6 @@ const bgModalClose = document.getElementById('bgModalClose');
 const bgBackgroundInput = document.getElementById('bgBackgroundInput');
 const bgCharCount = document.getElementById('bgCharCount');
 const bgQuickTags = document.getElementById('bgQuickTags');
-const bgBtnSkip = document.getElementById('bgBtnSkip');
 const bgBtnStart = document.getElementById('bgBtnStart');
 
 // 各场景对应的快捷示例
@@ -416,42 +415,67 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 跳过按钮 → 不带背景直接进入
-bgBtnSkip.addEventListener('click', () => {
-    submitWithBackground('');
-});
-
-// 开始训练按钮 → 带背景进入
+// 开始训练按钮 → 根据是否填写背景决定行为
 bgBtnStart.addEventListener('click', () => {
     const background = bgBackgroundInput.value.trim();
     submitWithBackground(background);
 });
 
-// 提交并跳转
+// 提交并跳转：直接调用预设场景生成 API，生成完整提示词后跳转到 realtime 页面
 async function submitWithBackground(backgroundHint) {
     if (!selectedIndustry || !selectedScene) return;
 
     // 按钮加载状态
     bgBtnStart.classList.add('loading');
     bgBtnStart.innerHTML = '正在生成场景...';
-    bgBtnSkip.disabled = true;
+    bgBtnStart.disabled = true;
 
-    // 跳转到场景创建页面，带上所有信息
-    const params = new URLSearchParams({
-        industry: selectedIndustry.name,
-        scene: selectedScene.name,
-        scene_desc: selectedScene.desc,
-        scene_code: selectedScene.id,
-        ai_role: selectedScene.aiRole || '',
-        user_role: selectedScene.userRole || '',
-        background: backgroundHint
-    });
+    const message = backgroundHint 
+        ? `正在为「${selectedScene.name}」生成定制场景，请稍候...`
+        : `正在准备「${selectedScene.name}」场景，请稍候...`;
+    showToast(message, 'success');
 
-    showToast(`正在进入「${selectedScene.name}」场景...`, 'success');
+    try {
+        // 直接调用预设场景生成 API
+        const response = await fetch('/api/scene/generate-from-preset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                scene_code: selectedScene.id,
+                user_background: backgroundHint || null,
+                custom_requirements: null
+            })
+        });
 
-    setTimeout(() => {
-        window.location.href = `/scene/create/?${params.toString()}`;
-    }, 600);
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`场景「${selectedScene.name}」生成成功！正在进入对练...`, 'success');
+
+            // 延迟跳转到 realtime 页面
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 1000);
+        } else {
+            showToast('场景生成失败：' + (data.error || '未知错误'), 'error');
+            // 恢复按钮状态
+            resetBackgroundModalButtons();
+        }
+    } catch (error) {
+        console.error('生成场景失败:', error);
+        showToast('网络错误，请重试', 'error');
+        // 恢复按钮状态
+        resetBackgroundModalButtons();
+    }
+}
+
+// 恢复背景弹窗按钮状态
+function resetBackgroundModalButtons() {
+    bgBtnStart.classList.remove('loading');
+    bgBtnStart.innerHTML = '开始训练 <span class="bg-btn-arrow">→</span>';
+    bgBtnStart.disabled = false;
 }
 
 // ============================================

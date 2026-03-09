@@ -1024,36 +1024,19 @@ body::after {
 /* 底部操作按钮 */
 .bg-modal-actions {
     display: flex;
+    justify-content: center;
     gap: 12px;
 }
 
-.bg-btn-skip {
-    flex: 1;
-    padding: 14px 24px;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bg-btn-skip:hover {
-    border-color: var(--text-muted);
-    color: var(--text-primary);
-    background: #F8FAFC;
-}
-
 .bg-btn-start {
-    flex: 1.5;
-    padding: 14px 24px;
+    width: 100%;
+    max-width: 320px;
+    padding: 16px 32px;
     border: none;
     border-radius: var(--radius-sm);
     background: var(--gradient-primary);
     color: white;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

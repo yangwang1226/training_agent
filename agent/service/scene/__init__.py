@@ -3,6 +3,7 @@ from .models import (
     SceneContent, ConversationState, Dimension, MainQuestion,
     TriggerGroup, TriggerQuestion, EmotionProfile
 )
+from .preset_scene_service import PresetSceneService
 
 __all__ = [
     'SceneAgent',
@@ -12,5 +13,6 @@ __all__ = [
     'MainQuestion',
     'TriggerGroup',
     'TriggerQuestion',
-    'EmotionProfile'
+    'EmotionProfile',
+    'PresetSceneService'
 ]

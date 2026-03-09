@@ -5,6 +5,7 @@ from typing import Dict, Any
 
 import db as db_module
 from agent.service.scene import SceneAgent
+from agent.service.scene.preset_scene_service import PresetSceneService
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,9 @@ scene_create_bp = Blueprint('scene_create', __name__, url_prefix='/api/scene')
 
 # 存储场景智能体实例
 scene_agents: Dict[str, SceneAgent] = {}
+
+# 预设场景服务实例
+preset_service = PresetSceneService()
 
 
 def get_scene_agent(session_id: str) -> SceneAgent:
@@ -230,4 +234,151 @@ def reset():
         return jsonify({
             'success': False,
             'error': f'重置失败：{str(e)}'
+        })
+
+
+@scene_create_bp.route('/generate-from-preset', methods=['POST'])
+def generate_from_preset():
+    """
+    基于预设场景生成完整的场景提示词
+    
+    请求参数:
+        scene_code: 预设场景代码（如 'auto_first_visit'）
+        user_background: 用户补充的背景信息（可选）
+        custom_requirements: 用户自定义需求（可选）
+    
+    返回:
+        场景 ID 和跳转 URL
+    """
+    try:
+        data = request.json
+        scene_code = data.get('scene_code')
+        user_background = data.get('user_background')
+        custom_requirements = data.get('custom_requirements')
+        
+        if not scene_code:
+            return jsonify({
+                'success': False,
+                'error': '缺少场景代码参数'
+            })
+        
+        logger.info(f"开始基于预设场景生成: {scene_code}")
+        
+        # 1. 使用预设场景服务生成场景内容
+        scene_content = preset_service.generate_from_preset(
+            scene_code=scene_code,
+            user_background=user_background,
+            custom_requirements=custom_requirements
+        )
+        
+        if not scene_content:
+            return jsonify({
+                'success': False,
+                'error': '场景内容生成失败'
+            })
+        
+        # 2. 构建完整提示词（结合手工模板）
+        full_prompt = preset_service.build_full_prompt(scene_content)
+        
+        if not full_prompt:
+            return jsonify({
+                'success': False,
+                'error': '提示词构建失败'
+            })
+        
+        # 3. 准备场景数据
+        scene_name = f"{scene_content.industry}_{scene_content.ai_role}_场景"
+        dimension_config = json.dumps({
+            "industry": scene_content.industry,
+            "role_type": scene_content.role_type,
+            "ai_role": scene_content.ai_role,
+            "role_description": scene_content.role_description,
+            "dimensions": [d.to_dict() for d in scene_content.dimensions]
+        }, ensure_ascii=False)
+        
+        # 4. 保存到数据库
+        scene_id = db_module.save_scene(
+            scene_name=scene_name,
+            scene_prompt=full_prompt,
+            dimension_config=dimension_config,
+            role_type=scene_content.role_type,
+            role_description=scene_content.role_description,
+            industry=scene_content.industry,
+            training_goal=f"提升{scene_content.role_type}的沟通能力",
+            full_evaluation_prompt=full_prompt,
+            status=0
+        )
+        
+        if not scene_id:
+            return jsonify({
+                'success': False,
+                'error': '数据库保存失败'
+            })
+        
+        logger.info(f"预设场景保存成功：id={scene_id}, name={scene_name}")
+        
+        # 5. 增加预设场景的使用次数
+        db_module.increment_usage_count(scene_code)
+        
+        # 6. 返回结果
+        return jsonify({
+            'success': True,
+            'scene_id': scene_id,
+            'scene_name': scene_name,
+            'redirect_url': f'/realtime/{scene_id}',
+            'message': '场景生成成功！准备开始对练',
+            'scene_content': {
+                'industry': scene_content.industry,
+                'ai_role': scene_content.ai_role,
+                'role_type': scene_content.role_type,
+                'background_info': scene_content.background_info,
+                'main_questions_count': len(scene_content.main_questions),
+                'trigger_groups_count': len(scene_content.trigger_groups),
+                'dimensions_count': len(scene_content.dimensions)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"基于预设场景生成失败：{str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'生成失败：{str(e)}'
+        })
+
+
+@scene_create_bp.route('/preview-preset/<scene_code>', methods=['GET'])
+def preview_preset(scene_code: str):
+    """
+    预览预设场景信息（不生成完整内容）
+    
+    用于在选择场景时快速查看场景基本信息
+    """
+    try:
+        preset_data = preset_service.load_preset_scene(scene_code)
+        
+        if not preset_data:
+            return jsonify({
+                'success': False,
+                'error': f'预设场景不存在: {scene_code}'
+            })
+        
+        return jsonify({
+            'success': True,
+            'preset_scene': {
+                'scene_code': preset_data.get('scene_code'),
+                'scene_name': preset_data.get('scene_name'),
+                'scene_description': preset_data.get('scene_description'),
+                'ai_role': preset_data.get('ai_role'),
+                'user_role': preset_data.get('user_role'),
+                'difficulty': preset_data.get('difficulty'),
+                'estimated_duration': preset_data.get('estimated_duration'),
+                'usage_count': preset_data.get('usage_count', 0)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"预览预设场景失败：{str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'预览失败：{str(e)}'
         })

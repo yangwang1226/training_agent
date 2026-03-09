@@ -202,3 +202,66 @@ def use_preset_scene(scene_code: str):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@preset_scene_bp.route('/quick-start/<scene_code>', methods=['POST'])
+def quick_start_scene(scene_code: str):
+    """
+    快速启动预设场景
+    
+    路径参数:
+        scene_code: 场景代码
+    
+    请求体:
+        {
+            "background_hint": "客户是30岁女性..." (可选)
+        }
+    
+    返回:
+        {
+            "success": true,
+            "scene_id": 123,
+            "redirect_url": "/realtime/123",
+            "message": "场景已准备就绪！"
+        }
+    """
+    try:
+        # 获取请求数据
+        data = request.json or {}
+        background_hint = data.get('background_hint', '').strip()
+        
+        # 可选的用户信息（如果有登录系统）
+        org_id = data.get('org_id')
+        creator_id = data.get('creator_id')
+        create_name = data.get('create_name')
+        
+        # 从预设场景快速创建
+        scene_id = db_module.create_scene_from_preset(
+            preset_scene_code=scene_code,
+            background_hint=background_hint if background_hint else None,
+            org_id=org_id,
+            creator_id=creator_id,
+            create_name=create_name
+        )
+        
+        if not scene_id:
+            return jsonify({
+                'success': False,
+                'error': '场景创建失败，请检查场景代码是否正确'
+            }), 500
+        
+        logger.info(f"快速启动场景成功: scene_code={scene_code}, scene_id={scene_id}")
+        
+        return jsonify({
+            'success': True,
+            'scene_id': scene_id,
+            'redirect_url': f'/realtime/{scene_id}',
+            'message': '场景已准备就绪！'
+        })
+        
+    except Exception as e:
+        logger.error(f"快速启动场景失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'创建失败: {str(e)}'
+        }), 500
