@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP 质检清单管理</title>
+    <link rel="stylesheet" href="/sop/static/css/sop_config.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <div class="header-left">
+                <h1>📋 SOP 质检清单管理</h1>
+                <p class="subtitle">配置场景的标准操作流程质检项</p>
+            </div>
+            <div class="header-right">
+                <button class="btn-back" onclick="goBack()">← 返回</button>
+            </div>
+        </div>
+
+        <!-- 场景选择区 -->
+        <div class="scene-selector">
+            <label for="sceneSelect">选择场景：</label>
+            <select id="sceneSelect" onchange="loadSceneChecklist()">
+                <option value="">-- 请选择场景 --</option>
+            </select>
+            <span class="loading" id="sceneLoading" style="display: none;">加载中...</span>
+        </div>
+
+        <!-- 质检项编辑区 -->
+        <div id="checklistEditor" style="display: none;">
+            <div class="editor-header">
+                <h2>编辑质检清单：<span id="currentSceneName"></span></h2>
+                <div class="editor-actions">
+                    <button class="btn-add" onclick="addCheckItem()">+ 添加质检项</button>
+                    <button class="btn-save" onclick="saveChecklist()">💾 保存</button>
+                </div>
+            </div>
+
+            <!-- 质检项列表 -->
+            <div class="checklist-container">
+                <div class="checklist-header">
+                    <div class="col-order">#</div>
+                    <div class="col-name">质检项名称</div>
+                    <div class="col-type">类型</div>
+                    <div class="col-keywords">关键词</div>
+                    <div class="col-category">分类</div>
+                    <div class="col-actions">操作</div>
+                </div>
+                <div id="checklistItems" class="checklist-items">
+                    <!-- 动态生成质检项 -->
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="checklist-stats">
+                <span>必须做: <strong id="mustDoCount">0</strong> 项</span>
+                <span>禁止做: <strong id="mustNotCount">0</strong> 项</span>
+                <span>总计: <strong id="totalCount">0</strong> 项</span>
+            </div>
+        </div>
+
+        <!-- 空状态提示 -->
+        <div id="emptyState" class="empty-state">
+            <p>👆 请先选择一个场景开始配置 SOP 质检项</p>
+        </div>
+    </div>
+
+    <!-- 质检项编辑模态框 -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加质检项</h3>
+                <button class="modal-close" onclick="closeItemModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>质检项名称 <span class="required">*</span></label>
+                    <input type="text" id="itemName" placeholder="例如: 30秒内问候客户">
+                </div>
+                
+                <div class="form-group">
+                    <label>类型 <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="checkType" value="must_do" checked>
+                            <span class="radio-label must-do">✓ 必须做</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="checkType" value="must_not">
+                            <span class="radio-label must-not">✗ 禁止做</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>关键词（用于 AI 判断，逗号分隔）</label>
+                    <input type="text" id="itemKeywords" placeholder="例如: 你好,欢迎,请问">
+                    <small>提示：输入能帮助 AI 判断是否执行此项的关键词</small>
+                </div>
+
+                <div class="form-group">
+                    <label>分类标签</label>
+                    <input type="text" id="itemCategory" placeholder="例如: 接待礼仪">
+                </div>
+
+                <div class="form-group">
+                    <label>描述说明</label>
+                    <textarea id="itemDesc" rows="3" placeholder="详细描述此质检项的要求和标准"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeItemModal()">取消</button>
+                <button class="btn-primary" onclick="saveItem()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/sop/static/js/sop_config.js"></script>
+</body>
+</html>

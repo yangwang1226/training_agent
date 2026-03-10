@@ -22,6 +22,7 @@ import uuid
 from routes import scene_bp, prompt_bp, evaluate_bp, dimension_bp, progress_bp, realtime_bp
 from routes.scene_agent_routes import scene_create_bp
 from routes.preset_scene_routes import preset_scene_bp
+from routes.sop_routes import sop_bp
 from routes.progress_routes import register_progress_websocket
 from routes.realtime_routes import register_websocket
 
@@ -38,11 +39,17 @@ def ensure_session_id():
 sock = Sock(app)
 
 EVALUATE_STATIC_DIR = Path(__file__).parent / "front_end" / "evaluate" / "static"
+SOP_STATIC_DIR = Path(__file__).parent / "front_end" / "sop" / "static"
 
 
 @app.route('/evaluate/static/<path:filename>')
 def evaluate_static(filename):
     return send_from_directory(EVALUATE_STATIC_DIR, filename)
+
+
+@app.route('/sop/static/<path:filename>')
+def sop_static(filename):
+    return send_from_directory(SOP_STATIC_DIR, filename)
 
 
 @app.route('/')
@@ -52,6 +59,15 @@ def index():
     """
     return redirect('/industry/')
 
+
+@app.route('/sop/config')
+def sop_config_page():
+    """SOP 质检清单配置页面"""
+    from flask import render_template_string
+    sop_template_path = Path(__file__).parent / "front_end" / "sop" / "templates" / "sop_config.html"
+    with open(sop_template_path, 'r', encoding='utf-8') as f:
+        template_content = f.read()
+    return render_template_string(template_content)
 
 @app.route('/evaluate/')
 def evaluate_page():
@@ -100,6 +116,7 @@ app.register_blueprint(evaluate_bp)
 app.register_blueprint(dimension_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)
+app.register_blueprint(sop_bp)
 
 register_progress_websocket(sock)
 register_websocket(sock)
