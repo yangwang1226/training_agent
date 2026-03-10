@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOP 质检清单管理</title>
     <link rel="stylesheet" href="/sop/static/css/sop_config.css">
+    <script>
+        // 检测是否为内嵌模式
+        const urlParams = new URLSearchParams(window.location.search);
+        const isInlineMode = urlParams.get('inline') === 'true';
+        const presetScene = urlParams.get('scene');
+        if (isInlineMode) {
+            document.documentElement.classList.add('inline-mode');
+        }
+    </script>
 </head>
 <body>
     <div class="container">

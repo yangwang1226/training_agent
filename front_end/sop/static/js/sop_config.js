@@ -7,12 +7,43 @@ let editingIndex = -1; // -1 表示新增，>= 0 表示编辑
 
 // 页面加载完成
 document.addEventListener('DOMContentLoaded', function() {
-    loadSceneList();
+    // 检查是否为内嵌模式
+    const urlParams = new URLSearchParams(window.location.search);
+    const isInlineMode = urlParams.get('inline') === 'true';
+    const presetScene = urlParams.get('scene');
+    
+    // 加载场景列表
+    loadSceneList().then(() => {
+        // 如果有预设场景，自动选择
+        if (presetScene) {
+            const sceneSelect = document.getElementById('sceneSelect');
+            sceneSelect.value = presetScene;
+            loadSceneChecklist();
+        }
+    });
+    
+    // 内嵌模式下修改返回按钮行为
+    if (isInlineMode) {
+        const btnBack = document.querySelector('.btn-back');
+        if (btnBack) {
+            btnBack.textContent = '← 关闭';
+            btnBack.onclick = function() {
+                window.close();
+            };
+        }
+    }
 });
 
 // 返回上一页
 function goBack() {
-    window.history.back();
+    const urlParams = new URLSearchParams(window.location.search);
+    const isInlineMode = urlParams.get('inline') === 'true';
+    
+    if (isInlineMode) {
+        window.close();
+    } else {
+        window.history.back();
+    }
 }
 
 // 加载场景列表
@@ -53,12 +84,15 @@ async function loadSceneList() {
                 
                 select.appendChild(optgroup);
             });
+            return true;
         } else {
             showToast('加载场景列表失败', 'error');
+            return false;
         }
     } catch (error) {
         console.error('加载场景列表失败:', error);
         showToast('加载场景列表失败', 'error');
+        return false;
     }
 }
 

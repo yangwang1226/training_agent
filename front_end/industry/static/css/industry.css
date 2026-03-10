@@ -1211,3 +1211,168 @@ body::after {
         font-size: 1.1rem;
     }
 }
+/* SOP 质检项配置区域 */
+.bg-sop-section {
+    margin-top: 24px;
+    border: 1px solid #e0e7ff;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.bg-sop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bg-sop-header:hover {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+}
+
+.bg-sop-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bg-sop-icon {
+    font-size: 1.2rem;
+}
+
+.bg-sop-title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.95rem;
+}
+
+.bg-sop-badge {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.bg-sop-arrow {
+    color: #64748b;
+    font-size: 0.8rem;
+    transition: transform 0.3s;
+}
+
+.bg-sop-section.expanded .bg-sop-arrow {
+    transform: rotate(180deg);
+}
+
+.bg-sop-content {
+    padding: 20px;
+    background: white;
+}
+
+.bg-sop-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: #92400e;
+}
+
+.bg-sop-info-icon {
+    font-size: 1rem;
+}
+
+.bg-sop-preview {
+    min-height: 80px;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.bg-sop-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.bg-sop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bg-sop-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.bg-sop-item-icon {
+    margin-right: 8px;
+    font-size: 1rem;
+}
+
+.bg-sop-item.must-do {
+    border-left: 3px solid #10b981;
+}
+
+.bg-sop-item.must-not {
+    border-left: 3px solid #ef4444;
+}
+
+.bg-sop-item-name {
+    flex: 1;
+    color: #334155;
+    font-weight: 500;
+}
+
+.bg-sop-item-count {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.bg-sop-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.bg-sop-btn-config {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bg-sop-btn-config:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.bg-sop-btn-config span {
+    font-size: 1rem;
+}

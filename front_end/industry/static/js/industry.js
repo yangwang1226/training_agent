@@ -496,3 +496,100 @@ function showToast(message, type = 'success') {
         toast.classList.remove('show');
     }, 2500);
 }
+// ========== SOP 质检项配置功能 ==========
+let currentSopChecklist = [];
+
+// SOP 区域折叠/展开
+const bgSopToggle = document.getElementById(''bgSopToggle'');
+const bgSopSection = document.getElementById(''bgSopSection'');
+const bgSopContent = document.getElementById(''bgSopContent'');
+
+if (bgSopToggle) {
+    bgSopToggle.addEventListener(''click'', () => {
+        const isExpanded = bgSopContent.style.display !== ''none'';
+        bgSopContent.style.display = isExpanded ? ''none'' : ''block'';
+        bgSopSection.classList.toggle(''expanded'', !isExpanded);
+    });
+}
+
+// 配置质检项按钮
+const bgSopBtnConfig = document.getElementById(''bgSopBtnConfig'');
+if (bgSopBtnConfig) {
+    bgSopBtnConfig.addEventListener(''click'', () => {
+        openSopConfigModal();
+    });
+}
+
+// 打开 SOP 配置弹窗
+function openSopConfigModal() {
+    const sceneCode = currentSelectedScene?.scene_code;
+    if (!sceneCode) {
+        showToast(''请先选择场景'', ''error'');
+        return;
+    }
+    
+    // 在新窗口打开配置页面
+    const configUrl = `/sop/config?scene=${sceneCode}&inline=true`;
+    window.open(configUrl, ''sopConfig'', ''width=1200,height=800'');
+    
+    // 监听窗口关闭事件，刷新预览
+    const checkWindow = setInterval(() => {
+        const win = window.open('''', ''sopConfig'');
+        if (win && win.closed) {
+            clearInterval(checkWindow);
+            loadSopPreview(sceneCode);
+        }
+    }, 500);
+}
+
+// 加载 SOP 预览
+async function loadSopPreview(sceneCode) {
+    try {
+        const response = await fetch(`/api/sop/checklist/${sceneCode}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.checklist) {
+            currentSopChecklist = data.data.checklist;
+            renderSopPreview(data.data.checklist);
+        }
+    } catch (error) {
+        console.error(''加载 SOP 预览失败:'', error);
+    }
+}
+
+// 渲染 SOP 预览
+function renderSopPreview(checklist) {
+    const preview = document.getElementById(''bgSopPreview'');
+    
+    if (!checklist || checklist.length === 0) {
+        preview.innerHTML = ''<div class="bg-sop-empty"><span>暂未配置质检项</span></div>'';
+        return;
+    }
+    
+    const mustDoCount = checklist.filter(item => item.check_type === ''must_do'').length;
+    const mustNotCount = checklist.filter(item => item.check_type === ''must_not'').length;
+    
+    preview.innerHTML = `
+        <div class="bg-sop-items">
+            <div class="bg-sop-item must-do">
+                <span class="bg-sop-item-icon">✓</span>
+                <span class="bg-sop-item-name">必须做</span>
+                <span class="bg-sop-item-count">${mustDoCount} 项</span>
+            </div>
+            <div class="bg-sop-item must-not">
+                <span class="bg-sop-item-icon">✗</span>
+                <span class="bg-sop-item-name">禁止做</span>
+                <span class="bg-sop-item-count">${mustNotCount} 项</span>
+            </div>
+        </div>
+    `;
+}
+
+// 在场景选择时加载 SOP 预览
+const originalShowBackgroundModal = showBackgroundModal;
+showBackgroundModal = function(scene) {
+    originalShowBackgroundModal(scene);
+    if (scene && scene.scene_code) {
+        loadSopPreview(scene.scene_code);
+    }
+};

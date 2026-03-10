@@ -577,3 +577,29 @@ body {
         margin: 10px;
     }
 }
+/* 内嵌模式样式 */
+html.inline-mode body {
+    padding: 10px;
+    background: white;
+}
+
+html.inline-mode .container {
+    box-shadow: none;
+    border-radius: 0;
+}
+
+html.inline-mode .header {
+    padding: 20px 30px;
+}
+
+html.inline-mode .header h1 {
+    font-size: 22px;
+}
+
+html.inline-mode .scene-selector {
+    padding: 20px 30px;
+}
+
+html.inline-mode #checklistEditor {
+    padding: 30px;
+}
