@@ -187,7 +187,7 @@ def register_websocket(sock):
                                     # ✅ 处理会话结束信号
                                     logger.info("收到前端会话结束信号，开始保存和评估...")
                                 
-                                                                try:
+                                try:
                                     # 1. 保存对话记录和音频
                                     save_result = recorder.save()
                                     if save_result:
