@@ -187,14 +187,16 @@ def register_websocket(sock):
                                     # ✅ 处理会话结束信号
                                     logger.info("收到前端会话结束信号，开始保存和评估...")
                                 
-                                try:
+                                                                try:
                                     # 1. 保存对话记录和音频
-                                    saved_path = recorder.save()
-                                    if saved_path:
-                                        logger.info(f"对话记录已保存: {saved_path}")
+                                    save_result = recorder.save()
+                                    if save_result:
+                                        logger.info(f"对话记录已保存: session_id={save_result['session_id']}, audio={save_result.get('audio_file')}")
                                         ws.send(json.dumps({
                                             'type': 'save_complete',
-                                            'path': saved_path
+                                            'session_id': save_result['session_id'],
+                                            'audio_file': save_result.get('audio_file', ''),
+                                            'call_duration': save_result.get('call_duration', 0)
                                         }))
                                     
                                     # 2. 生成评估报告
@@ -221,15 +223,15 @@ def register_websocket(sock):
                                     )
                                     
                                     if report:
-                                        # 3. 保存评估报告到数据库
+                                                                                # 3. 保存评估报告到数据库
                                         scene_assessment_service.save_to_database(
                                             session_id=recorder.session_id,
                                             report=report,
                                             scene_id=int(scene_id),
-                                            user_id=1,  # TODO: 从session中获取真实用户ID
+                                            user_id=recorder.user_id,
                                             word_content=transcript,
-                                            oss_file_path=saved_path,
-                                            call_duration=recorder.duration_seconds if hasattr(recorder, 'duration_seconds') else 0
+                                            oss_file_path=save_result.get('audio_file', ''),
+                                            call_duration=save_result.get('call_duration', 0)
                                         )
                                         
                                         ws.send(json.dumps({
