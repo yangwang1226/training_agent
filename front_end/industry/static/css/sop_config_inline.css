@@ -1,0 +1,707 @@
+/* ============================================
+   SOP 质检项配置 - 内嵌模态框样式
+   ============================================ */
+
+/* SOP 配置模态框遮罩层 */
+.sop-config-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sop-config-modal-overlay.show {
+    display: flex;
+    opacity: 1;
+}
+
+/* SOP 配置模态框主体 */
+.sop-config-modal {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.sop-config-modal-overlay.show .sop-config-modal {
+    transform: scale(1);
+}
+
+/* 模态框头部 */
+.sop-config-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.sop-config-header h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1F2937;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sop-config-icon {
+    font-size: 24px;
+}
+
+.sop-config-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #F3F4F6;
+    border-radius: 50%;
+    font-size: 24px;
+    color: #6B7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.sop-config-close:hover {
+    background: #E5E7EB;
+    color: #1F2937;
+    transform: rotate(90deg);
+}
+
+/* Tab 切换 */
+.sop-config-tabs {
+    display: flex;
+    padding: 0 32px;
+    gap: 8px;
+    border-bottom: 2px solid #F3F4F6;
+    flex-shrink: 0;
+}
+
+.sop-tab {
+    flex: 1;
+    padding: 16px 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #6B7280;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    top: 2px;
+}
+
+.sop-tab:hover {
+    color: #0066FF;
+    background: rgba(0, 102, 255, 0.05);
+}
+
+.sop-tab.active {
+    color: #0066FF;
+    border-bottom-color: #0066FF;
+}
+
+.tab-icon {
+    font-size: 18px;
+}
+
+/* 配置面板 */
+.sop-config-panel {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sop-config-panel.active {
+    display: block;
+}
+
+.sop-config-body {
+    padding: 24px 32px;
+}
+
+/* ========== 手工配置面板 ========== */
+.sop-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.sop-item-card {
+    background: #F9FAFB;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s;
+}
+
+.sop-item-card:hover {
+    border-color: #0066FF;
+    background: white;
+}
+
+.sop-item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sop-item-type-badge {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.sop-item-type-badge.must-do {
+    background: #DEF7EC;
+    color: #03543F;
+}
+
+.sop-item-type-badge.must-not {
+    background: #FDE8E8;
+    color: #9B1C1C;
+}
+
+.sop-item-name-input {
+    flex: 1;
+    border: none;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1F2937;
+}
+
+.sop-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sop-item-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.sop-item-btn:hover {
+    transform: scale(1.1);
+}
+
+.sop-item-btn.delete:hover {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.sop-item-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.sop-keyword-tag {
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sop-keyword-tag .remove {
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.sop-keyword-tag .remove:hover {
+    opacity: 1;
+    color: #DC2626;
+}
+
+.sop-keyword-input {
+    border: none;
+    background: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    min-width: 100px;
+}
+
+.btn-add-item {
+    width: 100%;
+    padding: 14px;
+    border: 2px dashed #CBD5E1;
+    background: transparent;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748B;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-add-item:hover {
+    border-color: #0066FF;
+    color: #0066FF;
+    background: rgba(0, 102, 255, 0.05);
+}
+
+.btn-add-item span {
+    font-size: 18px;
+}
+
+/* ========== 智能提取面板 ========== */
+.extract-intro {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.extract-intro-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.extract-intro h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 8px;
+}
+
+.extract-intro p {
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.6;
+}
+
+.extract-upload-area {
+    background: #F9FAFB;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.upload-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.upload-tab {
+    flex: 1;
+    padding: 12px 20px;
+    border: 2px solid #E5E7EB;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6B7280;
+    transition: all 0.2s;
+}
+
+.upload-tab:hover {
+    border-color: #0066FF;
+    color: #0066FF;
+}
+
+.upload-tab.active {
+    border-color: #0066FF;
+    background: #EFF6FF;
+    color: #0066FF;
+}
+
+.upload-tab span {
+    font-size: 18px;
+}
+
+.upload-section {
+    display: none;
+}
+
+.upload-section.active {
+    display: block;
+}
+
+/* 上传区域 */
+.upload-dropzone {
+    border: 3px dashed #CBD5E1;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: white;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.drag-over {
+    border-color: #0066FF;
+    background: #EFF6FF;
+}
+
+.dropzone-content {
+    pointer-events: none;
+}
+
+.dropzone-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.dropzone-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: #1F2937;
+    margin-bottom: 8px;
+}
+
+.dropzone-hint {
+    font-size: 13px;
+    color: #9CA3AF;
+}
+
+.upload-file-list {
+    margin-top: 16px;
+}
+
+.upload-file-item {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.file-icon {
+    font-size: 24px;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1F2937;
+    margin-bottom: 4px;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.file-remove {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: #FEE2E2;
+    color: #DC2626;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.file-remove:hover {
+    background: #DC2626;
+    color: white;
+}
+
+/* 文字输入区 */
+#textRecordInput {
+    width: 100%;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1F2937;
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+#textRecordInput:focus {
+    outline: none;
+    border-color: #0066FF;
+}
+
+.text-counter {
+    text-align: right;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+/* 提取选项 */
+.extract-options {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.extract-option-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #4B5563;
+    cursor: pointer;
+}
+
+.extract-option-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* 提取按钮 */
+.btn-extract {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #0066FF 0%, #00D4AA 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+}
+
+.btn-extract:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+}
+
+.btn-extract:active {
+    transform: translateY(0);
+}
+
+.btn-extract.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* 提取结果 */
+.extract-result {
+    margin-top: 24px;
+    border-top: 2px solid #E5E7EB;
+    padding-top: 24px;
+}
+
+.extract-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.extract-result-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1F2937;
+}
+
+.extract-result-count {
+    padding: 4px 12px;
+    background: #EFF6FF;
+    color: #0066FF;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.extract-result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.extract-result-item {
+    background: white;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: all 0.2s;
+}
+
+.extract-result-item:hover {
+    border-color: #0066FF;
+}
+
+.extract-result-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.extract-result-content {
+    flex: 1;
+}
+
+.extract-result-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1F2937;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.extract-result-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.extract-keyword {
+    padding: 3px 8px;
+    background: #F3F4F6;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #6B7280;
+}
+
+/* ========== 模态框底部 ========== */
+.sop-config-footer {
+    padding: 20px 32px;
+    border-top: 1px solid #E5E7EB;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.btn-cancel {
+    padding: 12px 24px;
+    border: 2px solid #E5E7EB;
+    background: white;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6B7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    border-color: #9CA3AF;
+    color: #374151;
+}
+
+.btn-save-sop {
+    padding: 12px 28px;
+    border: none;
+    background: #0066FF;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+}
+
+.btn-save-sop:hover {
+    background: #0052CC;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+}
+
+.btn-save-sop:active {
+    transform: translateY(0);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .sop-config-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .sop-config-header,
+    .sop-config-tabs,
+    .sop-config-body,
+    .sop-config-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .sop-tab {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    .extract-options {
+        flex-direction: column;
+        gap: 12px;
+    }
+}

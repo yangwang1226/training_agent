@@ -15,12 +15,12 @@ class SOPChecklistDAO:
     """SOP质检项数据访问对象"""
 
     @staticmethod
-    def get_scene_sop_checklist(scene_code: str) -> Optional[List[Dict]]:
+    def get_preset_sop_checklist(scene_code: str) -> Optional[List[Dict]]:
         """
-        获取指定场景的默认 SOP 质检项
+        获取预设场景的默认 SOP 质检项（只读，模板）
         
         Args:
-            scene_code: 场景代码
+            scene_code: 预设场景代码
             
         Returns:
             质检项列表，如果没有则返回 None
@@ -51,35 +51,69 @@ class SOPChecklistDAO:
                 conn.close()
 
     @staticmethod
-    def update_scene_sop_checklist(scene_code: str, checklist: List[Dict]) -> bool:
+    def get_scene_sop_checklist(scene_id: int) -> Optional[List[Dict]]:
         """
-        更新指定场景的 SOP 质检项
+        获取场景实例的 SOP 质检项（用户私有，可修改）
         
         Args:
-            scene_code: 场景代码
-            checklist: 质检项列表
+            scene_id: 场景实例ID
             
         Returns:
-            是否更新成功
+            质检项列表，如果没有则返回 None
         """
         try:
             conn = get_connection()
             with conn.cursor() as cursor:
-                # 将列表转换为 JSON 字符串
+                sql = """
+                    SELECT sop_checklist 
+                    FROM ai_coach_scene 
+                    WHERE id = %s AND deleted = 0
+                """
+                cursor.execute(sql, (scene_id,))
+                result = cursor.fetchone()
+                
+                if result and result.get('sop_checklist'):
+                    checklist = result['sop_checklist']
+                    if isinstance(checklist, str):
+                        checklist = json.loads(checklist)
+                    return checklist
+                return None
+        except Exception as e:
+            logger.error(f"获取场景实例 SOP 质检项失败: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    @staticmethod
+    def save_scene_sop_checklist(scene_id: int, checklist: List[Dict]) -> bool:
+        """
+        保存场景实例的 SOP 质检项（用户私有，可修改）
+        
+        Args:
+            scene_id: 场景实例ID
+            checklist: 质检项列表
+            
+        Returns:
+            是否保存成功
+        """
+        try:
+            conn = get_connection()
+            with conn.cursor() as cursor:
                 checklist_json = json.dumps(checklist, ensure_ascii=False)
                 
                 sql = """
-                    UPDATE ai_coach_preset_scene 
-                    SET default_sop_checklist = %s,
-                        updated_time = NOW()
-                    WHERE scene_code = %s AND is_active = 1
+                    UPDATE ai_coach_scene 
+                    SET sop_checklist = %s,
+                        auto_update_time = NOW()
+                    WHERE id = %s AND deleted = 0
                 """
-                cursor.execute(sql, (checklist_json, scene_code))
+                cursor.execute(sql, (checklist_json, scene_id))
                 conn.commit()
                 
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"更新场景 SOP 质检项失败: {e}")
+            logger.error(f"保存场景实例 SOP 质检项失败: {e}")
             if conn:
                 conn.rollback()
             return False

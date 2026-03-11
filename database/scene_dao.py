@@ -26,19 +26,20 @@ def save_scene(
     role_description: str = None,
     industry: str = None,
     training_goal: str = None,
-    full_evaluation_prompt: str = None
+    full_evaluation_prompt: str = None,
+    sop_checklist: str = None
 ) -> Optional[int]:
     with get_db() as conn:
         with conn.cursor() as cursor:
             sql = """
                 INSERT INTO ai_coach_scene 
                 (scene_name, scene_prompt, status, org_id, creator_id, create_name,
-                 dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt, sop_checklist)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             cursor.execute(sql, (
                 scene_name, scene_prompt, status, org_id, creator_id, create_name,
-                dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt
+                dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt, sop_checklist
             ))
             conn.commit()
             scene_id = cursor.lastrowid

@@ -12,13 +12,62 @@ logger = logging.getLogger(__name__)
 sop_bp = Blueprint('sop', __name__, url_prefix='/api/sop')
 
 
-@sop_bp.route('/checklist/<scene_code>', methods=['GET'])
-def get_sop_checklist(scene_code):
+@sop_bp.route('/checklist/scene/<int:scene_id>', methods=['GET'])
+def get_scene_sop_checklist_api(scene_id):
     """
-    获取指定场景的 SOP 质检项
+    获取场景实例的 SOP 质检项（用户私有）
     
     Args:
-        scene_code: 场景代码
+        scene_id: 场景实例ID
+    
+    Returns:
+        JSON: {
+            "success": bool,
+            "data": {
+                "scene_id": int,
+                "checklist": list
+            },
+            "message": str
+        }
+    """
+    try:
+        checklist = sop_dao.get_scene_sop_checklist(scene_id)
+        
+        if checklist is None:
+            # 返回空列表
+            return jsonify({
+                "success": True,
+                "data": {
+                    "scene_id": scene_id,
+                    "checklist": []
+                },
+                "message": "该场景暂未配置 SOP 质检项"
+            })
+        
+        return jsonify({
+            "success": True,
+            "data": {
+                "scene_id": scene_id,
+                "checklist": checklist
+            },
+            "message": "获取成功"
+        })
+    
+    except Exception as e:
+        logger.error(f"获取场景 SOP 质检项失败: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"获取失败: {str(e)}"
+        }), 500
+
+
+@sop_bp.route('/checklist/preset/<scene_code>', methods=['GET'])
+def get_preset_sop_checklist_api(scene_code):
+    """
+    获取预设场景的默认 SOP 质检项（只读，模板）
+    
+    Args:
+        scene_code: 预设场景代码
     
     Returns:
         JSON: {
@@ -31,17 +80,16 @@ def get_sop_checklist(scene_code):
         }
     """
     try:
-        checklist = sop_dao.get_scene_sop_checklist(scene_code)
+        checklist = sop_dao.get_preset_sop_checklist(scene_code)
         
         if checklist is None:
-            # 返回空列表，前端可以开始配置
             return jsonify({
                 "success": True,
                 "data": {
                     "scene_code": scene_code,
                     "checklist": []
                 },
-                "message": "该场景暂未配置 SOP 质检项"
+                "message": "该预设场景暂未配置默认 SOP 质检项"
             })
         
         return jsonify({
@@ -54,79 +102,10 @@ def get_sop_checklist(scene_code):
         })
     
     except Exception as e:
-        logger.error(f"获取 SOP 质检项失败: {e}")
+        logger.error(f"获取预设 SOP 质检项失败: {e}")
         return jsonify({
             "success": False,
             "message": f"获取失败: {str(e)}"
-        }), 500
-
-
-@sop_bp.route('/checklist/<scene_code>', methods=['PUT'])
-def update_sop_checklist(scene_code):
-    """
-    更新指定场景的 SOP 质检项
-    
-    Args:
-        scene_code: 场景代码
-    
-    Request Body:
-        {
-            "checklist": [
-                {
-                    "item_id": "SOP001",
-                    "item_name": "主动问候客户",
-                    "check_type": "must_do",
-                    "keywords": ["你好", "欢迎"],
-                    "category": "接待礼仪",
-                    "item_desc": "描述信息"
-                }
-            ]
-        }
-    
-    Returns:
-        JSON: {
-            "success": bool,
-            "message": str
-        }
-    """
-    try:
-        data = request.get_json()
-        
-        if not data or 'checklist' not in data:
-            return jsonify({
-                "success": False,
-                "message": "缺少必填参数: checklist"
-            }), 400
-        
-        checklist = data['checklist']
-        
-        # 验证数据结构
-        is_valid, error_msg = sop_dao.validate_checklist_structure(checklist)
-        if not is_valid:
-            return jsonify({
-                "success": False,
-                "message": f"数据格式错误: {error_msg}"
-            }), 400
-        
-        # 更新数据库
-        success = sop_dao.update_scene_sop_checklist(scene_code, checklist)
-        
-        if success:
-            return jsonify({
-                "success": True,
-                "message": "保存成功"
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "保存失败，场景不存在或未激活"
-            }), 404
-    
-    except Exception as e:
-        logger.error(f"更新 SOP 质检项失败: {e}")
-        return jsonify({
-            "success": False,
-            "message": f"保存失败: {str(e)}"
         }), 500
 
 
@@ -165,6 +144,179 @@ def get_all_scenes_with_sop():
         return jsonify({
             "success": False,
             "message": f"获取失败: {str(e)}"
+        }), 500
+
+
+@sop_bp.route('/save-checklist', methods=['POST'])
+def save_checklist():
+    """
+    保存质检项到场景实例（用户私有，可修改）
+    
+    Request Body:
+        {
+            "scene_id": int,  # 场景实例ID（必需）
+            "checklist": [
+                {
+                    "item_name": str,
+                    "check_type": str,
+                    "keywords": str,
+                    "category": str
+                }
+            ]
+        }
+    """
+    try:
+        data = request.get_json()
+        scene_id = data.get('scene_id')
+        checklist = data.get('checklist', [])
+        
+        if not scene_id:
+            return jsonify({
+                "success": False,
+                "error": "缺少 scene_id 参数"
+            }), 400
+        
+        # 转换数据格式
+        formatted_checklist = []
+        for item in checklist:
+            formatted_item = {
+                'item_id': item.get('id', f"SOP_{len(formatted_checklist)+1:03d}"),
+                'item_name': item.get('item_name'),
+                'check_type': item.get('check_type'),
+                'keywords': item.get('keywords') if isinstance(item.get('keywords'), str) else ','.join(item.get('keywords', [])),
+                'category': item.get('category', 'general'),
+                'item_desc': item.get('desc', '')
+            }
+            formatted_checklist.append(formatted_item)
+        
+        # 保存到场景实例
+        success = sop_dao.save_scene_sop_checklist(scene_id, formatted_checklist)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "保存成功"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "保存失败"
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"保存质检项失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@sop_bp.route('/extract-from-text', methods=['POST'])
+def extract_from_text():
+    """
+    从文字记录中智能提取质检项
+    
+    Request Body:
+        {
+            "scene_code": str,
+            "text_content": str,
+            "extract_must_do": bool,
+            "extract_must_not": bool
+        }
+    """
+    try:
+        data = request.get_json()
+        scene_code = data.get('scene_code')
+        text_content = data.get('text_content')
+        extract_must_do = data.get('extract_must_do', True)
+        extract_must_not = data.get('extract_must_not', True)
+        
+        if not text_content:
+            return jsonify({
+                "success": False,
+                "error": "缺少文字内容"
+            }), 400
+        
+        # TODO: 调用 LLM 进行智能提取
+        # 这里先返回模拟数据
+        items = [
+            {
+                "name": "30秒内主动问候客户",
+                "type": "must_do",
+                "keywords": ["您好", "欢迎", "问候"],
+                "category": "greeting"
+            },
+            {
+                "name": "了解客户基本需求",
+                "type": "must_do",
+                "keywords": ["需求", "预算", "用途"],
+                "category": "needs_analysis"
+            },
+            {
+                "name": "禁止贬低竞品",
+                "type": "must_not",
+                "keywords": ["竞品", "对手", "不好"],
+                "category": "product_intro"
+            }
+        ]
+        
+        return jsonify({
+            "success": True,
+            "items": items
+        })
+        
+    except Exception as e:
+        logger.error(f"智能提取失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@sop_bp.route('/extract-from-audio', methods=['POST'])
+def extract_from_audio():
+    """
+    从音频文件中智能提取质检项
+    
+    Request: multipart/form-data
+        - scene_code: str
+        - extract_must_do: bool
+        - extract_must_not: bool
+        - audio_files: File[]
+    """
+    try:
+        scene_code = request.form.get('scene_code')
+        extract_must_do = request.form.get('extract_must_do', 'true') == 'true'
+        extract_must_not = request.form.get('extract_must_not', 'true') == 'true'
+        audio_files = request.files.getlist('audio_files')
+        
+        if not audio_files:
+            return jsonify({
+                "success": False,
+                "error": "未上传音频文件"
+            }), 400
+        
+        # TODO: 实现音频转文字 + 智能提取
+        # 这里先返回模拟数据
+        items = [
+            {
+                "name": "热情接待客户",
+                "type": "must_do",
+                "keywords": ["欢迎", "您好"],
+                "category": "greeting"
+            }
+        ]
+        
+        return jsonify({
+            "success": True,
+            "items": items
+        })
+        
+    except Exception as e:
+        logger.error(f"音频提取失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
         }), 500
 
 

@@ -286,7 +286,7 @@ def generate_from_preset():
                 'error': '提示词构建失败'
             })
         
-        # 3. 准备场景数据
+                # 3. 准备场景数据
         scene_name = f"{scene_content.industry}_{scene_content.ai_role}_场景"
         dimension_config = json.dumps({
             "industry": scene_content.industry,
@@ -295,6 +295,14 @@ def generate_from_preset():
             "role_description": scene_content.role_description,
             "dimensions": [d.to_dict() for d in scene_content.dimensions]
         }, ensure_ascii=False)
+        
+        # 3.5 从预设场景复制 SOP 质检项（如果有）
+        from database.sop_dao import sop_dao
+        preset_sop = sop_dao.get_preset_sop_checklist(scene_code)
+        sop_checklist_json = None
+        if preset_sop:
+            sop_checklist_json = json.dumps(preset_sop, ensure_ascii=False)
+            logger.info(f"从预设场景复制了 {len(preset_sop)} 项 SOP 质检项")
         
         # 4. 保存到数据库
         scene_id = db_module.save_scene(
@@ -306,6 +314,7 @@ def generate_from_preset():
             industry=scene_content.industry,
             training_goal=f"提升{scene_content.role_type}的沟通能力",
             full_evaluation_prompt=full_prompt,
+            sop_checklist=sop_checklist_json,
             status=0
         )
         

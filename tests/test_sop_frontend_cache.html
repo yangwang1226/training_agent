@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP 前端缓存流程测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h3 { color: #0066FF; margin-top: 0; }
+        .step {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            border-left: 4px solid #0066FF;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button {
+            padding: 10px 20px;
+            background: #0066FF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0052CC; }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 SOP 前端缓存流程测试</h1>
+
+    <div class="test-box">
+        <h3>测试场景</h3>
+        <div class="step">1. 用户选择预设场景</div>
+        <div class="step">2. 打开背景补充弹窗</div>
+        <div class="step">3. 配置 SOP 质检项（添加/删除）</div>
+        <div class="step">4. 保存质检项（暂存到前端）</div>
+        <div class="step">5. 点击"开始训练"生成场景</div>
+        <div class="step">6. 场景生成后自动保存质检项到服务器</div>
+    </div>
+
+    <div class="test-box">
+        <h3>关键代码验证</h3>
+        
+        <h4>1. 暂存质检项（前端缓存）</h4>
+        <pre>// sop_config_inline.js
+let pendingSopItems = null;
+
+function saveSopItems() {
+    // 不调用 API，只保存到内存
+    pendingSopItems = validItems.map(...);
+    showToast('已暂存 N 项质检项，生成场景时将自动保存');
+    updateSopPreviewInBackgroundModal(validItems);
+}</pre>
+
+        <h4>2. 场景生成后自动保存</h4>
+        <pre>// industry.js
+async function submitWithBackground(backgroundHint) {
+    const data = await fetch('/api/scene/generate-from-preset', {...});
+    
+    if (data.success) {
+        const sceneId = data.scene_id;
+        
+        // 如果有缓存的质检项，自动保存
+        if (pendingSopItems && pendingSopItems.length > 0) {
+            await saveSopItemsToServer(sceneId, pendingSopItems);
+            pendingSopItems = null; // 清空缓存
+        }
+        
+        window.location.href = data.redirect_url;
+    }
+}</pre>
+
+        <h4>3. 重新打开配置时加载缓存</h4>
+        <pre>// sop_config_inline.js
+function openSopConfigModal() {
+    // 优先加载缓存的质检项
+    if (pendingSopItems && pendingSopItems.length > 0) {
+        currentSopItems = pendingSopItems.map(...);
+        renderSopItems();
+    } else {
+        loadExistingSopItems(); // 从服务器加载
+    }
+}</pre>
+    </div>
+
+    <div class="test-box">
+        <h3>手动测试步骤</h3>
+        <ol>
+            <li>启动服务器: <code>python app.py</code></li>
+            <li>访问: <a href="http://localhost:5000/industry/" target="_blank">http://localhost:5000/industry/</a></li>
+            <li>选择任意预设场景（如：汽车销售）</li>
+            <li>在背景补充弹窗中展开 "SOP 质检项设置"</li>
+            <li>点击 "配置质检项"</li>
+            <li>添加一些质检项（如："主动问候客户"）</li>
+            <li>点击 "保存质检项"</li>
+            <li>观察提示："已暂存 N 项质检项，生成场景时将自动保存"</li>
+            <li>返回背景补充弹窗，查看 SOP 预览区域是否更新</li>
+            <li>点击 "开始训练"</li>
+            <li>观察提示："正在保存质检项..." → "质检项保存成功！"</li>
+            <li>进入对练页面后，可以在数据库中验证质检项是否保存</li>
+        </ol>
+    </div>
+
+    <div class="test-box">
+        <h3>验证查询</h3>
+        <p>在数据库中查询验证：</p>
+        <pre>-- 查看最新创建的场景
+SELECT id, scene_name, sop_checklist 
+FROM ai_coach_scene 
+ORDER BY created_time DESC 
+LIMIT 1;
+
+-- 如果 sop_checklist 不为空，说明保存成功</pre>
+    </div>
+
+    <div class="test-box">
+        <h3>预期结果</h3>
+        <div class="result success">
+            ✓ 配置质检项时不会调用保存 API<br>
+            ✓ 提示信息显示"已暂存"<br>
+            ✓ SOP 预览区域实时更新显示配置的质检项数量<br>
+            ✓ 重新打开配置弹窗时能看到之前配置的内容<br>
+            ✓ 生成场景后自动保存质检项到数据库<br>
+            ✓ 数据库中的场景记录包含完整的质检项数据
+        </div>
+    </div>
+
+    <div class="test-box">
+        <h3>测试控制台</h3>
+        <button onclick="testCache()">模拟缓存测试</button>
+        <button onclick="clearCache()">清空缓存</button>
+        <div id="console" style="margin-top: 10px;"></div>
+    </div>
+
+    <script>
+        let testPending = null;
+
+        function log(msg, type = 'info') {
+            const console = document.getElementById('console');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            console.appendChild(div);
+        }
+
+        function testCache() {
+            // 模拟保存质检项到缓存
+            testPending = [
+                { item_name: '测试项1', check_type: 'must_do', keywords: '关键词1', category: 'test' },
+                { item_name: '测试项2', check_type: 'must_not', keywords: '关键词2', category: 'test' }
+            ];
+            log('✓ 已暂存 2 项质检项到前端缓存', 'success');
+            log('缓存内容: ' + JSON.stringify(testPending, null, 2), 'info');
+        }
+
+        function clearCache() {
+            testPending = null;
+            log('✓ 缓存已清空', 'success');
+        }
+    </script>
+</body>
+</html>

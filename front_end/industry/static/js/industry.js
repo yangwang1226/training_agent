@@ -67,13 +67,16 @@ async function loadIndustryData() {
             throw new Error('获取行业列表失败');
         }
         
-        // 为每个行业加载场景
+                // 为每个行业加载场景
         INDUSTRY_DATA = [];
         for (const industryInfo of industriesData.industries) {
             const industryCode = industryInfo.industry_code;
             const config = INDUSTRY_CONFIG[industryCode];
             
-            if (!config) continue; // 跳过未配置的行业
+            // 如果行业未在配置中，使用默认配置
+            const industryIcon = config?.icon || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+            const industryName = config?.name || industryInfo.industry_name || industryCode;
+            const industryTag = config?.tag || null;
             
             // 获取该行业的场景列表
             const scenesResponse = await fetch(`/api/preset-scene/industry/${industryCode}`);
@@ -92,12 +95,12 @@ async function loadIndustryData() {
                 userRole: scene.user_role
             }));
             
-            INDUSTRY_DATA.push({
+                        INDUSTRY_DATA.push({
                 id: industryCode,
-                icon: config.icon,
-                name: config.name,
+                icon: industryIcon,
+                name: industryName,
                 sceneCount: scenes.length,
-                tag: config.tag,
+                tag: industryTag,
                 scenes: scenes
             });
         }
@@ -382,6 +385,11 @@ function openBackgroundModal(industry, scene) {
 function closeBackgroundModal() {
     bgModalOverlay.classList.remove('show');
     document.body.style.overflow = '';
+    
+    // 清空待保存的质检项缓存（如果用户取消了）
+    if (typeof clearPendingSopItems === 'function') {
+        clearPendingSopItems();
+    }
 }
 
 // 填充快捷标签
@@ -449,15 +457,43 @@ async function submitWithBackground(backgroundHint) {
             })
         });
 
-        const data = await response.json();
+                        const data = await response.json();
 
         if (data.success) {
-            showToast(`场景「${selectedScene.name}」生成成功！正在进入对练...`, 'success');
+            const sceneId = data.scene_id;
+            
+            // 保存场景ID供 SOP 配置使用
+            if (typeof window.currentSceneId !== 'undefined' || typeof currentSceneId !== 'undefined') {
+                window.currentSceneId = sceneId;
+                if (typeof currentSceneId !== 'undefined') {
+                    currentSceneId = sceneId;
+                }
+            }
+            
+            showToast(`场景「${selectedScene.name}」生成成功！`, 'success');
+            
+            // 如果有待保存的质检项，自动保存到场景
+            if (typeof pendingSopItems !== 'undefined' && pendingSopItems && pendingSopItems.length > 0) {
+                console.log('检测到待保存的质检项，自动保存到场景...');
+                showToast('正在保存质检项...', 'info');
+                
+                // 调用保存函数
+                const saved = await saveSopItemsToServer(sceneId, pendingSopItems);
+                
+                if (saved) {
+                    showToast('质检项保存成功！正在进入对练...', 'success');
+                    pendingSopItems = null;  // 清空缓存
+                } else {
+                    showToast('质检项保存失败，但场景已生成', 'warning');
+                }
+            } else {
+                showToast('正在进入对练...', 'success');
+            }
 
             // 延迟跳转到 realtime 页面
             setTimeout(() => {
                 window.location.href = data.redirect_url;
-            }, 1000);
+            }, 1500);
         } else {
             showToast('场景生成失败：' + (data.error || '未知错误'), 'error');
             // 恢复按钮状态
@@ -495,46 +531,46 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 2500);
-}
+    }
 // ========== SOP 质检项配置功能 ==========
 let currentSopChecklist = [];
 
 // SOP 区域折叠/展开
-const bgSopToggle = document.getElementById(''bgSopToggle'');
-const bgSopSection = document.getElementById(''bgSopSection'');
-const bgSopContent = document.getElementById(''bgSopContent'');
+const bgSopToggle = document.getElementById('bgSopToggle');
+const bgSopSection = document.getElementById('bgSopSection');
+const bgSopContent = document.getElementById('bgSopContent');
 
 if (bgSopToggle) {
-    bgSopToggle.addEventListener(''click'', () => {
-        const isExpanded = bgSopContent.style.display !== ''none'';
-        bgSopContent.style.display = isExpanded ? ''none'' : ''block'';
-        bgSopSection.classList.toggle(''expanded'', !isExpanded);
+    bgSopToggle.addEventListener('click', () => {
+        const isExpanded = bgSopContent.style.display !== 'none';
+        bgSopContent.style.display = isExpanded ? 'none' : 'block';
+        bgSopSection.classList.toggle('expanded', !isExpanded);
     });
 }
 
 // 配置质检项按钮
-const bgSopBtnConfig = document.getElementById(''bgSopBtnConfig'');
+const bgSopBtnConfig = document.getElementById('bgSopBtnConfig');
 if (bgSopBtnConfig) {
-    bgSopBtnConfig.addEventListener(''click'', () => {
+    bgSopBtnConfig.addEventListener('click', () => {
         openSopConfigModal();
     });
 }
 
 // 打开 SOP 配置弹窗
 function openSopConfigModal() {
-    const sceneCode = currentSelectedScene?.scene_code;
+    const sceneCode = selectedScene?.id;
     if (!sceneCode) {
-        showToast(''请先选择场景'', ''error'');
+        showToast('请先选择场景', 'error');
         return;
     }
     
     // 在新窗口打开配置页面
     const configUrl = `/sop/config?scene=${sceneCode}&inline=true`;
-    window.open(configUrl, ''sopConfig'', ''width=1200,height=800'');
+    window.open(configUrl, 'sopConfig', 'width=1200,height=800');
     
     // 监听窗口关闭事件，刷新预览
     const checkWindow = setInterval(() => {
-        const win = window.open('''', ''sopConfig'');
+        const win = window.open('', 'sopConfig');
         if (win && win.closed) {
             clearInterval(checkWindow);
             loadSopPreview(sceneCode);
@@ -545,7 +581,8 @@ function openSopConfigModal() {
 // 加载 SOP 预览
 async function loadSopPreview(sceneCode) {
     try {
-        const response = await fetch(`/api/sop/checklist/${sceneCode}`);
+        // 加载预设场景的默认质检项（只读模板）
+        const response = await fetch(`/api/sop/checklist/preset/${sceneCode}`);
         const data = await response.json();
         
         if (data.success && data.data.checklist) {
@@ -553,21 +590,21 @@ async function loadSopPreview(sceneCode) {
             renderSopPreview(data.data.checklist);
         }
     } catch (error) {
-        console.error(''加载 SOP 预览失败:'', error);
+        console.error('加载 SOP 预览失败:', error);
     }
 }
 
 // 渲染 SOP 预览
 function renderSopPreview(checklist) {
-    const preview = document.getElementById(''bgSopPreview'');
+    const preview = document.getElementById('bgSopPreview');
     
     if (!checklist || checklist.length === 0) {
-        preview.innerHTML = ''<div class="bg-sop-empty"><span>暂未配置质检项</span></div>'';
+        preview.innerHTML = '<div class="bg-sop-empty"><span>暂未配置质检项</span></div>';
         return;
     }
     
-    const mustDoCount = checklist.filter(item => item.check_type === ''must_do'').length;
-    const mustNotCount = checklist.filter(item => item.check_type === ''must_not'').length;
+    const mustDoCount = checklist.filter(item => item.check_type === 'must_do').length;
+    const mustNotCount = checklist.filter(item => item.check_type === 'must_not').length;
     
     preview.innerHTML = `
         <div class="bg-sop-items">
@@ -586,10 +623,10 @@ function renderSopPreview(checklist) {
 }
 
 // 在场景选择时加载 SOP 预览
-const originalShowBackgroundModal = showBackgroundModal;
-showBackgroundModal = function(scene) {
-    originalShowBackgroundModal(scene);
-    if (scene && scene.scene_code) {
-        loadSopPreview(scene.scene_code);
+const originalOpenBackgroundModal = openBackgroundModal;
+openBackgroundModal = function(industry, scene) {
+    originalOpenBackgroundModal(industry, scene);
+    if (scene && scene.id) {
+        loadSopPreview(scene.id);
     }
 };

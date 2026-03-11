@@ -24,11 +24,10 @@ def get_preset_scenes_by_industry(industry_code: str) -> List[Dict[str, Any]]:
             sql = """
                 SELECT 
                     id, industry_code, scene_code, scene_name, scene_description,
-                    scene_tag, ai_role, user_role, difficulty, estimated_duration,
-                    display_order, usage_count
+                    ai_role, user_role, difficulty, usage_count, opening_line
                 FROM ai_coach_preset_scene 
                 WHERE industry_code = %s AND is_active = 1
-                ORDER BY display_order ASC, usage_count DESC
+                ORDER BY usage_count DESC
             """
             cursor.execute(sql, (industry_code,))
             return cursor.fetchall()
@@ -66,11 +65,10 @@ def get_all_active_preset_scenes() -> List[Dict[str, Any]]:
             sql = """
                 SELECT 
                     id, industry_code, scene_code, scene_name, scene_description,
-                    scene_tag, ai_role, user_role, difficulty, estimated_duration,
-                    display_order, usage_count, created_time
+                    ai_role, user_role, difficulty, usage_count, opening_line, created_time
                 FROM ai_coach_preset_scene 
                 WHERE is_active = 1
-                ORDER BY industry_code ASC, display_order ASC
+                ORDER BY industry_code ASC, usage_count DESC
             """
             cursor.execute(sql)
             return cursor.fetchall()
@@ -127,41 +125,27 @@ def get_industries_with_scene_count() -> List[Dict[str, Any]]:
 def build_preset_prompt(preset: Dict[str, Any], background_hint: Optional[str] = None) -> str:
     """
     构建预设场景的完整提示词
+    注意：此函数已废弃，预设场景应该使用 PresetSceneService 生成完整提示词
     
     Args:
         preset: 预设场景数据
         background_hint: 用户补充的背景信息（可选）
     
     Returns:
-        完整的场景提示词
+        基础的场景描述
     """
     prompt_parts = []
     
-    # 1. 场景背景
-    if preset.get('background_template'):
-        background = preset['background_template']
-        # 如果用户提供了背景补充，融入到模板中
-        if background_hint:
-            background += f"\n\n【用户补充背景】\n{background_hint}"
-        prompt_parts.append(f"## 场景背景\n{background}")
+    # 基础场景信息
+    prompt_parts.append(f"场景：{preset.get('scene_name', '')}")
+    prompt_parts.append(f"描述：{preset.get('scene_description', '')}")
+    prompt_parts.append(f"AI角色：{preset.get('ai_role', '')}")
+    prompt_parts.append(f"用户角色：{preset.get('user_role', '')}")
     
-    # 2. 主要问题
-    if preset.get('main_questions_template'):
-        prompt_parts.append(f"## 主要问题\n{preset['main_questions_template']}")
+    if background_hint:
+        prompt_parts.append(f"\n用户背景：{background_hint}")
     
-    # 3. 触发器组
-    if preset.get('trigger_groups_template'):
-        prompt_parts.append(f"## 触发器组\n{preset['trigger_groups_template']}")
-    
-    # 4. 评估维度
-    if preset.get('dimensions_template'):
-        prompt_parts.append(f"## 评估维度\n{preset['dimensions_template']}")
-    
-    # 5. 情绪设定
-    if preset.get('emotion_template'):
-        prompt_parts.append(f"## 情绪设定\n{preset['emotion_template']}")
-    
-    return "\n\n".join(prompt_parts)
+    return "\n".join(prompt_parts)
 
 
 def create_scene_from_preset(

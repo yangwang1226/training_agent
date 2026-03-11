@@ -183,6 +183,80 @@ def register_websocket(sock):
                                 if text:
                                     client.send_text(text)
                             
+                                elif msg_type == 'session_end':
+                                    # ✅ 处理会话结束信号
+                                    logger.info("收到前端会话结束信号，开始保存和评估...")
+                                
+                                try:
+                                    # 1. 保存对话记录和音频
+                                    saved_path = recorder.save()
+                                    if saved_path:
+                                        logger.info(f"对话记录已保存: {saved_path}")
+                                        ws.send(json.dumps({
+                                            'type': 'save_complete',
+                                            'path': saved_path
+                                        }))
+                                    
+                                    # 2. 生成评估报告
+                                    logger.info("开始生成评估报告...")
+                                    transcript = recorder.get_transcript_text()
+                                    
+                                    # 获取场景的维度配置
+                                    dimension_config = scene.get('dimension_config')
+                                    dimensions = []
+                                    if dimension_config:
+                                        try:
+                                            config_data = json.loads(dimension_config)
+                                            dimensions = config_data.get('dimensions', [])
+                                        except:
+                                            logger.warning("场景维度配置解析失败")
+                                    
+                                        report = scene_assessment_service.generate_report(
+                                        session_id=recorder.session_id,
+                                        transcript=transcript,
+                                        dimensions=dimensions,
+                                        industry=scene.get('industry', ''),
+                                        role_type=scene.get('ai_role', ''),
+                                        background_info=scene.get('background', '')
+                                    )
+                                    
+                                    if report:
+                                        # 3. 保存评估报告到数据库
+                                        scene_assessment_service.save_to_database(
+                                            session_id=recorder.session_id,
+                                            report=report,
+                                            scene_id=int(scene_id),
+                                            user_id=1,  # TODO: 从session中获取真实用户ID
+                                            word_content=transcript,
+                                            oss_file_path=saved_path,
+                                            call_duration=recorder.duration_seconds if hasattr(recorder, 'duration_seconds') else 0
+                                        )
+                                        
+                                        ws.send(json.dumps({
+                                            'type': 'assessment_complete',
+                                            'session_id': recorder.session_id,
+                                            'report': report
+                                        }))
+                                        logger.info("评估报告生成并保存成功")
+                                    else:
+                                        ws.send(json.dumps({
+                                            'type': 'assessment_error',
+                                            'error': '评估报告生成失败'
+                                        }))
+                                    
+                                except Exception as e:
+                                    logger.error(f"会话结束处理失败：{str(e)}", exc_info=True)
+                                    ws.send(json.dumps({
+                                        'type': 'assessment_error',
+                                        'error': str(e)
+                                    }))
+                                
+                                # 通知前端可以关闭连接
+                                ws.send(json.dumps({
+                                    'type': 'ready_to_close'
+                                }))
+                                break
+                            
                             elif msg_type == 'stop':
                                 break
                                 

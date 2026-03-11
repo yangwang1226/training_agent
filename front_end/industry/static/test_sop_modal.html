@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP 配置模态框测试</title>
+    <link rel="stylesheet" href="/industry/static/css/industry.css">
+    <link rel="stylesheet" href="/industry/static/css/sop_config_inline.css">
+    <style>
+        body {
+            padding: 40px;
+            background: #f5f7fa;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        }
+        .test-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1F2937;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-section h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+        .test-button {
+            padding: 12px 24px;
+            background: #0066FF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .test-button:hover {
+            background: #0052CC;
+            transform: translateY(-2px);
+        }
+        .status-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: #F3F4F6;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #6B7280;
+            font-family: monospace;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: #10B981;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+            z-index: 10001;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.error {
+            background: #EF4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">🧪 SOP 配置模态框测试</h1>
+        
+        <div class="test-section">
+            <h3>1. 测试模态框打开</h3>
+            <button class="test-button" onclick="testOpenModal()">打开 SOP 配置模态框</button>
+            <div class="status-box" id="status1">点击按钮测试模态框是否能正常打开</div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 测试 Tab 切换</h3>
+            <button class="test-button" onclick="testTabSwitch()">测试 Tab 切换</button>
+            <div class="status-box" id="status2">模态框打开后，测试手工配置/智能提取 Tab 切换</div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 测试添加质检项</h3>
+            <button class="test-button" onclick="testAddItem()">添加测试质检项</button>
+            <div class="status-box" id="status3">在手工配置面板添加质检项</div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 测试智能提取（文字）</h3>
+            <button class="test-button" onclick="testExtractText()">测试文字提取</button>
+            <div class="status-box" id="status4">调用 API 测试文字智能提取功能</div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. 测试保存功能</h3>
+            <button class="test-button" onclick="testSave()">测试保存</button>
+            <div class="status-box" id="status5">测试保存质检项到服务器</div>
+        </div>
+    </div>
+
+    <!-- SOP 配置模态框 -->
+    <div class="sop-config-modal-overlay" id="sopConfigModalOverlay">
+        <div class="sop-config-modal">
+            <div class="sop-config-header">
+                <h2>
+                    <span class="sop-config-icon">📋</span>
+                    配置 SOP 质检项
+                </h2>
+                <button class="sop-config-close" id="sopConfigClose">&times;</button>
+            </div>
+
+            <div class="sop-config-tabs">
+                <button class="sop-tab active" data-tab="manual" id="tabManual">
+                    <span class="tab-icon">✏️</span>
+                    <span class="tab-text">手工配置</span>
+                </button>
+                <button class="sop-tab" data-tab="extract" id="tabExtract">
+                    <span class="tab-icon">🤖</span>
+                    <span class="tab-text">智能提取</span>
+                </button>
+            </div>
+
+            <div class="sop-config-panel active" id="panelManual">
+                <div class="sop-config-body">
+                    <div class="sop-items-list" id="sopItemsList"></div>
+                    <button class="btn-add-item" id="btnAddItem">
+                        <span>+</span>
+                        添加质检项
+                    </button>
+                </div>
+            </div>
+
+            <div class="sop-config-panel" id="panelExtract">
+                <div class="sop-config-body">
+                    <div class="extract-intro">
+                        <div class="extract-intro-icon">🎯</div>
+                        <h3>上传销冠录音或文字记录</h3>
+                        <p>AI 将自动分析并提取关键的操作流程和话术要点</p>
+                    </div>
+
+                    <div class="extract-upload-area">
+                        <div class="upload-tabs">
+                            <button class="upload-tab active" data-type="audio" id="uploadTabAudio">
+                                <span>🎤</span>
+                                录音文件
+                            </button>
+                            <button class="upload-tab" data-type="text" id="uploadTabText">
+                                <span>📝</span>
+                                文字记录
+                            </button>
+                        </div>
+
+                        <div class="upload-section active" id="uploadSectionAudio">
+                            <div class="upload-dropzone" id="audioDropzone">
+                                <input type="file" id="audioFileInput" accept="audio/*" style="display: none;">
+                                <div class="dropzone-content">
+                                    <span class="dropzone-icon">🎵</span>
+                                    <p class="dropzone-text">点击或拖拽上传录音文件</p>
+                                    <p class="dropzone-hint">支持 MP3, WAV, M4A 格式，最大 50MB</p>
+                                </div>
+                            </div>
+                            <div class="upload-file-list" id="audioFileList"></div>
+                        </div>
+
+                        <div class="upload-section" id="uploadSectionText">
+                            <textarea 
+                                id="textRecordInput" 
+                                placeholder="粘贴销冠的对话记录..."
+                                rows="12"></textarea>
+                            <div class="text-counter">
+                                <span id="textCharCount">0</span> 字
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="extract-options">
+                        <label class="extract-option-label">
+                            <input type="checkbox" id="extractMustDo" checked>
+                            <span>提取"必须做"的操作</span>
+                        </label>
+                        <label class="extract-option-label">
+                            <input type="checkbox" id="extractMustNot" checked>
+                            <span>提取"禁止做"的行为</span>
+                        </label>
+                    </div>
+
+                    <button class="btn-extract" id="btnExtract">
+                        <span>🤖</span>
+                        开始智能提取
+                    </button>
+
+                    <div class="extract-result" id="extractResult" style="display: none;">
+                        <div class="extract-result-header">
+                            <h4>✨ 提取结果</h4>
+                            <span class="extract-result-count" id="extractResultCount">0 项</span>
+                        </div>
+                        <div class="extract-result-list" id="extractResultList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sop-config-footer">
+                <button class="btn-cancel" id="btnCancelSop">取消</button>
+                <button class="btn-save-sop" id="btnSaveSop">
+                    <span>✓</span>
+                    保存质检项
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 模拟全局变量
+        let selectedScene = {
+            id: 'auto_first_visit',
+            name: '客户首次到店接待'
+        };
+        let currentSopItems = [];
+
+        // Toast 函数
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // 测试函数
+        function testOpenModal() {
+            document.getElementById('sopConfigModalOverlay').classList.add('show');
+            document.getElementById('status1').textContent = '✅ 模态框已打开';
+            showToast('模态框打开成功', 'success');
+        }
+
+        function testTabSwitch() {
+            const extractTab = document.getElementById('tabExtract');
+            if (extractTab) {
+                extractTab.click();
+                document.getElementById('status2').textContent = '✅ 切换到智能提取面板';
+                showToast('Tab 切换成功', 'success');
+                setTimeout(() => {
+                    document.getElementById('tabManual').click();
+                    document.getElementById('status2').textContent = '✅ 切换回手工配置面板';
+                }, 1500);
+            }
+        }
+
+        function testAddItem() {
+            const btn = document.getElementById('btnAddItem');
+            if (btn) {
+                btn.click();
+                document.getElementById('status3').textContent = '✅ 质检项已添加';
+                showToast('添加质检项成功', 'success');
+            }
+        }
+
+        async function testExtractText() {
+            try {
+                const response = await fetch('/api/sop/extract-from-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_code: 'auto_first_visit',
+                        text_content: '销售：您好，欢迎光临！客户：我想看SUV。',
+                        extract_must_do: true,
+                        extract_must_not: true
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('status4').textContent = `✅ 提取成功: ${JSON.stringify(data, null, 2)}`;
+                showToast('智能提取成功', 'success');
+            } catch (error) {
+                document.getElementById('status4').textContent = `❌ 错误: ${error.message}`;
+                showToast('智能提取失败', 'error');
+            }
+        }
+
+        async function testSave() {
+            try {
+                const response = await fetch('/api/sop/save-checklist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_code: 'auto_first_visit',
+                        checklist: [
+                            {
+                                item_name: '测试质检项',
+                                check_type: 'must_do',
+                                keywords: '测试,关键词',
+                                category: 'greeting'
+                            }
+                        ]
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('status5').textContent = `✅ 保存成功: ${JSON.stringify(data, null, 2)}`;
+                showToast('保存成功', 'success');
+            } catch (error) {
+                document.getElementById('status5').textContent = `❌ 错误: ${error.message}`;
+                showToast('保存失败', 'error');
+            }
+        }
+    </script>
+    <script src="/industry/static/js/sop_config_inline.js"></script>
+</body>
+</html>

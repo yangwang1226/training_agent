@@ -214,15 +214,37 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAudioContext = null;
         }
 
-        if (ws) {
-            ws.close();
+        // ✅ 发送结束信号给后端，触发保存和评估
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            console.log('发送会话结束信号...');
+            updateStatus('processing', '正在保存对话记录和生成评估报告...');
+            
+            ws.send(JSON.stringify({
+                type: 'session_end',
+                timestamp: new Date().toISOString()
+            }));
+            
+            // 不立即关闭WebSocket，等待后端处理完成后发送ready_to_close消息
+            // 设置超时保护，5秒后强制关闭
+            setTimeout(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    console.log('超时，强制关闭WebSocket');
+                    ws.close();
+                }
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                handleDisconnect();
+            }, 5000);
+        } else {
+            if (ws) {
+                ws.close();
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            handleDisconnect();
         }
-
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-        }
-
-        handleDisconnect();
     }
 
     function handleDisconnect() {
@@ -295,8 +317,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
             case 'error':
-                addMessage('错误: ' + data.message, 'ai');
-                break;
+    addMessage('错误: ' + data.message, 'ai');
+    break;
+case 'save_complete':
+    console.log('对话记录已保存:', data.path);
+    updateStatus('processing', '对话记录已保存，正在生成评估报告...');
+    break;
+case 'assessment_complete':
+    console.log('评估报告生成成功，会话ID:', data.session_id);
+    updateStatus('completed', '✅ 评估报告已生成');
+    setTimeout(() => {
+        window.location.href = `/evaluate?session_id=${data.session_id}`;
+    }, 1500);
+    break;
+case 'assessment_error':
+    console.error('评估报告生成失败:', data.error);
+    updateStatus('error', '❌ 评估报告生成失败: ' + data.error);
+    break;
+case 'ready_to_close':
+    console.log('后端处理完成，准备关闭连接');
+    if (ws) {
+        ws.close();
+    }
+    break;
         }
     }
     
