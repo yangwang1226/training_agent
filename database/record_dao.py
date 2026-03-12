@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Optional, Dict, Any
 
@@ -58,16 +59,32 @@ def save_coach_record(
         sop_result: SOP质检结果(JSON字符串)
         sop_score: SOP质检总分(0-100)
     """
+    def _ensure_str(value, field_name=""):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, ensure_ascii=False)
+        logger.warning(f"字段 {field_name} 类型异常: {type(value)}, 将转换为字符串")
+        return str(value)
+    
+    word_content = _ensure_str(word_content, "word_content")
+    oss_file_path = _ensure_str(oss_file_path, "oss_file_path")
+    ai_summary = _ensure_str(ai_summary, "ai_summary")
+    dimension_result = _ensure_str(dimension_result, "dimension_result")
+    ai_advise = _ensure_str(ai_advise, "ai_advise")
+    sop_result = _ensure_str(sop_result, "sop_result")
+    
     with get_db() as conn:
         with conn.cursor() as cursor:
-                # 计算最终成绩
             final_score = calculate_final_score(ai_score, sop_score)
-    
-    sql = """
-        INSERT INTO ai_coach_record 
-        (session_id, scene_id, user_id, word_content, oss_file_path, call_duration,
-         ai_score, ai_summary, dimension_result, ai_advise, sop_result, sop_score, final_score)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            
+            sql = """
+                INSERT INTO ai_coach_record 
+                (session_id, scene_id, user_id, word_content, oss_file_path, call_duration,
+                 ai_score, ai_summary, dimension_result, ai_advise, sop_result, sop_score, final_score)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                 word_content = VALUES(word_content),
                 oss_file_path = VALUES(oss_file_path),
@@ -79,13 +96,13 @@ def save_coach_record(
                 sop_result = VALUES(sop_result),
                 sop_score = VALUES(sop_score)
             """
-    cursor.execute(sql, (
-        session_id, scene_id, user_id, word_content, oss_file_path, call_duration,
-        ai_score, ai_summary, dimension_result, ai_advise, sop_result, sop_score, final_score
-    ))
-    conn.commit()
-    logger.info(f"训练记录保存成功: session_id={session_id}")
-    return True
+            cursor.execute(sql, (
+                session_id, scene_id, user_id, word_content, oss_file_path, call_duration,
+                ai_score, ai_summary, dimension_result, ai_advise, sop_result, sop_score, final_score
+            ))
+            conn.commit()
+            logger.info(f"训练记录保存成功: session_id={session_id}")
+            return True
 
 
 def get_coach_record_by_session_id(session_id: str) -> Optional[Dict[str, Any]]:

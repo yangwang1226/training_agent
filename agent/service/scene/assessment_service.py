@@ -1,4 +1,4 @@
-﻿"""
+"""
 场景对练评估报告生成服务
 
 基于对话转录和考核维度生成详细的评估报告
@@ -426,15 +426,9 @@ class SceneAssessmentService:
             # 提取 AI 评估总结
             ai_summary = report.get("summary", "")
             
-            # 构建维度评分结果（包含 dimension_scores, highlights, improvements 等）
-            dimension_result = {
-                "dimension_scores": report.get("dimension_scores", []),
-                "highlights": report.get("highlights", []),
-                "improvements": report.get("improvements", []),
-                "golden_sentences": report.get("golden_sentences", []),
-                "key_moments": report.get("key_moments", [])
-            }
-            dimension_result_text = json.dumps(dimension_result, ensure_ascii=False)
+            # 只保存维度评分结果
+            dimension_scores = report.get("dimension_scores", [])
+            dimension_result_text = json.dumps(dimension_scores, ensure_ascii=False) if dimension_scores else None
             
             # 生成 AI 建议
             ai_advise = self._generate_ai_advise(report)

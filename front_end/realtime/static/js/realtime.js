@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const chatMessages = document.getElementById('chatMessages');
     const statusBar = document.getElementById('statusBar');
     const statusText = document.getElementById('statusText');
@@ -317,36 +317,35 @@
                 }
                 break;
             case 'error':
-    addMessage('错误: ' + data.message, 'ai');
-    break;
-case 'save_complete':
-    console.log('对话记录已保存:', data.path);
-    updateStatus('processing', '对话记录已保存，正在生成评估报告...');
-    break;
-case 'assessment_complete':
-    console.log('评估报告生成成功，会话ID:', data.session_id);
-    updateStatus('completed', '✅ 评估报告已生成');
-    setTimeout(() => {
-        window.location.href = `/evaluate?session_id=${data.session_id}`;
-    }, 1500);
-    break;
-case 'assessment_error':
-    console.error('评估报告生成失败:', data.error);
-    updateStatus('error', '❌ 评估报告生成失败: ' + data.error);
-    break;
-case 'ready_to_close':
-    console.log('后端处理完成，准备关闭连接');
-    // 延迟100ms关闭，确保所有消息都已接收
-    setTimeout(() => {
-        if (ws) {
-            ws.close();
-        }
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-        }
-        handleDisconnect();
-    }, 100);
-    break;
+                addMessage('错误: ' + data.message, 'ai');
+                break;
+            case 'save_complete':
+                console.log('对话记录已保存:', data.path);
+                updateStatus('processing', '对话记录已保存，正在生成评估报告...');
+                break;
+            case 'assessment_complete':
+                console.log('评估报告生成成功，会话ID:', data.session_id);
+                updateStatus('completed', '✅ 评估报告已生成');
+                setTimeout(() => {
+                    window.location.href = `/evaluate?session_id=${data.session_id}`;
+                }, 1500);
+                break;
+            case 'assessment_error':
+                console.error('评估报告生成失败:', data.error);
+                updateStatus('error', '❌ 评估报告生成失败: ' + data.error);
+                break;
+            case 'ready_to_close':
+                console.log('后端处理完成，准备关闭连接');
+                setTimeout(() => {
+                    if (ws) {
+                        ws.close();
+                    }
+                    if (animationId) {
+                        cancelAnimationFrame(animationId);
+                    }
+                    handleDisconnect();
+                }, 100);
+                break;
         }
     }
     

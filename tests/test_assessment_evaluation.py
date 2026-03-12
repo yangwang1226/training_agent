@@ -384,19 +384,19 @@ def list_recent_records(limit=10):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("用法: python tests/test_assessment_evaluation.py <session_id>")
-        print("      python tests/test_assessment_evaluation.py --list  (列出最近的记录)\n")
+    # if len(sys.argv) < 2:
+    #     print("用法: python tests/test_assessment_evaluation.py <session_id>")
+    #     print("      python tests/test_assessment_evaluation.py --list  (列出最近的记录)\n")
         
-        # 自动列出最近的记录
-        list_recent_records(10)
-        sys.exit(1)
+    #     # 自动列出最近的记录
+    #     list_recent_records(10)
+    #     sys.exit(1)
     
-    if sys.argv[1] == '--list' or sys.argv[1] == '-l':
-        list_recent_records(20)
-        sys.exit(0)
+    # if sys.argv[1] == '--list' or sys.argv[1] == '-l':
+    #     list_recent_records(20)
+    #     sys.exit(0)
     
-    session_id = sys.argv[1]
+    session_id = '30f25168-0e90-4d90-9ce0-bfe900c39630'
     
     try:
         success = test_assessment_by_session_id(session_id)

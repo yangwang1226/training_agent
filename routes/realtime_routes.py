@@ -183,11 +183,10 @@ def register_websocket(sock):
                                 if text:
                                     client.send_text(text)
                             
-                                elif msg_type == 'session_end':
-                                    # ✅ 处理会话结束信号
-                                    logger.info("="*60)
+                            elif msg_type == 'session_end':
+                                logger.info("="*60)
+                                logger.info("收到前端会话结束信号，开始保存和评估...")
                                 
-                                # Send confirmation
                                 try:
                                     ws.send(json.dumps({
                                         'type': 'session_end_received',
@@ -196,8 +195,6 @@ def register_websocket(sock):
                                     logger.info("Confirmation sent")
                                 except:
                                     pass
-                                
-                                    logger.info("收到前端会话结束信号，开始保存和评估...")
                                 
                                 try:
                                     # 1. 保存对话记录和音频
@@ -225,7 +222,7 @@ def register_websocket(sock):
                                         except:
                                             logger.warning("场景维度配置解析失败")
                                     
-                                        report = scene_assessment_service.generate_report(
+                                    report = scene_assessment_service.generate_report(
                                         session_id=recorder.session_id,
                                         transcript=transcript,
                                         dimensions=dimensions,
@@ -234,16 +231,34 @@ def register_websocket(sock):
                                         background_info=scene.get('background', '')
                                     )
                                     
+                                    # 3. SOP 质检评估
+                                    sop_result = None
+                                    try:
+                                        from database.sop_dao import get_scene_sop_checklist
+                                        sop_checklist = get_scene_sop_checklist(int(scene_id))
+                                        if sop_checklist:
+                                            logger.info(f"开始 SOP 质检评估，共 {len(sop_checklist)} 个质检项...")
+                                            sop_result = scene_assessment_service.evaluate_sop(
+                                                transcript=transcript,
+                                                sop_checklist=sop_checklist
+                                            )
+                                            logger.info(f"SOP 质检完成: 得分={sop_result.get('sop_score', 0)}")
+                                        else:
+                                            logger.info("场景未配置 SOP 质检项，跳过 SOP 评估")
+                                    except Exception as sop_e:
+                                        logger.warning(f"SOP 质检评估失败: {sop_e}")
+                                    
                                     if report:
-                                        # 3. 保存评估报告到数据库
+                                        # 4. 保存评估报告到数据库
                                         scene_assessment_service.save_to_database(
                                             session_id=recorder.session_id,
                                             report=report,
                                             scene_id=int(scene_id),
                                             user_id=recorder.user_id,
                                             word_content=transcript,
-                                            oss_file_path=save_result.get('audio_file', ''),
-                                            call_duration=save_result.get('call_duration', 0)
+                                            oss_file_path=save_result.get('audio_file', '') if save_result else '',
+                                            call_duration=save_result.get('call_duration', 0) if save_result else 0,
+                                            sop_result=sop_result
                                         )
                                         
                                         logger.info(f"Sending assessment_complete: {recorder.session_id}")
@@ -251,7 +266,8 @@ def register_websocket(sock):
                                         ws.send(json.dumps({
                                             'type': 'assessment_complete',
                                             'session_id': recorder.session_id,
-                                            'report': report
+                                            'report': report,
+                                            'sop_result': sop_result
                                         }))
                                         
                                     else:
@@ -282,7 +298,11 @@ def register_websocket(sock):
                         logger.error(f"Process message error: {e}")
                         
                 except Exception as e:
-                    logger.error(f"WebSocket receive error: {e}")
+                    error_str = str(e)
+                    if "Connection closed" in error_str or "1005" in error_str or "1000" in error_str:
+                        logger.debug(f"WebSocket 连接已关闭: {e}")
+                    else:
+                        logger.error(f"WebSocket receive error: {e}")
                     break
             
         except Exception as e:
