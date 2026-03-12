@@ -138,7 +138,7 @@ def register_websocket(sock):
                     'message': message
                 }))
             except Exception as e:
-                logger.debug(f"Status update failed: {e}")
+                logger.error(f"Send status error: {e}")
         
         client.on_text(on_text)
         client.on_audio(on_audio)
@@ -178,25 +178,13 @@ def register_websocket(sock):
                                     audio_data = base64.b64decode(audio_b64)
                                     client.send_audio(audio_data)
                             
-                            elif msg_type == 'text':
+                                                        elif msg_type == 'text':
                                 text = message.get('text', '')
                                 if text:
                                     client.send_text(text)
                             
-                                elif msg_type == 'session_end':
+                            elif msg_type == 'session_end':
                                     # ✅ 处理会话结束信号
-                                    logger.info("="*60)
-                                
-                                # Send confirmation
-                                try:
-                                    ws.send(json.dumps({
-                                        'type': 'session_end_received',
-                                        'message': 'Server received'
-                                    }))
-                                    logger.info("Confirmation sent")
-                                except:
-                                    pass
-                                
                                     logger.info("收到前端会话结束信号，开始保存和评估...")
                                 
                                 try:
@@ -246,14 +234,12 @@ def register_websocket(sock):
                                             call_duration=save_result.get('call_duration', 0)
                                         )
                                         
-                                        logger.info(f"Sending assessment_complete: {recorder.session_id}")
-                                        logger.info("评估报告生成并保存成功")
                                         ws.send(json.dumps({
                                             'type': 'assessment_complete',
                                             'session_id': recorder.session_id,
                                             'report': report
                                         }))
-                                        
+                                        logger.info("评估报告生成并保存成功")
                                     else:
                                         ws.send(json.dumps({
                                             'type': 'assessment_error',

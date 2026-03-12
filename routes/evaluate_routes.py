@@ -13,7 +13,25 @@ EVALUATE_TEMPLATE_PATH = Path(__file__).parent.parent / "front_end" / "evaluate"
 
 @evaluate_bp.route('/profile/<user_id>', methods=['GET'])
 def get_user_profile(user_id):
-    profile = assessment_service.get_user_profile(user_id)
+    # TODO: 这个接口需要重新实现，暂时返回空数据
+    return jsonify({
+        'success': True,
+        'profile': {
+            'user_id': user_id,
+            'overall_score': 0,
+            'dimension_scores': {},
+            'training_count': 0,
+            'total_duration': 0,
+            'level': '入门',
+            'weak_points': [],
+            'strong_points': [],
+            'improvement_history': [],
+            'achievements': []
+        }
+    })
+    
+    # 原代码注释
+    # profile = assessment_service.get_user_profile(user_id)
     
     if profile:
         return jsonify({
@@ -57,9 +75,15 @@ def get_user_profile(user_id):
 
 @evaluate_bp.route('/history/<user_id>', methods=['GET'])
 def get_training_history(user_id):
-    industry_filter = request.args.get('industry', '')
+    # TODO: 这个接口需要重新实现，暂时返回空数据
+    return jsonify({
+        'success': True,
+        'history': []
+    })
     
-    history = assessment_service.get_training_history(user_id, limit=20)
+    # 原代码注释
+    # industry_filter = request.args.get('industry', '')
+    # history = assessment_service.get_training_history(user_id, limit=20)
     
     if industry_filter:
         history = [h for h in history if industry_filter in h.get('industry', '')]
@@ -72,7 +96,14 @@ def get_training_history(user_id):
 
 @evaluate_bp.route('/assessment/<session_id>', methods=['GET'])
 def get_assessment(session_id):
-    assessment = assessment_service.get_assessment(session_id)
+    # TODO: 使用新的接口 /evaluate/api/report/<session_id>
+    return jsonify({
+        'success': False,
+        'error': '请使用新的评估查看页面: /evaluate?session_id=' + session_id
+    })
+    
+    # 原代码注释
+    # assessment = assessment_service.get_assessment(session_id)
     
     if assessment:
         return jsonify({
@@ -88,7 +119,14 @@ def get_assessment(session_id):
 
 @evaluate_bp.route('/suggestions/<user_id>', methods=['POST'])
 def generate_suggestions(user_id):
-    suggestions = assessment_service.generate_improvement_suggestions(user_id)
+    # TODO: 这个接口需要重新实现
+    return jsonify({
+        'success': False,
+        'error': '此功能暂未实现'
+    })
+    
+    # 原代码注释
+    # suggestions = assessment_service.generate_improvement_suggestions(user_id)
     
     if suggestions:
         return jsonify({

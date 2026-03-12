@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const chatMessages = document.getElementById('chatMessages');
     const statusBar = document.getElementById('statusBar');
     const statusText = document.getElementById('statusText');
@@ -224,8 +224,8 @@
                 timestamp: new Date().toISOString()
             }));
             
-                        // 不立即关闭WebSocket，等待后端处理完成后发送ready_to_close消息
-            // 设置超时保护，10秒后强制关闭（给评估报告生成留足时间）
+            // 不立即关闭WebSocket，等待后端处理完成后发送ready_to_close消息
+            // 设置超时保护，5秒后强制关闭
             setTimeout(() => {
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     console.log('超时，强制关闭WebSocket');
@@ -235,7 +235,7 @@
                     cancelAnimationFrame(animationId);
                 }
                 handleDisconnect();
-            }, 10000);
+            }, 5000);
         } else {
             if (ws) {
                 ws.close();
@@ -336,16 +336,9 @@ case 'assessment_error':
     break;
 case 'ready_to_close':
     console.log('后端处理完成，准备关闭连接');
-    // 延迟100ms关闭，确保所有消息都已接收
-    setTimeout(() => {
-        if (ws) {
-            ws.close();
-        }
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-        }
-        handleDisconnect();
-    }, 100);
+    if (ws) {
+        ws.close();
+    }
     break;
         }
     }
@@ -560,4 +553,3 @@ case 'ready_to_close':
         stopSession();
     });
 });
-

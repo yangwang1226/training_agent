@@ -1,0 +1,7 @@
+﻿{
+  "experimental": {
+    "useAutocompleteInternalTool": true
+  },
+  "allowAnonymousTelemetry": false,
+  "disableIndexing": false
+}

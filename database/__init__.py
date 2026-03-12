@@ -12,7 +12,8 @@ from .scene_dao import (
 from .record_dao import (
     save_coach_record,
     get_coach_record_by_session_id,
-    update_coach_record
+    update_coach_record,
+    calculate_final_score
 )
 from .dimension_dao import (
     save_dimension_config,
@@ -40,9 +41,10 @@ __all__ = [
     'get_prompt_by_scene_id',
     'get_prompt_by_name',
     'SceneStatus',
-    'save_coach_record',
+        'save_coach_record',
     'get_coach_record_by_session_id',
     'update_coach_record',
+    'calculate_final_score',
     'save_dimension_config',
     'get_dimension_config',
     'update_dimension_config',

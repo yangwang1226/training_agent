@@ -1,4 +1,4 @@
-"""
+﻿"""
 场景对练评估报告生成服务
 
 基于对话转录和考核维度生成详细的评估报告
@@ -238,9 +238,157 @@ class SceneAssessmentService:
         return text[start_idx:]
 
     def _get_current_timestamp(self) -> str:
+
+        
         """获取当前时间戳"""
         from datetime import datetime
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    def evaluate_sop(
+        self,
+        transcript: str,
+        sop_checklist: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """SOP质检评估
+        
+        Args:
+            transcript: 对话转录
+            sop_checklist: SOP质检项列表
+            
+        Returns:
+            SOP评估结果字典
+        """
+        if not sop_checklist:
+            logger.warning("SOP质检项为空，跳过SOP评估")
+            return {
+                "score": 0,
+                "total_items": 0,
+                "passed_count": 0,
+                "failed_count": 0,
+                "details": [],
+                "summary": "未配置SOP质检项"
+                        }
+        
+        try:
+            # 构建质检项描述
+            items_text = "\n".join([
+                f"[{idx+1}] {item['item_name']} (类型: {item['check_type']})\n   描述: {item.get('item_desc', '无')}\n   关键词: {item.get('keywords', '无')}"
+                for idx, item in enumerate(sop_checklist)
+            ])
+            
+            prompt = f"""你是专业的销售质检专家。请严格按照以下SOP标准，逐项检查销售人员的对话表现。
+
+【关键角色说明】
+这是一个销售培训场景，对话转录格式说明：
+- 标注为"用户"的发言 = 销售人员（被评估对象）
+- 标注为"AI"的发言 = 模拟客户
+
+⚠️ 重要：你要评估的是销售人员（"用户"）是否按照SOP要求执行，而不是评估客户（"AI"）。
+
+【SOP质检项】
+{items_text}
+
+【对话转录】
+{transcript}
+
+【质检要求】
+1. 评估对象：销售人员（对话中标注为"用户"的发言）
+2. 对每个质检项，判断销售人员是否执行（passed: true/false）
+3. must_do（必须项）：销售人员必须执行
+4. must_not_do（禁止项）：销售人员不能做
+5. should_do（建议项）：销售人员建议执行
+6. evidence（依据）：说明销售人员在对话中的表现
+7. suggestion（建议）：针对销售人员的改进建议
+
+请按照以下JSON格式返回评估结果：
+{{
+    "check_results": [
+        {{
+            "item_name": "质检项名称",
+            "check_type": "must_do/must_not_do/should_do",
+            "passed": true/false,
+            "evidence": "对话中的依据或说明",
+            "suggestion": "改进建议（未通过时）"
+        }}
+    ],
+    "summary": "总体评价"
+}}
+"""
+            
+            logger.info("开始SOP质检评估...")
+            
+            response = self._call_model([
+                SystemMessage(content="你是专业的销售质检专家，严格按照SOP标准逐项检查。返回严格的JSON格式。"),
+                HumanMessage(content=prompt)
+            ])
+            
+            # 解析响应
+            result_json = self._extract_json(response)
+            result = json.loads(result_json)
+            
+                        # 计算得分和分数
+            details = result.get('check_results', [])
+            total = len(details)
+            passed = sum(1 for d in details if d.get('passed', False))
+            failed = total - passed
+            
+            # 计算 SOP 分数（基于分数规则）
+            total_score = 0
+            actual_score = 0
+            
+            for detail in details:
+                check_type = detail.get('check_type', 'should_do')
+                is_passed = detail.get('passed', False)
+                
+                # 根据类型分配默认分数
+                if check_type == 'must_do':
+                    default_score = 30
+                elif check_type == 'must_not_do':
+                    default_score = 30
+                else:  # should_do
+                    default_score = 15
+                
+                detail['default_score'] = default_score
+                
+                # 计算实际得分
+                if check_type == 'must_not_do':
+                    # 禁止项：违反扣分，未违反得分
+                    detail['actual_score'] = 0 if is_passed else default_score  # passed=True 表示违反了
+                    actual_score += detail['actual_score']
+                else:
+                    # 必须项和建议项：通过得分，未通过不得分
+                    detail['actual_score'] = default_score if is_passed else 0
+                    actual_score += detail['actual_score']
+                    total_score += default_score
+            
+            # 计算百分制分数
+            sop_score = round((actual_score / total_score) * 100) if total_score > 0 else 0
+            
+            logger.info(f"SOP质检完成: 总数={total}, 通过={passed}, 未通过={failed}, 得分={sop_score}")
+            
+            return {
+                "sop_score": sop_score,  # 百分制总分
+                "total_score": total_score,  # 总可得分数
+                "actual_score": actual_score,  # 实际得分
+                "total_items": total,
+                "passed_count": passed,
+                "failed_count": failed,
+                "pass_rate": round(passed / total, 2) if total > 0 else 0,
+                "details": details,
+                "summary": result.get('summary', '')
+            }
+            
+        except Exception as e:
+            logger.error(f"SOP质检评估失败: {e}", exc_info=True)
+            return {
+                "score": 0,
+                "total_items": len(sop_checklist),
+                "passed_count": 0,
+                "failed_count": len(sop_checklist),
+                "details": [],
+                "summary": f"SOP质检评估失败: {str(e)}",
+                                "error": str(e)
+            }
 
     def save_to_database(
         self,
@@ -250,7 +398,8 @@ class SceneAssessmentService:
         user_id: int = 1,
         word_content: str = None,
         oss_file_path: str = None,
-        call_duration: int = None
+        call_duration: int = None,
+        sop_result: Dict[str, Any] = None
     ) -> bool:
         """
         保存评估报告到数据库
@@ -263,6 +412,7 @@ class SceneAssessmentService:
             word_content: 对话内容 JSON
             oss_file_path: 音频文件路径
             call_duration: 通话时长
+            sop_result: SOP质检结果
             
         Returns:
             保存是否成功
@@ -270,16 +420,34 @@ class SceneAssessmentService:
         try:
             from database.record_dao import save_coach_record
             
-            # 将评估报告转换为 JSON 字符串
-            ai_evaluate = json.dumps(report, ensure_ascii=False)
+            # 提取 AI 综合评分
+            ai_score = int(report.get("overall_score", 0))
             
-            # 计算综合得分
-            score = int(report.get("overall_score", 0))
+            # 提取 AI 评估总结
+            ai_summary = report.get("summary", "")
+            
+            # 构建维度评分结果（包含 dimension_scores, highlights, improvements 等）
+            dimension_result = {
+                "dimension_scores": report.get("dimension_scores", []),
+                "highlights": report.get("highlights", []),
+                "improvements": report.get("improvements", []),
+                "golden_sentences": report.get("golden_sentences", []),
+                "key_moments": report.get("key_moments", [])
+            }
+            dimension_result_text = json.dumps(dimension_result, ensure_ascii=False)
             
             # 生成 AI 建议
             ai_advise = self._generate_ai_advise(report)
             
-            # 保存到数据库
+                        # 处理SOP结果
+            sop_result_text = None
+            sop_score = None
+            if sop_result:
+                sop_result_text = json.dumps(sop_result, ensure_ascii=False)
+                sop_score = sop_result.get('sop_score', 0)  # 提取 SOP 分数
+                logger.info(f"SOP评估结果: 得分={sop_score}, 通过={sop_result.get('passed_count', 0)}/{sop_result.get('total_items', 0)}")
+            
+            # 保存到数据库（使用新的字段结构）
             success = save_coach_record(
                 session_id=session_id,
                 scene_id=scene_id,
@@ -287,9 +455,12 @@ class SceneAssessmentService:
                 word_content=word_content,
                 oss_file_path=oss_file_path,
                 call_duration=call_duration,
-                ai_evaluate=ai_evaluate,
+                ai_score=ai_score,
+                ai_summary=ai_summary,
+                dimension_result=dimension_result_text,
                 ai_advise=ai_advise,
-                score=score
+                sop_result=sop_result_text,
+                sop_score=sop_score
             )
             
             if success:
@@ -328,3 +499,4 @@ class SceneAssessmentService:
 
 # 全局服务实例
 assessment_service = SceneAssessmentService()
+

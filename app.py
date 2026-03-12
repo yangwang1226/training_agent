@@ -23,6 +23,7 @@ from routes import scene_bp, prompt_bp, evaluate_bp, dimension_bp, progress_bp, 
 from routes.scene_agent_routes import scene_create_bp
 from routes.preset_scene_routes import preset_scene_bp
 from routes.sop_routes import sop_bp
+from routes.assessment_view_routes import assessment_view_bp
 from routes.progress_routes import register_progress_websocket
 from routes.realtime_routes import register_websocket
 
@@ -69,11 +70,12 @@ def sop_config_page():
         template_content = f.read()
     return render_template_string(template_content)
 
-@app.route('/evaluate/')
-def evaluate_page():
-    evaluate_template_path = Path(__file__).parent / "front_end" / "evaluate" / "templates" / "evaluate.html"
-    with open(evaluate_template_path, 'r', encoding='utf-8') as f:
-        return f.read()
+# 评估页面已迁移到 assessment_view_bp Blueprint
+# @app.route('/evaluate/')
+# def evaluate_page():
+#     evaluate_template_path = Path(__file__).parent / "front_end" / "evaluate" / "templates" / "evaluate.html"
+#     with open(evaluate_template_path, 'r', encoding='utf-8') as f:
+#         return f.read()
 
 
 @app.route('/scene/create/')
@@ -113,6 +115,7 @@ app.register_blueprint(scene_create_bp)
 app.register_blueprint(preset_scene_bp)
 app.register_blueprint(prompt_bp)
 app.register_blueprint(evaluate_bp)
+app.register_blueprint(assessment_view_bp)  # 新的评估查看页面
 app.register_blueprint(dimension_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)

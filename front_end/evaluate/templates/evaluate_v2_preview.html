@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评估报告预览 - Mock 数据</title>
+    <style>
+        /* 直接引入样式 - 用于预览 */
+        @import url('/evaluate/static/css/evaluate_v2.css');
+    </style>
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <header class="report-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="#" class="back-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        返回
+                    </a>
+                </div>
+                <div class="header-center">
+                    <h1>📊 训练评估报告</h1>
+                    <p class="header-subtitle" id="sceneName">汽车销售 - 客户接待场景</p>
+                </div>
+                <div class="header-right">
+                    <div class="header-meta">
+                        <span class="meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            <span id="callDuration">3分28秒</span>
+                        </span>
+                        <span class="meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span id="createdTime">2024-03-15 14:32</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="report-main">
+            <!-- Score Overview Section -->
+            <section class="score-overview">
+                <div class="score-card main-score">
+                    <div class="score-ring" id="mainScoreRing">
+                        <svg viewBox="0 0 120 120">
+                            <circle class="score-ring-bg" cx="60" cy="60" r="54"/>
+                            <circle class="score-ring-progress" cx="60" cy="60" r="54" id="scoreProgress"/>
+                        </svg>
+                        <div class="score-value">
+                            <span class="score-number" id="overallScore">85</span>
+                            <span class="score-label">综合评分</span>
+                        </div>
+                    </div>
+                    <div class="score-grade" id="scoreGrade">良好</div>
+                    <div class="score-summary" id="scoreSummary">
+                        整体表现不错，沟通能力突出，产品知识有待加强
+                    </div>
+                </div>
+
+                <div class="score-card radar-card">
+                    <h3 class="card-title">能力雷达图</h3>
+                    <div class="radar-chart" id="radarChart"></div>
+                </div>
+            </section>
+
+            <!-- Dimension Details Section -->
+            <section class="dimension-section">
+                <h2 class="section-title">
+                    <span class="title-icon">📈</span>
+                    维度评分详情
+                </h2>
+                <div class="dimension-grid" id="dimensionGrid">
+                    <!-- Dimension cards will be rendered here -->
+                </div>
+            </section>
+
+            <!-- SOP Check Section -->
+            <section class="sop-section">
+                <h2 class="section-title">
+                    <span class="title-icon">✅</span>
+                    SOP质检结果
+                </h2>
+                <div class="sop-overview">
+                    <div class="sop-score-card">
+                        <div class="sop-score-number" id="sopScore">75</div>
+                        <div class="sop-score-label">质检得分</div>
+                    </div>
+                    <div class="sop-stats">
+                        <div class="sop-stat">
+                            <span class="stat-value" id="sopTotal">10</span>
+                            <span class="stat-label">质检项总数</span>
+                        </div>
+                        <div class="sop-stat passed">
+                            <span class="stat-value" id="sopPassed">7</span>
+                            <span class="stat-label">通过</span>
+                        </div>
+                        <div class="sop-stat failed">
+                            <span class="stat-value" id="sopFailed">3</span>
+                            <span class="stat-label">未通过</span>
+                        </div>
+                    </div>
+                    <div class="sop-progress-bar">
+                        <div class="sop-progress-fill" id="sopProgressFill"></div>
+                    </div>
+                </div>
+                <div class="sop-details" id="sopDetails">
+                    <!-- SOP items will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Highlights & Improvements Section -->
+            <section class="feedback-section">
+                <div class="feedback-grid">
+                    <div class="feedback-card highlights">
+                        <h3 class="feedback-title">
+                            <span class="feedback-icon">✨</span>
+                            表现亮点
+                        </h3>
+                        <ul class="feedback-list" id="highlightsList">
+                            <!-- Highlights will be rendered here -->
+                        </ul>
+                    </div>
+                    <div class="feedback-card improvements">
+                        <h3 class="feedback-title">
+                            <span class="feedback-icon">📈</span>
+                            改进建议
+                        </h3>
+                        <ul class="feedback-list" id="improvementsList">
+                            <!-- Improvements will be rendered here -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Advice Section -->
+            <section class="advice-section">
+                <div class="advice-card">
+                    <div class="advice-header" onclick="toggleAdvice()">
+                        <h3 class="advice-title">
+                            <span class="advice-icon">🤖</span>
+                            AI 深度建议
+                        </h3>
+                        <span class="advice-toggle" id="adviceToggle">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="advice-content" id="adviceContent">
+                        <div class="advice-text" id="aiAdviceText">
+                            <!-- AI advice will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audio Analysis Section -->
+            <section class="audio-section" id="audioSection">
+                <h2 class="section-title">
+                    <span class="title-icon">🎙️</span>
+                    音频分析
+                </h2>
+                <div class="audio-card">
+                    <div class="audio-player">
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            （音频播放器 - 需要实际音频文件）
+                        </div>
+                    </div>
+                    <div class="audio-metrics" id="audioMetrics">
+                        <!-- Audio metrics will be rendered here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Conversation Review Section -->
+            <section class="conversation-section">
+                <div class="conversation-card">
+                    <div class="conversation-header" onclick="toggleConversation()">
+                        <h3 class="conversation-title">
+                            <span class="conversation-icon">💬</span>
+                            对话回顾
+                        </h3>
+                        <span class="conversation-toggle" id="conversationToggle">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="conversation-content" id="conversationContent">
+                        <div class="conversation-messages" id="conversationMessages">
+                            <!-- Conversation will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="report-footer">
+            <div class="footer-content">
+                <a href="#" class="btn btn-secondary">返回场景列表</a>
+                <a href="#" class="btn btn-primary">开始新的训练</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/evaluate/static/js/evaluate_v2.js"></script>
+    <script>
+        // 页面加载完成后使用 Mock 数据渲染
+        document.addEventListener('DOMContentLoaded', () => {
+            renderReport(getMockData());
+        });
+    </script>
+</body>
+</html>

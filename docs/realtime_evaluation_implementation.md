@@ -466,4 +466,158 @@ def generate_full_report(
 **实施状态**：✅ 代码已修改完成，等待测试验证
 **预计测试时间**：30分钟
 
+---
+
+## 🔧 最新更新 (2025-01-09)
+
+### ✅ 已完成
+1. **后端文件重写**：`routes/realtime_routes.py` 已完全重写，修复了所有缩进问题
+   - 正确的消息类型处理：`audio`, `text`, `session_end`, `stop`
+   - 完整的错误处理和资源清理
+   - 会话异常结束时的兜底保存逻辑
+
+2. **前端消息处理**：`front_end/realtime/static/js/realtime.js`
+   - 添加了 4 个新的消息类型处理
+   - 修改了 `stopSession()` 函数发送结束信号
+
+### 📋 关键改进
+
+#### 1. WebSocket 消息流程清晰化
+```python
+# routes/realtime_routes.py - 主消息循环
+while True:
+    data = ws.receive(timeout=60)
+    
+    # 处理二进制音频
+    if isinstance(data, bytes):
+        client.send_audio(data)
+    
+    # 处理JSON消息
+    else:
+        message = json.loads(data)
+        msg_type = message.get('type')
+        
+        if msg_type == 'audio': ...
+        elif msg_type == 'text': ...
+        elif msg_type == 'session_end':  # ✅ 新增
+            # 保存、评估、通知前端
+        elif msg_type == 'stop': ...
+```
+
+#### 2. 异常结束保护
+```python
+finally:
+    # 如果用户直接关闭浏览器，仍然保存记录
+    if not session_ended and recorder and recorder.messages:
+        save_result = recorder.save()
+        # 尝试生成评估报告
+```
+
+### ⚠️ 已知问题
+
+#### 问题1：前端转录文字显示乱码
+**现象**：中文显示为 `閿€鍞疄鎴樻紨缁?` 等乱码
+
+**原因**：文件编码问题，部分中文被错误编码
+
+**临时解决方案**：
+- 后端text消息传输正常（UTF-8编码）
+- 前端接收和显示逻辑正常
+- 只是部分静态文本显示乱码（不影响对话转录）
+
+**完整解决方案**：需要将 `front_end/realtime/static/js/realtime.js` 文件重新保存为 UTF-8 编码
+
+```bash
+# PowerShell 命令修复编码
+$content = Get-Content "front_end/realtime/static/js/realtime.js" -Encoding UTF8
+$content | Out-File "front_end/realtime/static/js/realtime.js" -Encoding UTF8
+```
+
+#### 问题2：评估功能验证清单
+
+**需要验证的功能点**：
+- [ ] 点击"结束"按钮后，后端收到 `session_end` 消息
+- [ ] 后端日志显示："收到前端会话结束信号，开始保存和评估..."
+- [ ] 对话记录保存到数据库（`ai_coach_record` 表）
+- [ ] 音频文件保存到 `audio_file/` 目录
+- [ ] 评估报告生成（调用 Qwen Plus 3.5）
+- [ ] 评估报告保存到数据库
+- [ ] 前端收到 `assessment_complete` 消息
+- [ ] 前端自动跳转到评估页面
+
+### 🧪 快速测试步骤
+
+1. **启动服务**
+```bash
+python app.py
+```
+
+2. **测试对练流程**
+   - 访问：`http://localhost:5000/scenes`
+   - 选择任意场景，点击"开始对练"
+   - 点击"开始"按钮，说几句话（至少3-5轮对话）
+   - 点击"结束"按钮
+
+3. **查看后端日志**（关键日志）
+```
+INFO: 收到前端会话结束信号，开始保存和评估...
+INFO: 对话记录已保存: session_id=xxx, audio=audio_file/xxx.wav
+INFO: 开始生成评估报告...
+INFO: 正在调用 Qwen Plus 3.5 生成评估报告...
+INFO: 评估报告生成并保存成功
+```
+
+4. **查看前端效果**
+   - 状态栏显示："正在保存对话记录和生成评估报告..."
+   - 约2-3秒后："✅ 评估报告已生成"
+   - 自动跳转到评估页面：`/evaluate?session_id=xxx`
+
+5. **数据库验证**
+```sql
+-- 查看最新的对话记录
+SELECT session_id, scene_id, call_duration, oss_file_path, created_time 
+FROM ai_coach_record 
+ORDER BY created_time DESC 
+LIMIT 1;
+
+-- 查看评估报告
+SELECT session_id, overall_score, overall_grade 
+FROM ai_coach_record 
+WHERE session_id = 'xxx';
+```
+
+### 📁 备份文件
+- `routes/realtime_routes_backup.py` - 修改前的原始文件（已备份）
+
+### 🚨 如果测试失败
+
+**回滚方案**：
+```bash
+Move-Item -Path "routes/realtime_routes_backup.py" -Destination "routes/realtime_routes.py" -Force
+```
+
+### 📞 调试技巧
+
+1. **前端调试**：打开浏览器控制台（F12），查看：
+   - Console：查看 JavaScript 日志和错误
+   - Network > WS：查看 WebSocket 消息
+
+2. **后端调试**：查看终端日志输出，重点关注：
+   - `收到前端会话结束信号`
+   - `对话记录已保存`
+   - `评估报告生成`
+
+3. **常见错误排查**：
+   - **WebSocket 连接失败**：检查端口和防火墙
+   - **评估报告生成失败**：检查 Qwen API 配置和余额
+   - **数据库保存失败**：检查数据库连接和表结构
+   - **音频文件保存失败**：检查 `audio_file/` 目录权限
+
+---
+
 祝测试顺利！🎉
+
+如有问题，请查看：
+- 后端日志（终端输出）
+- 前端控制台（浏览器F12）
+- 数据库记录（SQL查询）

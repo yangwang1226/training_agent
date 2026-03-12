@@ -235,7 +235,7 @@ def register_websocket(sock):
                                     )
                                     
                                     if report:
-                                        # 3. 保存评估报告到数据库
+                                                                                # 3. 保存评估报告到数据库
                                         scene_assessment_service.save_to_database(
                                             session_id=recorder.session_id,
                                             report=report,
@@ -246,14 +246,13 @@ def register_websocket(sock):
                                             call_duration=save_result.get('call_duration', 0)
                                         )
                                         
-                                        logger.info(f"Sending assessment_complete: {recorder.session_id}")
-                                        logger.info("评估报告生成并保存成功")
                                         ws.send(json.dumps({
+                                      logger.info(f"Sending assessment_complete: {recorder.session_id}")
                                             'type': 'assessment_complete',
                                             'session_id': recorder.session_id,
                                             'report': report
                                         }))
-                                        
+                                        logger.info("评估报告生成并保存成功")
                                     else:
                                         ws.send(json.dumps({
                                             'type': 'assessment_error',

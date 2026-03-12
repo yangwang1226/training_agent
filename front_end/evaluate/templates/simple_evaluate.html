@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评估报告</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            margin: 30px auto;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .score-number {
+            font-size: 4em;
+            font-weight: bold;
+        }
+        
+        .score-label {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .info-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            color: #212529;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        
+        .dimension-list {
+            margin: 20px 0;
+        }
+        
+        .dimension-item {
+            margin-bottom: 20px;
+        }
+        
+        .dimension-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .dimension-name {
+            font-weight: 600;
+            color: #212529;
+        }
+        
+        .dimension-score {
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .advice-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .advice-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 15px;
+        }
+        
+        .advice-content {
+            color: #495057;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .highlights {
+            margin: 20px 0;
+        }
+        
+        .highlight-item {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            border-radius: 4px;
+            color: #155724;
+        }
+        
+        .improvement-item {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            color: #856404;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #dc3545;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .back-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 对练评估报告</h1>
+            <p>Session ID: <span id="sessionId">{{ session_id }}</span></p>
+        </div>
+        
+        <div id="loading" class="loading">
+            <div>正在加载评估报告...</div>
+        </div>
+        
+        <div id="error" class="error" style="display: none;">
+            <h2>😔 加载失败</h2>
+            <p id="errorMessage"></p>
+            <a href="/scenes" class="back-button">返回场景列表</a>
+        </div>
+        
+        <div id="content" style="display: none;">
+            <!-- 综合评分 -->
+            <div class="card">
+                <h2 style="text-align: center; margin-bottom: 20px;">综合评分</h2>
+                <div class="score-circle">
+                    <div class="score-number" id="overallScore">--</div>
+                    <div class="score-label">分</div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">通话时长</div>
+                        <div class="info-value" id="duration">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">场景ID</div>
+                        <div class="info-value" id="sceneId">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">评估时间</div>
+                        <div class="info-value" id="createdTime">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 能力维度 -->
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">能力维度评分</h2>
+                <div class="dimension-list" id="dimensionList"></div>
+            </div>
+            
+            <!-- 亮点 -->
+            <div class="card" id="highlightsCard" style="display: none;">
+                <h2 style="margin-bottom: 20px;">✨ 表现亮点</h2>
+                <div class="highlights" id="highlightsList"></div>
+            </div>
+            
+            <!-- 改进建议 -->
+            <div class="card" id="improvementsCard" style="display: none;">
+                <h2 style="margin-bottom: 20px;">💡 改进建议</h2>
+                <div id="improvementsList"></div>
+            </div>
+            
+            <!-- AI建议 -->
+            <div class="card" id="adviceCard" style="display: none;">
+                <div class="advice-section">
+                    <div class="advice-title">🤖 AI 综合建议</div>
+                    <div class="advice-content" id="aiAdvice"></div>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="/scenes" class="back-button">返回场景列表</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const sessionId = '{{ session_id }}';
+        
+        async function loadReport() {
+            try {
+                const response = await fetch(`/evaluate/api/report/${sessionId}`);
+                const result = await response.json();
+                
+                if (!result.success) {
+                    showError(result.error || '加载失败');
+                    return;
+                }
+                
+                const data = result.data;
+                renderReport(data);
+                
+            } catch (error) {
+                console.error('加载错误:', error);
+                showError('网络错误：' + error.message);
+            }
+        }
+        
+        function renderReport(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            
+            // 综合评分
+            document.getElementById('overallScore').textContent = data.score || '--';
+            document.getElementById('duration').textContent = formatDuration(data.call_duration);
+            document.getElementById('sceneId').textContent = data.scene_id || '--';
+            document.getElementById('createdTime').textContent = formatTime(data.created_time);
+            
+            // 能力维度
+            if (data.ai_evaluate && data.ai_evaluate.dimension_scores) {
+                renderDimensions(data.ai_evaluate.dimension_scores);
+            }
+            
+            // 亮点
+            if (data.ai_evaluate && data.ai_evaluate.highlights && data.ai_evaluate.highlights.length > 0) {
+                document.getElementById('highlightsCard').style.display = 'block';
+                renderHighlights(data.ai_evaluate.highlights);
+            }
+            
+            // 改进建议
+            if (data.ai_evaluate && data.ai_evaluate.improvements && data.ai_evaluate.improvements.length > 0) {
+                document.getElementById('improvementsCard').style.display = 'block';
+                renderImprovements(data.ai_evaluate.improvements);
+            }
+            
+            // AI建议
+            if (data.ai_advise) {
+                document.getElementById('adviceCard').style.display = 'block';
+                document.getElementById('aiAdvice').textContent = data.ai_advise;
+            }
+        }
+        
+        function renderDimensions(dimensions) {
+            const list = document.getElementById('dimensionList');
+            list.innerHTML = dimensions.map(dim => `
+                <div class="dimension-item">
+                    <div class="dimension-header">
+                        <span class="dimension-name">${dim.dimension_name || dim.dimension}</span>
+                        <span class="dimension-score">${dim.score}分</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${dim.score}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderHighlights(highlights) {
+            const list = document.getElementById('highlightsList');
+            list.innerHTML = highlights.map(h => `
+                <div class="highlight-item">✓ ${h}</div>
+            `).join('');
+        }
+        
+        function renderImprovements(improvements) {
+            const list = document.getElementById('improvementsList');
+            list.innerHTML = improvements.map(i => `
+                <div class="improvement-item">→ ${i}</div>
+            `).join('');
+        }
+        
+        function formatDuration(seconds) {
+            if (!seconds) return '--';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}分${secs}秒`;
+        }
+        
+        function formatTime(timeStr) {
+            if (!timeStr) return '--';
+            return timeStr.replace('T', ' ').substring(0, 19);
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+        
+        // 页面加载时执行
+        window.addEventListener('DOMContentLoaded', loadReport);
+    </script>
+</body>
+</html>
