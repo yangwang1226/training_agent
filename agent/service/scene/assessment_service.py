@@ -66,25 +66,37 @@ class SceneAssessmentService:
         else:
             raise Exception(f"Qwen API error: {response.code} - {response.message}")
 
+    #将对话生成转录文字
+    def _generate_transcript(self, word_content: str) -> str:
+        """将对话内容转换为转录文字"""
+        # 将JSON格式的word_content转换为可读文本（模拟recorder.get_transcript_text()的逻辑）
+        messages = json.loads(word_content)
+        transcript_lines = []
+        for msg in messages:
+            role_name = "用户" if msg['role'] == 'user' else "ai"
+            transcript_lines.append(f"[{msg['timestamp']}] {role_name}: {msg['content']}")
+        transcript = "\n".join(transcript_lines)
+        return transcript
+
     def generate_report(
         self,
         session_id: str,
-        transcript: str,
+        word_content: str,
         dimensions: List[Dict[str, Any]],
         industry: str = "",
         role_type: str = "",
-        background_info: str = ""
+        role_description: str = ""
     ) -> Optional[Dict[str, Any]]:
         """
         生成评估报告
         
         Args:
             session_id: 训练会话 ID
-            transcript: 对话转录文字
+            word_content: 对话内容文字
             dimensions: 考核维度列表
             industry: 行业
             role_type: 角色类型
-            background_info: 场景背景信息
+            role_description: 角色描述
             
         Returns:
             评估报告字典，如果生成失败则返回 None
@@ -96,16 +108,19 @@ class SceneAssessmentService:
             logger.info(f"行业：{industry}")
             logger.info(f"角色：{role_type}")
             logger.info(f"考核维度数量：{len(dimensions)}")
-            logger.info(f"对话转录长度：{len(transcript)}")
+            logger.info(f"对话内容长度：{len(word_content)}")
             logger.info("=" * 50)
             
             # 构建评估提示词
             dimensions_text = self._format_dimensions_text(dimensions)
             
+            # 转录一下对话内容，确保符合评估要求
+            transcript = self._generate_transcript(word_content)
+            # 构建评估提示词
             prompt = ASSESSMENT_REPORT_PROMPT.format(
                 industry=industry,
                 role_type=role_type,
-                background_info=background_info,
+                role_description=role_description,
                 dimensions_text=dimensions_text,
                 transcript=transcript
             )
@@ -238,21 +253,19 @@ class SceneAssessmentService:
         return text[start_idx:]
 
     def _get_current_timestamp(self) -> str:
-
-        
         """获取当前时间戳"""
         from datetime import datetime
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     def evaluate_sop(
         self,
-        transcript: str,
+        word_content: str,
         sop_checklist: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """SOP质检评估
         
         Args:
-            transcript: 对话转录
+            word_content: 对话文本
             sop_checklist: SOP质检项列表
             
         Returns:
@@ -267,8 +280,11 @@ class SceneAssessmentService:
                 "failed_count": 0,
                 "details": [],
                 "summary": "未配置SOP质检项"
-                        }
+            }
         
+        # 生成对话转录
+        transcript = self._generate_transcript(word_content)
+
         try:
             # 构建质检项描述
             items_text = "\n".join([
@@ -277,43 +293,42 @@ class SceneAssessmentService:
             ])
             
             prompt = f"""你是专业的销售质检专家。请严格按照以下SOP标准，逐项检查销售人员的对话表现。
+            【关键角色说明】
+            这是一个销售培训场景，对话转录格式说明：
+            - 标注为"用户"的发言 = 销售人员（被评估对象）
+            - 标注为"AI"的发言 = 模拟客户
 
-【关键角色说明】
-这是一个销售培训场景，对话转录格式说明：
-- 标注为"用户"的发言 = 销售人员（被评估对象）
-- 标注为"AI"的发言 = 模拟客户
+            ⚠️ 重要：你要评估的是销售人员（"用户"）是否按照SOP要求执行，而不是评估客户（"AI"）。
 
-⚠️ 重要：你要评估的是销售人员（"用户"）是否按照SOP要求执行，而不是评估客户（"AI"）。
+            【SOP质检项】
+            {items_text}
 
-【SOP质检项】
-{items_text}
+            【对话转录】
+            {transcript}
 
-【对话转录】
-{transcript}
+            【质检要求】
+            1. 评估对象：销售人员（对话中标注为"用户"的发言）
+            2. 对每个质检项，判断销售人员是否执行（passed: true/false）
+            3. must_do（必须项）：销售人员必须执行
+            4. must_not_do（禁止项）：销售人员不能做
+            5. should_do（建议项）：销售人员建议执行
+            6. evidence（依据）：说明销售人员在对话中的表现
+            7. suggestion（建议）：针对销售人员的改进建议
 
-【质检要求】
-1. 评估对象：销售人员（对话中标注为"用户"的发言）
-2. 对每个质检项，判断销售人员是否执行（passed: true/false）
-3. must_do（必须项）：销售人员必须执行
-4. must_not_do（禁止项）：销售人员不能做
-5. should_do（建议项）：销售人员建议执行
-6. evidence（依据）：说明销售人员在对话中的表现
-7. suggestion（建议）：针对销售人员的改进建议
-
-请按照以下JSON格式返回评估结果：
-{{
-    "check_results": [
-        {{
-            "item_name": "质检项名称",
-            "check_type": "must_do/must_not_do/should_do",
-            "passed": true/false,
-            "evidence": "对话中的依据或说明",
-            "suggestion": "改进建议（未通过时）"
-        }}
-    ],
-    "summary": "总体评价"
-}}
-"""
+            请按照以下JSON格式返回评估结果：
+            {{
+                "check_results": [
+                    {{
+                        "item_name": "质检项名称",
+                        "check_type": "must_do/must_not_do/should_do",
+                        "passed": true/false,
+                        "evidence": "对话中的依据或说明",
+                        "suggestion": "改进建议（未通过时）"
+                    }}
+                ],
+                "summary": "总体评价"
+            }}
+            """
             
             logger.info("开始SOP质检评估...")
             
@@ -326,7 +341,7 @@ class SceneAssessmentService:
             result_json = self._extract_json(response)
             result = json.loads(result_json)
             
-                        # 计算得分和分数
+            # 计算得分和分数
             details = result.get('check_results', [])
             total = len(details)
             passed = sum(1 for d in details if d.get('passed', False))
@@ -431,9 +446,9 @@ class SceneAssessmentService:
             dimension_result_text = json.dumps(dimension_scores, ensure_ascii=False) if dimension_scores else None
             
             # 生成 AI 建议
-            ai_advise = self._generate_ai_advise(report)
+            ai_advise = report.get("ai_advise", self._generate_ai_advise(report))
             
-                        # 处理SOP结果
+            # 处理SOP结果
             sop_result_text = None
             sop_score = None
             if sop_result:

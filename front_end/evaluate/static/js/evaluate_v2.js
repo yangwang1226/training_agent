@@ -214,12 +214,13 @@ async function loadReport(sessionId) {
             return;
         }
         
+        // 先显示容器再渲染报告，避免 ECharts 在 display:none 容器中初始化导致尺寸为0
+        showLoading(false);
         renderReport(result.data);
         
     } catch (error) {
         console.error('加载报告失败:', error);
         showError('网络错误: ' + error.message);
-    } finally {
         showLoading(false);
     }
 }
@@ -370,6 +371,8 @@ function renderRadarChart(data) {
         };
         myChart.setOption(option);
         window.addEventListener('resize', () => myChart.resize());
+        setTimeout(() => { myChart.resize(); }, 100);
+        setTimeout(() => { myChart.resize(); }, 500);
         return;
     }
     
@@ -432,6 +435,15 @@ function renderRadarChart(data) {
     
     // 响应式调整
     window.addEventListener('resize', () => myChart.resize());
+    
+    // 修复首次加载时容器尺寸为0导致图表不显示的问题
+    // 延迟执行 resize 确保 DOM 布局完成后图表正确渲染
+    setTimeout(() => {
+        myChart.resize();
+    }, 100);
+    setTimeout(() => {
+        myChart.resize();
+    }, 500);
 }
 
 /**

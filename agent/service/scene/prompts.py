@@ -235,13 +235,19 @@ ASSESSMENT_REPORT_PROMPT = """你是一个专业的培训评估专家。请根�
 【场景信息】
 行业：{industry}
 角色：{role_type}
-场景背景：{background_info}
+角色描述：{role_description}
 
 【考核维度】
 {dimensions_text}
 
 【对话转录】
 {transcript}
+
+【重要要求】
+1. 只返回纯JSON格式，不要包含任何其他文字说明
+2. 不要使用markdown代码块标记（```json）
+3. 确保JSON格式完全正确，所有字符串必须使用双引号
+4. 不要在JSON中添加注释
 
 请严格按照以下 JSON 格式返回评估结果:
 {{
@@ -251,12 +257,12 @@ ASSESSMENT_REPORT_PROMPT = """你是一个专业的培训评估专家。请根�
             "dimension_name": "维度名称",
             "score": 88,
             "feedback": "详细反馈",
-            "examples": ["具体对话示例 1", "具体对话示例 2"]
+            "examples": ["具体对话示例1", "具体对话示例2"]
         }}
     ],
-    "highlights": ["亮点 1", "亮点 2"],
-    "improvements": ["改进建议 1", "改进建议 2"],
-    "golden_sentences": ["金句 1", "金句 2"],
+    "highlights": ["亮点1", "亮点2"],
+    "improvements": ["改进建议1", "改进建议2"],
+    "golden_sentences": ["金句1", "金句2"],
     "key_moments": [
         {{
             "turn": 5,
@@ -272,7 +278,7 @@ ASSESSMENT_REPORT_PROMPT = """你是一个专业的培训评估专家。请根�
 - 80-89: 良好，达到岗位要求
 - 70-79: 合格，基本达到要求
 - 60-69: 待改进，部分能力不足
-- 60 以下：不合格，需要重新培训
+- 60以下：不合格，需要重新培训
 
 要求:
 1. 评分要客观公正，有具体对话示例支撑
@@ -280,6 +286,7 @@ ASSESSMENT_REPORT_PROMPT = """你是一个专业的培训评估专家。请根�
 3. 亮点和改进建议要有针对性
 4. 关键时刻要标注具体轮次
 5. 总结要全面、准确
+6. 所有字符串内容不要包含换行符，使用空格代替
 """
 
 #提取额外的信息，例如必须提问问题或者AI模拟的情绪

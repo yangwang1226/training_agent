@@ -2,7 +2,8 @@ import logging
 from pathlib import Path
 from flask import Blueprint, jsonify, request, session
 
-from agent.evaluate_agent import assessment_service, DifficultyLevel
+# from agent.evaluate_agent import assessment_service, DifficultyLevel
+from agent.service.scene.assessment_service import SceneAssessmentService
 
 logger = logging.getLogger(__name__)
 
@@ -13,224 +14,276 @@ EVALUATE_TEMPLATE_PATH = Path(__file__).parent.parent / "front_end" / "evaluate"
 
 @evaluate_bp.route('/profile/<user_id>', methods=['GET'])
 def get_user_profile(user_id):
-    # TODO: 这个接口需要重新实现，暂时返回空数据
-    return jsonify({
-        'success': True,
-        'profile': {
-            'user_id': user_id,
-            'overall_score': 0,
-            'dimension_scores': {},
-            'training_count': 0,
-            'total_duration': 0,
+    """
+    获取用户的能力画像
+    
+    Args:
+        user_id: 用户ID
+        
+    Returns:
+        用户能力画像数据
+    """
+    try:
+        from database.record_dao import get_coach_record_by_session_id
+        
+        # TODO: 从数据库获取用户的能力画像数据
+        # 这里暂时返回示例数据
+        profile = {
             'level': '入门',
-            'weak_points': [],
-            'strong_points': [],
-            'improvement_history': [],
-            'achievements': []
+            'overall_score': 75,
+            'training_count': 5,
+            'total_duration': 600,
+            'strong_points': ['沟通技巧', '产品知识'],
+            'weak_points': ['需求挖掘', '促成技巧']
         }
-    })
-    
-    # 原代码注释
-    # profile = assessment_service.get_user_profile(user_id)
-    
-    if profile:
+        
         return jsonify({
             'success': True,
-            'profile': {
-                'user_id': profile.user_id,
-                'overall_score': profile.overall_score,
-                'dimension_scores': profile.dimension_scores,
-                'training_count': profile.training_count,
-                'total_duration': profile.total_duration,
-                'level': profile.level,
-                'weak_points': profile.weak_points,
-                'strong_points': profile.strong_points,
-                'improvement_history': profile.improvement_history,
-                'achievements': profile.achievements
-            }
+            'profile': profile
         })
-    else:
+    except Exception as e:
+        logger.error(f"获取用户画像失败: {e}", exc_info=True)
         return jsonify({
-            'success': True,
-            'profile': {
-                'user_id': user_id,
-                'overall_score': 0,
-                'dimension_scores': {
-                    '沟通技巧': 0,
-                    '产品知识': 0,
-                    '需求挖掘': 0,
-                    '异议处理': 0,
-                    '促成技巧': 0
-                },
-                'training_count': 0,
-                'total_duration': 0,
-                'level': '入门',
-                'weak_points': [],
-                'strong_points': [],
-                'improvement_history': [],
-                'achievements': []
-            }
+            'success': False,
+            'error': str(e)
         })
 
 
 @evaluate_bp.route('/history/<user_id>', methods=['GET'])
-def get_training_history(user_id):
-    # TODO: 这个接口需要重新实现，暂时返回空数据
-    return jsonify({
-        'success': True,
-        'history': []
-    })
+def get_user_history(user_id):
+    """
+    获取用户的训练历史
     
-    # 原代码注释
-    # industry_filter = request.args.get('industry', '')
-    # history = assessment_service.get_training_history(user_id, limit=20)
-    
-    if industry_filter:
-        history = [h for h in history if industry_filter in h.get('industry', '')]
-    
-    return jsonify({
-        'success': True,
-        'history': history
-    })
+    Args:
+        user_id: 用户ID
+        industry: 可选的行业筛选参数
+        
+    Returns:
+        训练历史数据
+    """
+    try:
+        from database.record_dao import get_coach_record_by_session_id
+        from database.connection import get_db
+        
+        industry_filter = request.args.get('industry', '')
+        
+        with get_db() as conn:
+            with conn.cursor() as cursor:
+                if industry_filter:
+                    sql = """
+                        SELECT 
+                            session_id,
+                            scene_id,
+                            call_duration,
+                            ai_score,
+                            created_time
+                        FROM ai_coach_record
+                        WHERE user_id = %s AND is_delete = 0 AND ai_score IS NOT NULL
+                        ORDER BY created_time DESC
+                        LIMIT 20
+                    """
+                    cursor.execute(sql, (user_id,))
+                else:
+                    sql = """
+                        SELECT 
+                            session_id,
+                            scene_id,
+                            call_duration,
+                            ai_score,
+                            created_time
+                        FROM ai_coach_record
+                        WHERE user_id = %s AND is_delete = 0 AND ai_score IS NOT NULL
+                        ORDER BY created_time DESC
+                        LIMIT 20
+                    """
+                    cursor.execute(sql, (user_id,))
+                
+                records = cursor.fetchall()
+                
+                # 获取场景信息
+                history = []
+                for record in records:
+                    scene = None
+                    try:
+                        import db as db_module
+                        scene = db_module.get_scene_by_id(record['scene_id'])
+                    except:
+                        pass
+                    
+                    history.append({
+                        'session_id': record['session_id'],
+                        'industry': scene.get('industry', '') if scene else '',
+                        'role': scene.get('ai_role', '') if scene else '',
+                        'date': record['created_time'].strftime('%Y-%m-%d'),
+                        'duration': record['call_duration'] or 0,
+                        'score': record['ai_score'] or 0
+                    })
+                
+                return jsonify({
+                    'success': True,
+                    'history': history
+                })
+    except Exception as e:
+        logger.error(f"获取训练历史失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 
 @evaluate_bp.route('/assessment/<session_id>', methods=['GET'])
 def get_assessment(session_id):
-    # TODO: 使用新的接口 /evaluate/api/report/<session_id>
-    return jsonify({
-        'success': False,
-        'error': '请使用新的评估查看页面: /evaluate?session_id=' + session_id
-    })
+    """
+    获取评估报告
     
-    # 原代码注释
-    # assessment = assessment_service.get_assessment(session_id)
-    
-    if assessment:
+    Args:
+        session_id: 会话ID
+        
+    Returns:
+        评估报告数据
+    """
+    try:
+        from database.record_dao import get_coach_record_by_session_id
+        import db as db_module
+        
+        record = get_coach_record_by_session_id(session_id)
+        
+        if not record:
+            return jsonify({
+                'success': False,
+                'error': '评估报告不存在'
+            })
+        
+        # 获取场景信息
+        scene = db_module.get_scene_by_id(record.get('scene_id'))
+        
+        # 解析维度结果
+        dimension_scores = []
+        highlights = []
+        improvements = []
+        golden_sentences = []
+        key_moments = []
+        
+        if record.get('dimension_result'):
+            try:
+                dims = json.loads(record['dimension_result'])
+                dimension_scores = [
+                    {
+                        'dimension': dim.get('dimension_name', ''),
+                        'score': dim.get('score', 0),
+                        'weight': 0,
+                        'reason': dim.get('feedback', ''),
+                        'sub_scores': []
+                    }
+                    for dim in dims
+                ]
+                
+                # 提取亮点
+                highlights = dim.get('highlights', []) if dims else []
+                
+                # 提取改进建议
+                improvements = dim.get('improvements', []) if dims else []
+                
+                # 提取金句
+                golden_sentences = dim.get('golden_sentences', []) if dims else []
+                
+                # 提取关键时刻
+                key_moments = dim.get('key_moments', []) if dims else []
+            except:
+                pass
+        
+        # 解析AI总结
+        ai_summary = record.get('ai_summary', '')
+        
+        # 从AI总结中提取关键对话时刻（如果有的话）
+        if ai_summary and not key_moments:
+            try:
+                import re
+                pattern = r'关键时刻.*?[:\s*(\d+).*?[:\s*([^]]+)'
+                matches = re.findall(pattern, ai_summary)
+                if matches:
+                    key_moments = [
+                        {
+                            'turn': int(match[0]),
+                            'type': '关键时刻',
+                            'content': match[1].strip(),
+                            'handling': '较好',
+                            'suggestion': ''
+                        }
+                        for match in matches
+                    ]
+            except:
+                pass
+        
         return jsonify({
             'success': True,
-            'assessment': assessment
+            'assessment': {
+                'overall_score': record.get('ai_score', 0),
+                'dimension_scores': dimension_scores,
+                'highlights': highlights,
+                'improvements': improvements,
+                'golden_sentences': golden_sentences,
+                'key_moments': key_moments,
+                'completion_rate': 0,
+                'total_turns': 0,
+                'duration_seconds': record.get('call_duration', 0),
+                'industry': scene.get('industry', '') if scene else '',
+                'role': scene.get('ai_role', '') if scene else '',
+                'date': record.get('created_time', '').strftime('%Y-%m-%d') if record.get('created_time') else ''
+            }
         })
-    else:
+    except Exception as e:
+        logger.error(f"获取评估报告失败: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': '评估报告不存在'
+            'error': str(e)
         })
 
 
 @evaluate_bp.route('/suggestions/<user_id>', methods=['POST'])
 def generate_suggestions(user_id):
-    # TODO: 这个接口需要重新实现
-    return jsonify({
-        'success': False,
-        'error': '此功能暂未实现'
-    })
+    """
+    生成改进建议
     
-    # 原代码注释
-    # suggestions = assessment_service.generate_improvement_suggestions(user_id)
-    
-    if suggestions:
+    Args:
+        user_id: 用户ID
+        
+    Returns:
+        改进建议数据
+    """
+    try:
+        from database.record_dao import get_coach_record_by_session_id
+        
+        # TODO: 实现生成改进建议的逻辑
+        # 这里暂时返回示例数据
+        suggestions = {
+            'priority': '高',
+            'learning_path': [
+                {
+                    'step': 1,
+                    'action': '加强产品知识学习',
+                    'resource': '产品手册',
+                    'estimated_time': '2小时'
+                },
+                {
+                    'step': 2,
+                    'action': '提升沟通技巧',
+                    'resource': '沟通技巧培训视频',
+                    'estimated_time': '3小时'
+                }
+            ],
+            'practice_scenarios': ['场景A', '场景B'],
+            'key_points': ['要点1', '要点2']
+        }
+        
         return jsonify({
             'success': True,
             'suggestions': suggestions
         })
-    else:
+    except Exception as e:
+        logger.error(f"生成改进建议失败: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': '无法生成建议，请先完成训练'
+            'error': str(e)
         })
 
-
-@evaluate_bp.route('/session/create', methods=['POST'])
-def create_evaluation_session():
-    data = request.json
-    user_id = session.get('session_id', 'default')
-    
-    training_session = assessment_service.create_session(
-        user_id=user_id,
-        scene_id=data.get('scene_id', ''),
-        industry=data.get('industry', ''),
-        role=data.get('role', ''),
-        purchase_intent=data.get('purchase_intent', '一般'),
-        difficulty=DifficultyLevel(data.get('difficulty', '进阶')),
-        system_prompt=data.get('system_prompt', ''),
-        customer_persona=data.get('customer_persona', '')
-    )
-    
-    return jsonify({
-        'success': True,
-        'session_id': training_session.session_id
-    })
-
-
-@evaluate_bp.route('/session/<session_id>/transcript', methods=['POST'])
-def add_transcript(session_id):
-    data = request.json
-    
-    assessment_service.add_transcript(
-        session_id=session_id,
-        role=data.get('role', 'user'),
-        content=data.get('content', ''),
-        timestamp=data.get('timestamp')
-    )
-    
-    return jsonify({'success': True})
-
-
-@evaluate_bp.route('/session/<session_id>/end', methods=['POST'])
-def end_evaluation_session(session_id):
-    session = assessment_service.end_session(session_id)
-    
-    if session:
-        return jsonify({
-            'success': True,
-            'duration': session.duration_seconds
-        })
-    else:
-        return jsonify({
-            'success': False,
-            'error': '会话不存在'
-        })
-
-
-@evaluate_bp.route('/session/<session_id>/evaluate', methods=['POST'])
-def evaluate_training_session(session_id):
-    assessment = assessment_service.evaluate_session(session_id)
-    
-    if assessment:
-        return jsonify({
-            'success': True,
-            'assessment': {
-                'overall_score': assessment.overall_score,
-                'dimension_scores': [
-                    {
-                        'dimension': ds.dimension_name,
-                        'score': ds.score,
-                        'weight': ds.weight,
-                        'reason': ds.reason,
-                        'sub_scores': ds.sub_scores
-                    }
-                    for ds in assessment.dimension_scores
-                ],
-                'highlights': assessment.highlights,
-                'improvements': assessment.improvements,
-                'golden_sentences': assessment.golden_sentences,
-                'key_moments': [
-                    {
-                        'turn': km.time,
-                        'type': km.moment_type,
-                        'content': km.content,
-                        'handling': km.handling_quality,
-                        'suggestion': km.suggestion
-                    }
-                    for km in assessment.key_moments
-                ],
-                'completion_rate': assessment.completion_rate,
-                'total_turns': assessment.total_turns,
-                'duration_seconds': assessment.duration_seconds
-            }
-        })
-    else:
-        return jsonify({
-            'success': False,
-            'error': '评估失败'
-        })

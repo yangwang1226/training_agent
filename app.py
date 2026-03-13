@@ -19,7 +19,7 @@ from flask import Flask, render_template, send_from_directory, session, redirect
 from flask_sock import Sock
 import uuid
 
-from routes import scene_bp, prompt_bp, evaluate_bp, dimension_bp, progress_bp, realtime_bp
+from routes import scene_bp, prompt_bp, evaluate_bp, progress_bp, realtime_bp
 from routes.scene_agent_routes import scene_create_bp
 from routes.preset_scene_routes import preset_scene_bp
 from routes.sop_routes import sop_bp
@@ -116,7 +116,7 @@ app.register_blueprint(preset_scene_bp)
 app.register_blueprint(prompt_bp)
 app.register_blueprint(evaluate_bp)
 app.register_blueprint(assessment_view_bp)  # 新的评估查看页面
-app.register_blueprint(dimension_bp)
+# app.register_blueprint(dimension_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)
 app.register_blueprint(sop_bp)

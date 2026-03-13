@@ -1,7 +1,7 @@
 from .scene_routes import scene_bp
 from .prompt_routes import prompt_bp
 from .evaluate_routes import evaluate_bp
-from .dimension_routes import dimension_bp
+# from .dimension_routes import dimension_bp
 from .progress_routes import progress_bp
 from .realtime_routes import realtime_bp
 

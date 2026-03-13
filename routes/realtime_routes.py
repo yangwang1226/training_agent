@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import db as db_module
 from agent.service.conversational import ConversationRecorder
 from agent.service.scene.assessment_service import assessment_service as scene_assessment_service
+from agent.service.scene.async_assessment_processor import get_async_processor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ realtime_bp = Blueprint('realtime', __name__,
 
 DEFAULT_PROVIDER = os.getenv("REALTIME_PROVIDER", "qwen").lower()
 
-
+# 场景实时训练页面
 @realtime_bp.route('/<scene_id>')
 def index(scene_id):
     try:
@@ -53,7 +54,7 @@ def index(scene_id):
         logger.error(f"获取场景失败：{e}")
         return "获取场景失败", 500
 
-
+# 获取场景提示词
 @realtime_bp.route('/prompt/<scene_id>')
 def get_prompt(scene_id):
     try:
@@ -68,11 +69,51 @@ def get_prompt(scene_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# 查询评估任务状态
+@realtime_bp.route('/api/assessment/status/<task_id>')
+def get_assessment_status(task_id):
+    """
+    查询评估任务状态
+    
+    Args:
+        task_id: 任务 ID
+        
+    Returns:
+        任务状态信息
+    """
+    try:
+        async_processor = get_async_processor(scene_assessment_service)
+        task_status = async_processor.get_task_status(task_id)
+        
+        if task_status:
+            return jsonify({
+                'success': True,
+                'task_id': task_id,
+                'status': task_status.get('status'),
+                'created_at': task_status.get('created_at').isoformat() if task_status.get('created_at') else None,
+                'started_at': task_status.get('started_at').isoformat() if task_status.get('started_at') else None,
+                'completed_at': task_status.get('completed_at').isoformat() if task_status.get('completed_at') else None,
+                'failed_at': task_status.get('failed_at').isoformat() if task_status.get('failed_at') else None,
+                'error': task_status.get('error'),
+                'result': task_status.get('result')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': '任务不存在'
+            })
+    except Exception as e:
+        logger.error(f"查询评估任务状态失败：{str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
+# 注册 WebSocket 路由
 def register_websocket(sock):
     """注册 WebSocket 路由"""
     logger.info("Registering WebSocket routes")
-    
+    # 场景实时训练 WebSocket 路由
     @sock.route('/api/realtime/ws/<scene_id>')
     def realtime_ws(ws, scene_id):
         provider = request.args.get('provider', DEFAULT_PROVIDER).lower()
@@ -208,8 +249,8 @@ def register_websocket(sock):
                                             'call_duration': save_result.get('call_duration', 0)
                                         }))
                                     
-                                    # 2. 生成评估报告
-                                    logger.info("开始生成评估报告...")
+                                    # 2. 异步生成评估报告
+                                    logger.info("提交异步评估任务...")
                                     transcript = recorder.get_transcript_text()
                                     
                                     # 获取场景的维度配置
@@ -222,59 +263,32 @@ def register_websocket(sock):
                                         except:
                                             logger.warning("场景维度配置解析失败")
                                     
-                                    report = scene_assessment_service.generate_report(
+                                    # 获取异步评估处理器
+                                    async_processor = get_async_processor(scene_assessment_service)
+                                    
+                                    # 提交异步评估任务
+                                    task_id = async_processor.submit_assessment_task(
                                         session_id=recorder.session_id,
                                         transcript=transcript,
                                         dimensions=dimensions,
                                         industry=scene.get('industry', ''),
                                         role_type=scene.get('ai_role', ''),
-                                        background_info=scene.get('background', '')
+                                        background_info=scene.get('background', ''),
+                                        scene_id=int(scene_id),
+                                        user_id=recorder.user_id,
+                                        oss_file_path=save_result.get('audio_file', '') if save_result else '',
+                                        call_duration=save_result.get('call_duration', 0) if save_result else 0
                                     )
                                     
-                                    # 3. SOP 质检评估
-                                    sop_result = None
-                                    try:
-                                        from database.sop_dao import get_scene_sop_checklist
-                                        sop_checklist = get_scene_sop_checklist(int(scene_id))
-                                        if sop_checklist:
-                                            logger.info(f"开始 SOP 质检评估，共 {len(sop_checklist)} 个质检项...")
-                                            sop_result = scene_assessment_service.evaluate_sop(
-                                                transcript=transcript,
-                                                sop_checklist=sop_checklist
-                                            )
-                                            logger.info(f"SOP 质检完成: 得分={sop_result.get('sop_score', 0)}")
-                                        else:
-                                            logger.info("场景未配置 SOP 质检项，跳过 SOP 评估")
-                                    except Exception as sop_e:
-                                        logger.warning(f"SOP 质检评估失败: {sop_e}")
+                                    logger.info(f"异步评估任务已提交: task_id={task_id}")
                                     
-                                    if report:
-                                        # 4. 保存评估报告到数据库
-                                        scene_assessment_service.save_to_database(
-                                            session_id=recorder.session_id,
-                                            report=report,
-                                            scene_id=int(scene_id),
-                                            user_id=recorder.user_id,
-                                            word_content=transcript,
-                                            oss_file_path=save_result.get('audio_file', '') if save_result else '',
-                                            call_duration=save_result.get('call_duration', 0) if save_result else 0,
-                                            sop_result=sop_result
-                                        )
-                                        
-                                        logger.info(f"Sending assessment_complete: {recorder.session_id}")
-                                        logger.info("评估报告生成并保存成功")
-                                        ws.send(json.dumps({
-                                            'type': 'assessment_complete',
-                                            'session_id': recorder.session_id,
-                                            'report': report,
-                                            'sop_result': sop_result
-                                        }))
-                                        
-                                    else:
-                                        ws.send(json.dumps({
-                                            'type': 'assessment_error',
-                                            'error': '评估报告生成失败'
-                                        }))
+                                    # 通知前端评估任务已提交
+                                    ws.send(json.dumps({
+                                        'type': 'assessment_submitted',
+                                        'session_id': recorder.session_id,
+                                        'task_id': task_id,
+                                        'message': '评估任务已提交，正在后台处理中...'
+                                    }))
                                     
                                 except Exception as e:
                                     logger.error(f"会话结束处理失败：{str(e)}", exc_info=True)
@@ -315,9 +329,9 @@ def register_websocket(sock):
             if saved_path:
                 logger.info(f"Conversation record saved: {saved_path}")
                 
-                # 生成评估报告
+                # 异步生成评估报告
                 try:
-                    logger.info("正在生成评估报告...")
+                    logger.info("提交异步评估任务...")
                     
                     # 获取场景信息
                     scene = db_module.get_scene_by_id(scene_id_int)
@@ -334,32 +348,26 @@ def register_websocket(sock):
                     # 获取对话转录
                     transcript = recorder.get_transcript_text()
                     
-                    # 生成评估报告
-                    report = scene_assessment_service.generate_report(
+                    # 获取异步评估处理器
+                    async_processor = get_async_processor(scene_assessment_service)
+                    
+                    # 提交异步评估任务
+                    task_id = async_processor.submit_assessment_task(
                         session_id=recorder.session_id,
                         transcript=transcript,
                         dimensions=dimensions,
                         industry=scene.get('industry', '') if scene else '',
                         role_type=scene.get('role_type', '') if scene else '',
-                        background_info=scene.get('scene_prompt', '')[:1000] if scene else ''
+                        background_info=scene.get('scene_prompt', '')[:1000] if scene else '',
+                        scene_id=scene_id_int,
+                        user_id=1,  # TODO: 从 session 获取真实用户 ID
+                        oss_file_path=saved_path,
+                        call_duration=recorder.get_duration()
                     )
                     
-                    if report:
-                        # 保存到数据库
-                        scene_assessment_service.save_to_database(
-                            session_id=recorder.session_id,
-                            report=report,
-                            scene_id=scene_id_int,
-                            user_id=1,  # TODO: 从 session 获取真实用户 ID
-                            word_content=json.dumps(recorder.get_messages(), ensure_ascii=False),
-                            oss_file_path=saved_path,
-                            call_duration=recorder.get_duration()
-                        )
-                        logger.info(f"评估报告已保存：session_id={recorder.session_id}")
-                    else:
-                        logger.error("评估报告生成失败")
+                    logger.info(f"异步评估任务已提交: task_id={task_id}")
                         
                 except Exception as e:
-                    logger.error(f"生成评估报告失败：{str(e)}", exc_info=True)
+                    logger.error(f"提交异步评估任务失败：{str(e)}", exc_info=True)
             
             logger.info(f"WebSocket closed for scene: {scene_id}")

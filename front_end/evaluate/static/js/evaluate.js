@@ -107,12 +107,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderRadarChart(scores) {
         const ctx = document.getElementById('radarChart').getContext('2d');
         
+        if (!ctx) {
+            console.error('Canvas element not found');
+            return;
+        }
+        
         if (radarChart) {
             radarChart.destroy();
         }
         
         const labels = ['沟通技巧', '产品知识', '需求挖掘', '异议处理', '促成技巧'];
-        const data = labels.map(label => scores[label] || 0);
+        const data = labels.map(label => {
+            if (scores && typeof scores === 'object') {
+                return scores[label] || 0;
+            }
+            return 0;
+        });
+        
+        console.log('Rendering radar chart with scores:', scores);
         
         radarChart = new Chart(ctx, {
             type: 'radar',
