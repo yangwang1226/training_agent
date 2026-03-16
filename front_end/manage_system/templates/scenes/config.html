@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}场景配置 - AI教练后台管理系统{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-item">首页</span>
+<span class="breadcrumb-item">预设场景库</span>
+<span class="breadcrumb-item">场景配置</span>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/industry/static/css/scene_config.css">
+<style>
+/* 适配管理系统样式 */
+.config-header {
+    background: white;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 24px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<iframe id="sceneConfigFrame" 
+        src="" 
+        style="width: 100%; height: calc(100vh - 160px); border: none;"
+        frameborder="0">
+</iframe>
+
+<script>
+// 获取场景代码参数
+const urlParams = new URLSearchParams(window.location.search);
+const sceneCode = urlParams.get('scene_code');
+
+if (sceneCode) {
+    // 加载场景配置页面到iframe
+    document.getElementById('sceneConfigFrame').src = `/industry/scene-config?scene_code=${sceneCode}`;
+} else {
+    alert('缺少场景参数');
+    history.back();
+}
+</script>
+{% endblock %}

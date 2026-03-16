@@ -1,7 +1,7 @@
 """后台管理系统路由"""
 import logging
 from pathlib import Path
-from flask import Blueprint, render_template, jsonify, request, send_from_directory
+from flask import Blueprint, render_template, jsonify, request, send_from_directory, render_template_string
 
 import db as db_module
 from database.scene_dao import list_scenes, get_scene_by_id
@@ -50,6 +50,12 @@ def preset_scenes_page():
 def custom_scenes_page():
     """自定义场景页面"""
     return render_template('scenes/custom.html')
+
+
+@manage_bp.route('/scene-config')
+def scene_config_page():
+    """场景配置页面（嵌入管理系统）"""
+    return render_template('scenes/config.html')
 
 
 @manage_bp.route('/scenes/edit/<int:scene_id>')
