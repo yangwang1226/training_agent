@@ -236,11 +236,11 @@ function refreshScenes() {
 }
 
 /**
- * 使用场景 - 跳转到场景配置页面
+ * 使用场景 - 在管理系统内打开场景配置页面
  */
 function useScene(sceneCode) {
-    // 跳转到场景配置页面，传递场景代码
-    window.location.href = `/industry/scene-config?scene_code=${sceneCode}`;
+    // 在管理系统内跳转到场景配置页面
+    window.location.href = `/manage_system/scene-config?scene_code=${sceneCode}`;
 }
 
 /**
