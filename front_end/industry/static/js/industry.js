@@ -607,7 +607,7 @@ function resetBackgroundModalButtons() {
 // 跳转到自定义创建页面
 // ============================================
 function goToCustomCreate() {
-    window.location.href = '/scene/create/';
+    window.location.href = '/manage_system/scenes/create-custom';
 }
 
 // ============================================

@@ -1,0 +1,226 @@
+{% extends "../layout.html" %}
+
+{% block title %}场景配置 - AI教练后台管理系统{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-item"><a href="/manage_system/">首页</a></span>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-item"><a href="/manage_system/scenes">场景管理</a></span>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-item active">场景配置</span>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/industry/static/css/scene_config.css">
+<style>
+.admin-scene-config {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.progress-indicator {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.progress-indicator .step-info {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.progress-indicator .step-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.config-actions {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 20px;
+    border-top: 2px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-scene-config">
+    <!-- 进度提示 -->
+    <div class="progress-indicator">
+        <div class="step-info">步骤 3/3</div>
+        <div class="step-title">✅ 确认并调整配置</div>
+    </div>
+
+    <!-- 场景配置表单（复用现有的配置页面内容） -->
+    <div id="sceneConfigContainer">
+        <!-- 动态加载配置表单 -->
+    </div>
+
+    <!-- 底部操作按钮 -->
+    <div class="config-actions">
+        <button class="btn btn-secondary" onclick="history.back()">
+            ← 返回上一步
+        </button>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn btn-secondary" id="btnSaveDraft">
+                💾 保存草稿
+            </button>
+            <button class="btn btn-primary" id="btnSaveAndStart">
+                开始训练 →
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/industry/static/js/scene_config.js"></script>
+<script>
+// 从URL参数加载配置数据
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const dataStr = urlParams.get('data');
+    
+    if (mode === 'custom' && dataStr) {
+        try {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            loadCustomSceneConfig(data);
+        } catch (error) {
+            console.error('解析配置数据失败:', error);
+            alert('加载配置失败，请返回重试');
+        }
+    }
+});
+
+// 加载自定义场景配置
+function loadCustomSceneConfig(data) {
+    console.log('加载自定义场景配置:', data);
+    
+    // 填充页面标题
+    document.getElementById('pageTitle').textContent = data.scene_name || '自定义场景配置';
+    
+    // 填充场景基本信息
+    if (document.getElementById('sceneName')) {
+        document.getElementById('sceneName').textContent = data.scene_name;
+    }
+    if (document.getElementById('sceneDesc')) {
+        document.getElementById('sceneDesc').textContent = data.scene_description || '';
+    }
+    if (document.getElementById('aiRole')) {
+        document.getElementById('aiRole').textContent = data.ai_role;
+    }
+    if (document.getElementById('userRole')) {
+        document.getElementById('userRole').textContent = data.user_role;
+    }
+    
+    // 填充AI开场白
+    const openingInput = document.getElementById('openingInput');
+    if (openingInput && data.opening_line) {
+        openingInput.value = data.opening_line;
+    }
+    
+    // 渲染固定问题
+    if (data.fixed_questions && data.fixed_questions.length > 0) {
+        renderFixedQuestions(data.fixed_questions);
+    }
+    
+    // 渲染关联问题
+    if (data.related_questions && data.related_questions.length > 0) {
+        renderRelatedQuestions(data.related_questions);
+    }
+    
+    // 渲染SOP质检项
+    if (data.sop_checklist && data.sop_checklist.length > 0) {
+        renderSopChecklist(data.sop_checklist);
+    }
+    
+    // 保存数据到全局变量，供后续保存使用
+    window.customSceneData = data;
+}
+
+// 保存草稿
+document.getElementById('btnSaveDraft').addEventListener('click', async function() {
+    if (!window.customSceneData) {
+        alert('配置数据丢失，请返回重新创建');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/scene/save-custom-draft', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ...window.customSceneData,
+                status: 0  // 草稿状态
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('草稿保存成功！');
+            window.location.href = '/manage_system/scenes';
+        } else {
+            alert('保存失败：' + (result.error || '未知错误'));
+        }
+    } catch (error) {
+        console.error('保存草稿失败:', error);
+        alert('保存失败，请重试');
+    }
+});
+
+// 保存并开始训练
+document.getElementById('btnSaveAndStart').addEventListener('click', async function() {
+    if (!window.customSceneData) {
+        alert('配置数据丢失，请返回重新创建');
+        return;
+    }
+    
+    this.disabled = true;
+    this.textContent = '正在保存...';
+    
+    try {
+        const response = await fetch('/api/scene/save-custom', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ...window.customSceneData,
+                status: 2  // 已定制状态
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 跳转到训练页面
+            window.location.href = result.redirect_url;
+        } else {
+            alert('保存失败：' + (result.error || '未知错误'));
+            this.disabled = false;
+            this.textContent = '开始训练 →';
+        }
+    } catch (error) {
+        console.error('保存场景失败:', error);
+        alert('保存失败，请重试');
+        this.disabled = false;
+        this.textContent = '开始训练 →';
+    }
+});
+</script>
+{% endblock %}

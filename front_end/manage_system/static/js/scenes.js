@@ -368,8 +368,8 @@ function closeSceneDetail() {
  * 创建场景
  */
 function createScene() {
-    // 跳转到场景创建页面
-    window.location.href = '/scene/create/';
+    // 跳转到自定义场景创建页面
+    window.location.href = '/manage_system/scenes/create-custom';
 }
 
 /**

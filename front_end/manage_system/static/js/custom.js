@@ -287,7 +287,7 @@ function handleSearch() {
  * 创建新场景
  */
 function createNewScene() {
-    window.location.href = '/scene/create/';
+    window.location.href = '/manage_system/scenes/create-custom';
 }
 
 /**
@@ -406,7 +406,7 @@ function closeSceneDetail() {
  * 编辑场景
  */
 function editScene(sceneId) {
-    window.location.href = `/scene/create/?edit=${sceneId}`;
+    window.location.href = `/manage_system/scenes/edit/${sceneId}`;
 }
 
 /**

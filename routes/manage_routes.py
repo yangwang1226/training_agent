@@ -64,6 +64,18 @@ def edit_scene_page(scene_id):
     return render_template('scenes/edit.html', scene_id=scene_id)
 
 
+@manage_bp.route('/scenes/create-custom')
+def create_custom_scene_page():
+    """自定义场景创建页面"""
+    return render_template('scenes/create_custom.html')
+
+
+@manage_bp.route('/scene-config-custom')
+def scene_config_custom_page():
+    """自定义场景配置确认页面（步骤3）"""
+    return render_template('scenes/scene_config.html')
+
+
 # ==================== API路由 ====================
 
 @manage_bp.route('/api/scenes', methods=['GET'])
