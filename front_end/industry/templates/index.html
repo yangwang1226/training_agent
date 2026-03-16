@@ -127,6 +127,16 @@
                 <div class="bg-scene-info">
                     <div class="bg-scene-name" id="bgSceneName">客户首次到店接待</div>
                     <div class="bg-scene-desc" id="bgSceneDesc">模拟客户首次进入4S店的接待场景</div>
+                    <div class="bg-scene-meta">
+                        <span class="meta-item">
+                            <span class="meta-label">难度：</span>
+                            <span class="meta-value" id="bgDifficulty">中等</span>
+                        </span>
+                        <span class="meta-item">
+                            <span class="meta-label">时长：</span>
+                            <span class="meta-value" id="bgDuration">约10分钟</span>
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -161,32 +171,108 @@
                     <!-- 由 JS 动态渲染 -->
                 </div>
 
-                <!-- SOP 质检项配置（可选折叠区域）-->
-                <div class="bg-sop-section" id="bgSopSection">
-                    <div class="bg-sop-header" id="bgSopToggle">
-                        <div class="bg-sop-header-left">
-                            <span class="bg-sop-icon">📋</span>
-                            <span class="bg-sop-title">SOP 质检项设置</span>
-                            <span class="bg-sop-badge">可选</span>
-                        </div>
-                        <span class="bg-sop-arrow">▼</span>
+                <!-- AI开场白配置 -->
+                <div class="bg-config-section">
+                    <label class="bg-label">
+                        🎤 AI开场白 <span class="required-badge">*</span>
+                        <button class="btn-restore-mini" id="btnRestoreOpening" title="恢复默认">恢复默认</button>
+                    </label>
+                    <div class="bg-input-wrapper">
+                        <input type="text" 
+                            id="bgOpeningInput" 
+                            placeholder="对练开始后，AI（模拟客户）说的第一句话"
+                            maxlength="500">
                     </div>
-                    <div class="bg-sop-content" id="bgSopContent" style="display: none;">
-                        <div class="bg-sop-info">
-                            <span class="bg-sop-info-icon">💡</span>
-                            <span>为此场景配置标准操作流程质检项，训练结束后将自动评估</span>
+                    <p class="bg-hint">💡 对练开始后，AI（模拟客户）说的第一句话</p>
+                </div>
+
+                <!-- 固定问题列表（可折叠） -->
+                <div class="bg-config-section bg-collapsible">
+                    <div class="bg-section-header" data-target="fixedQuestionsContent">
+                        <div class="header-left">
+                            <h4>💬 固定问题（AI必问）</h4>
+                            <span class="question-count" id="fixedQuestionCount">共0个问题</span>
                         </div>
-                        <div class="bg-sop-preview" id="bgSopPreview">
-                            <div class="bg-sop-empty">
-                                <span>暂未配置质检项</span>
-                            </div>
-                        </div>
-                        <div class="bg-sop-actions">
-                            <button class="bg-sop-btn-config" id="bgSopBtnConfig">
-                                <span>⚙️</span>
-                                配置质检项
+                        <div class="header-right">
+                            <button class="btn-restore-mini" id="btnRestoreFixed">恢复默认</button>
+                            <button class="btn-collapse-mini">
+                                <svg class="icon-collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
                             </button>
                         </div>
+                    </div>
+                    <div class="bg-section-content collapsed" id="fixedQuestionsContent">
+                        <div class="question-list" id="fixedQuestionList">
+                            <!-- 动态加载 -->
+                        </div>
+                        <button class="btn-add-item" id="btnAddFixed">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            添加问题
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 关联问题列表（可折叠） -->
+                <div class="bg-config-section bg-collapsible">
+                    <div class="bg-section-header" data-target="relatedQuestionsContent">
+                        <div class="header-left">
+                            <h4>🔀 关联问题（情境触发）</h4>
+                            <span class="question-count" id="relatedQuestionCount">共0个问题</span>
+                        </div>
+                        <div class="header-right">
+                            <button class="btn-restore-mini" id="btnRestoreRelated">恢复默认</button>
+                            <button class="btn-collapse-mini">
+                                <svg class="icon-collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-section-content collapsed" id="relatedQuestionsContent">
+                        <div class="related-question-list" id="relatedQuestionList">
+                            <!-- 动态加载 -->
+                        </div>
+                        <button class="btn-add-item" id="btnAddRelated">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            添加关联问题
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SOP质检项（可折叠） -->
+                <div class="bg-config-section bg-collapsible">
+                    <div class="bg-section-header" data-target="sopChecklistContent">
+                        <div class="header-left">
+                            <h4>✅ SOP质检项</h4>
+                            <span class="question-count" id="sopChecklistCount">共0个质检项</span>
+                        </div>
+                        <div class="header-right">
+                            <button class="btn-restore-mini" id="btnRestoreSop">恢复默认</button>
+                            <button class="btn-collapse-mini">
+                                <svg class="icon-collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-section-content collapsed" id="sopChecklistContent">
+                        <div class="sop-list" id="sopList">
+                            <!-- 动态加载 -->
+                        </div>
+                        <button class="btn-add-item" id="btnAddSop">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            添加质检项
+                        </button>
                     </div>
                 </div>
             </div>

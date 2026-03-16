@@ -183,28 +183,29 @@ def insert_preset_scenes():
         with conn.cursor() as cursor:
             print("插入预设场景数据...")
             
-            # 插入新数据
+                        # 插入新数据
             print(f"准备插入 {len(PRESET_SCENES)} 条预设场景数据...")
             
             sql = """
                 INSERT INTO ai_coach_preset_scene 
-                (industry_code, scene_code, scene_name, scene_description, scene_tag,
-                 ai_role, user_role, difficulty, estimated_duration, display_order)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (industry_code, scene_code, scene_name, scene_description,
+                 ai_role, user_role, difficulty)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
             
             for scene in PRESET_SCENES:
+                # 转换difficulty为枚举值
+                difficulty_map = {1: 'easy', 2: 'medium', 3: 'hard'}
+                difficulty_value = difficulty_map.get(scene['difficulty'], 'medium')
+                
                 cursor.execute(sql, (
                     scene['industry_code'],
                     scene['scene_code'],
                     scene['scene_name'],
                     scene['scene_description'],
-                    scene['scene_tag'],
                     scene['ai_role'],
                     scene['user_role'],
-                    scene['difficulty'],
-                    scene['estimated_duration'],
-                    scene['display_order']
+                    difficulty_value
                 ))
                 print(f"  [OK] 插入: {scene['scene_name']}")
             

@@ -256,6 +256,12 @@ def generate_from_preset():
         user_background = data.get('user_background')
         custom_requirements = data.get('custom_requirements')
         
+        # 新增：获取用户配置的字段
+        opening_line = data.get('opening_line')
+        fixed_questions = data.get('fixed_questions')
+        related_questions = data.get('related_questions')
+        sop_checklist = data.get('sop_checklist')
+        
         if not scene_code:
             return jsonify({
                 'success': False,
@@ -296,15 +302,22 @@ def generate_from_preset():
             "dimensions": [d.to_dict() for d in scene_content.dimensions]
         }, ensure_ascii=False)
         
-        # 3.5 从预设场景复制 SOP 质检项（如果有）
+                # 3.5 处理 SOP 质检项（优先使用用户自定义，否则从预设复制）
         from database.sop_dao import sop_dao
-        preset_sop = sop_dao.get_preset_sop_checklist(scene_code)
         sop_checklist_json = None
-        if preset_sop:
-            sop_checklist_json = json.dumps(preset_sop, ensure_ascii=False)
-            logger.info(f"从预设场景复制了 {len(preset_sop)} 项 SOP 质检项")
         
-        # 4. 保存到数据库
+        if sop_checklist:
+            # 用户自定义了 SOP 质检项
+            sop_checklist_json = json.dumps(sop_checklist, ensure_ascii=False)
+            logger.info(f"使用用户自定义的 {len(sop_checklist)} 项 SOP 质检项")
+        else:
+            # 从预设场景复制
+            preset_sop = sop_dao.get_preset_sop_checklist(scene_code)
+            if preset_sop:
+                sop_checklist_json = json.dumps(preset_sop, ensure_ascii=False)
+                logger.info(f"从预设场景复制了 {len(preset_sop)} 项 SOP 质检项")
+        
+                # 4. 保存到数据库
         scene_id = db_module.save_scene(
             scene_name=scene_name,
             scene_prompt=full_prompt,
@@ -315,6 +328,12 @@ def generate_from_preset():
             training_goal=f"提升{scene_content.role_type}的沟通能力",
             full_evaluation_prompt=full_prompt,
             sop_checklist=sop_checklist_json,
+            # 新增字段
+            preset_scene_code=scene_code,
+            background_hint=user_background,
+            opening_line=opening_line,
+            fixed_questions=json.dumps(fixed_questions, ensure_ascii=False) if fixed_questions else None,
+            related_questions=json.dumps(related_questions, ensure_ascii=False) if related_questions else None,
             status=0
         )
         

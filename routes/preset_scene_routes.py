@@ -204,6 +204,73 @@ def use_preset_scene(scene_code: str):
         }), 500
 
 
+
+@preset_scene_bp.route('/config/<scene_code>', methods=['GET'])
+def get_scene_config(scene_code: str):
+    """
+    获取预设场景的完整配置信息（用于场景配置页面）
+    包括：基本信息、固定问题、关联问题、SOP质检项等
+    """
+    try:
+        from database.preset_scene_dao import get_preset_scene_by_code
+        from database.sop_dao import SOPChecklistDAO
+        
+        # 获取场景基本信息
+        scene = get_preset_scene_by_code(scene_code)
+        if not scene:
+            return jsonify({
+                'success': False,
+                'error': '场景不存在'
+            }), 404
+        
+        # 获取SOP质检项
+        sop_checklist = SOPChecklistDAO.get_preset_sop_checklist(scene_code) or []
+        
+        # 解析固定问题和关联问题
+        fixed_questions = []
+        related_questions = []
+        
+        if scene.get('fixed_questions'):
+            try:
+                fixed_questions = json.loads(scene['fixed_questions']) if isinstance(scene['fixed_questions'], str) else scene['fixed_questions']
+            except:
+                pass
+        
+        if scene.get('related_questions'):
+            try:
+                related_questions = json.loads(scene['related_questions']) if isinstance(scene['related_questions'], str) else scene['related_questions']
+            except:
+                pass
+        
+        # 构建响应数据
+        config_data = {
+            'scene_code': scene['scene_code'],
+            'scene_name': scene['scene_name'],
+            'scene_description': scene.get('scene_description', ''),
+            'industry_code': scene['industry_code'],
+            'ai_role': scene.get('ai_role', ''),
+            'user_role': scene.get('user_role', ''),
+            'difficulty': scene.get('difficulty', 'medium'),
+            'estimated_duration': 600,  # 默认10分钟
+            'opening_line': scene.get('opening_line', ''),
+            'fixed_questions': fixed_questions,
+            'related_questions': related_questions,
+            'sop_checklist': sop_checklist
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': config_data
+        })
+        
+    except Exception as e:
+        logger.error(f"获取场景配置失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @preset_scene_bp.route('/quick-start/<scene_code>', methods=['POST'])
 def quick_start_scene(scene_code: str):
     """

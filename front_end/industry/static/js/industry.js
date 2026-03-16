@@ -275,9 +275,9 @@ async function selectScene(industryId, sceneId) {
         console.error('更新使用次数失败:', error);
     }
 
-    // 打开背景补充弹窗
+        // 跳转到场景配置页面
     setTimeout(() => {
-        openBackgroundModal(industry, scene);
+        window.location.href = `/industry/scene-config?scene_code=${scene.id}`;
     }, 300);
 }
 
@@ -355,31 +355,111 @@ const DEFAULT_QUICK_TAGS = [
     '客户时间紧张，希望高效沟通'
 ];
 
-function openBackgroundModal(industry, scene) {
-    // 填充场景信息
-    document.getElementById('bgSceneIcon').innerHTML = scene.icon;
-    document.getElementById('bgSceneName').textContent = scene.name;
-    document.getElementById('bgSceneDesc').textContent = scene.desc;
-    document.getElementById('bgAiRole').textContent = scene.aiRole || 'AI客户';
-    document.getElementById('bgUserRole').textContent = scene.userRole || '销售顾问';
+// 全局变量：存储当前场景的完整配置
+let currentSceneConfig = {
+    sceneCode: '',
+    sceneName: '',
+    sceneDescription: '',
+    industryCode: '',
+    aiRole: '',
+    userRole: '',
+    difficulty: '',
+    duration: 600,
+    openingLine: '',
+    fixedQuestions: [],
+    relatedQuestions: [],
+    sopChecklist: []
+};
 
-    // 清空输入
-    bgBackgroundInput.value = '';
-    bgCharCount.textContent = '0';
+// 原始预设数据（用于恢复默认）
+let originalPresetData = null;
 
-    // 渲染快捷标签
-    const tags = QUICK_TAG_MAP[scene.id] || DEFAULT_QUICK_TAGS;
+async function openBackgroundModal(industry, scene) {
+    try {
+        // 显示加载状态
+        bgBtnStart.classList.add('loading');
+        bgBtnStart.innerHTML = '<span class="spinner"></span>加载中...';
+        
+        // 调用新 API 获取完整配置
+        const response = await fetch(`/api/preset-scene/config/${scene.id}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || '加载场景配置失败');
+        }
+        
+        const config = result.data;
+        
+        // 保存到全局变量
+        currentSceneConfig = {
+            sceneCode: config.scene_code,
+            sceneName: config.scene_name,
+            sceneDescription: config.scene_description,
+            industryCode: config.industry_code,
+            aiRole: config.ai_role,
+            userRole: config.user_role,
+            difficulty: config.difficulty,
+            duration: config.estimated_duration,
+            openingLine: config.opening_line,
+            fixedQuestions: JSON.parse(JSON.stringify(config.fixed_questions || [])), // 深拷贝
+            relatedQuestions: JSON.parse(JSON.stringify(config.related_questions || [])),
+            sopChecklist: JSON.parse(JSON.stringify(config.sop_checklist || []))
+        };
+        
+        // 保存原始数据（用于恢复默认）
+        originalPresetData = JSON.parse(JSON.stringify(config));
+        
+        // 填充场景基础信息
+        document.getElementById('bgSceneIcon').innerHTML = scene.icon;
+        document.getElementById('bgSceneName').textContent = config.scene_name;
+        document.getElementById('bgSceneDesc').textContent = config.scene_description;
+        document.getElementById('bgAiRole').textContent = config.ai_role;
+        document.getElementById('bgUserRole').textContent = config.user_role;
+        
+        // 填充难度和时长
+        const difficultyMap = { 'easy': '简单', 'medium': '中等', 'hard': '困难' };
+        document.getElementById('bgDifficulty').textContent = difficultyMap[config.difficulty] || '中等';
+        document.getElementById('bgDuration').textContent = `约${Math.round(config.estimated_duration / 60)}分钟`;
+        
+        // 清空并重置背景输入
+        bgBackgroundInput.value = '';
+        bgCharCount.textContent = '0';
+        
+        // 渲染快捷标签
+        const tags = QUICK_TAG_MAP[scene.id] || DEFAULT_QUICK_TAGS;
         bgQuickTags.innerHTML = tags.map(tag =>
-        `<button class="bg-quick-tag" onclick="fillQuickTag(this, '${tag.replace(/'/g, "\\'")}')">${tag}</button>`
-    ).join('');
-
-    // 重置按钮状态
-    bgBtnStart.classList.remove('loading');
-    bgBtnStart.innerHTML = '开始训练 <span class="bg-btn-arrow">→</span>';
-
-    // 显示弹窗
-    bgModalOverlay.classList.add('show');
-    document.body.style.overflow = 'hidden';
+            `<button class="bg-quick-tag" onclick="fillQuickTag(this, '${tag.replace(/'/g, "\\'")}')">${tag}</button>`
+        ).join('');
+        
+        // 填充AI开场白
+        const bgOpeningInput = document.getElementById('bgOpeningInput');
+        if (bgOpeningInput) {
+            bgOpeningInput.value = config.opening_line || '';
+        }
+        
+        // 渲染固定问题列表
+        renderFixedQuestions(config.fixed_questions || []);
+        
+        // 渲染关联问题列表
+        renderRelatedQuestions(config.related_questions || []);
+        
+        // 渲染SOP质检项列表
+        renderSopChecklist(config.sop_checklist || []);
+        
+        // 重置按钮状态
+        bgBtnStart.classList.remove('loading');
+        bgBtnStart.innerHTML = '开始训练 <span class="bg-btn-arrow">→</span>';
+        
+        // 显示弹窗
+        bgModalOverlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+    } catch (error) {
+        console.error('加载场景配置失败:', error);
+        alert('加载场景配置失败，请重试');
+        bgBtnStart.classList.remove('loading');
+        bgBtnStart.innerHTML = '开始训练 <span class="bg-btn-arrow">→</span>';
+    }
 }
 
 function closeBackgroundModal() {
@@ -443,8 +523,12 @@ async function submitWithBackground(backgroundHint) {
         : `正在准备「${selectedScene.name}」场景，请稍候...`;
     showToast(message, 'success');
 
-    try {
-        // 直接调用预设场景生成 API
+        try {
+        // 获取AI开场白
+        const openingInput = document.getElementById('bgOpeningInput');
+        const openingLine = openingInput ? openingInput.value.trim() : currentSceneConfig.openingLine;
+        
+        // 直接调用预设场景生成 API（包含完整配置）
         const response = await fetch('/api/scene/generate-from-preset', {
             method: 'POST',
             headers: {
@@ -453,7 +537,12 @@ async function submitWithBackground(backgroundHint) {
             body: JSON.stringify({
                 scene_code: selectedScene.id,
                 user_background: backgroundHint || null,
-                custom_requirements: null
+                custom_requirements: null,
+                // 新增配置项
+                opening_line: openingLine,
+                fixed_questions: currentSceneConfig.fixedQuestions,
+                related_questions: currentSceneConfig.relatedQuestions,
+                sop_checklist: currentSceneConfig.sopChecklist
             })
         });
 
@@ -622,11 +711,233 @@ function renderSopPreview(checklist) {
     `;
 }
 
-// 在场景选择时加载 SOP 预览
-const originalOpenBackgroundModal = openBackgroundModal;
-openBackgroundModal = function(industry, scene) {
-    originalOpenBackgroundModal(industry, scene);
-    if (scene && scene.id) {
-        loadSopPreview(scene.id);
+// ============================================
+// 渲染配置列表函数
+// ============================================
+
+// 渲染固定问题列表
+function renderFixedQuestions(questions) {
+    const container = document.getElementById('fixedQuestionList');
+    const countEl = document.getElementById('fixedQuestionCount');
+    
+    if (!container || !countEl) return;
+    
+    countEl.textContent = `共${questions.length}个问题`;
+    container.innerHTML = '';
+    
+    questions.forEach((q, index) => {
+        const item = document.createElement('div');
+        item.className = 'question-item';
+        item.innerHTML = `
+            <div class="question-number">${index + 1}</div>
+            <div class="question-content">
+                <input type="text" 
+                    class="question-input" 
+                    value="${q.question || ''}" 
+                    data-index="${index}"
+                    placeholder="请输入问题">
+            </div>
+            <div class="question-actions">
+                <button class="btn-icon btn-delete" onclick="deleteFixedQuestion(${index})" title="删除">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(item);
+        
+        // 绑定输入事件
+        const input = item.querySelector('.question-input');
+        input.addEventListener('input', (e) => {
+            currentSceneConfig.fixedQuestions[index].question = e.target.value;
+        });
+    });
+}
+
+// 渲染关联问题列表
+function renderRelatedQuestions(questions) {
+    const container = document.getElementById('relatedQuestionList');
+    const countEl = document.getElementById('relatedQuestionCount');
+    
+    if (!container || !countEl) return;
+    
+    countEl.textContent = `共${questions.length}个关联问题`;
+    container.innerHTML = '';
+    
+    questions.forEach((q, index) => {
+        const keywords = Array.isArray(q.trigger_keywords) ? q.trigger_keywords.join('、') : '';
+        const item = document.createElement('div');
+        item.className = 'related-question-item';
+        item.innerHTML = `
+            <div class="related-question-header">
+                <span class="related-question-id">${q.id || '关联问题' + (index + 1)}</span>
+                <span class="related-question-keywords">触发词：${keywords}</span>
+            </div>
+            <div class="related-question-content">
+                <input type="text" 
+                    class="question-input" 
+                    value="${q.question || ''}" 
+                    data-index="${index}"
+                    placeholder="请输入问题">
+            </div>
+            <div class="question-actions">
+                <button class="btn-icon btn-delete" onclick="deleteRelatedQuestion(${index})" title="删除">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(item);
+        
+        // 绑定输入事件
+        const input = item.querySelector('.question-input');
+        input.addEventListener('input', (e) => {
+            currentSceneConfig.relatedQuestions[index].question = e.target.value;
+        });
+    });
+}
+
+// 渲染SOP质检项列表
+function renderSopChecklist(checklist) {
+    const container = document.getElementById('sopList');
+    const countEl = document.getElementById('sopChecklistCount');
+    
+    if (!container || !countEl) return;
+    
+    countEl.textContent = `共${checklist.length}个质检项`;
+    container.innerHTML = '';
+    
+    checklist.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'sop-item';
+        const title = item.title || item.name || item.check_point || '';
+        const description = item.description || item.check_criteria || '';
+        
+        div.innerHTML = `
+            <div class="sop-checkbox">
+                <input type="checkbox" checked disabled>
+            </div>
+            <div class="sop-content">
+                <div class="sop-title">${index + 1}. ${title}</div>
+                <div class="sop-description">${description}</div>
+            </div>
+            <div class="question-actions">
+                <button class="btn-icon btn-delete" onclick="deleteSopItem(${index})" title="删除">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// ============================================
+// 删除和添加操作
+// ============================================
+
+function deleteFixedQuestion(index) {
+    if (confirm('确定要删除这个问题吗？')) {
+        currentSceneConfig.fixedQuestions.splice(index, 1);
+        renderFixedQuestions(currentSceneConfig.fixedQuestions);
     }
-};
+}
+
+function deleteRelatedQuestion(index) {
+    if (confirm('确定要删除这个关联问题吗？')) {
+        currentSceneConfig.relatedQuestions.splice(index, 1);
+        renderRelatedQuestions(currentSceneConfig.relatedQuestions);
+    }
+}
+
+function deleteSopItem(index) {
+    if (confirm('确定要删除这个质检项吗？')) {
+        currentSceneConfig.sopChecklist.splice(index, 1);
+        renderSopChecklist(currentSceneConfig.sopChecklist);
+    }
+}
+
+// ============================================
+// 恢复默认按钮事件
+// ============================================
+
+const btnRestoreOpening = document.getElementById('btnRestoreOpening');
+if (btnRestoreOpening) {
+    btnRestoreOpening.addEventListener('click', () => {
+        if (originalPresetData) {
+            const input = document.getElementById('bgOpeningInput');
+            if (input) {
+                input.value = originalPresetData.opening_line || '';
+                currentSceneConfig.openingLine = originalPresetData.opening_line || '';
+            }
+        }
+    });
+}
+
+const btnRestoreFixed = document.getElementById('btnRestoreFixed');
+if (btnRestoreFixed) {
+    btnRestoreFixed.addEventListener('click', () => {
+        if (originalPresetData && originalPresetData.fixed_questions) {
+            currentSceneConfig.fixedQuestions = JSON.parse(JSON.stringify(originalPresetData.fixed_questions));
+            renderFixedQuestions(currentSceneConfig.fixedQuestions);
+        }
+    });
+}
+
+const btnRestoreRelated = document.getElementById('btnRestoreRelated');
+if (btnRestoreRelated) {
+    btnRestoreRelated.addEventListener('click', () => {
+        if (originalPresetData && originalPresetData.related_questions) {
+            currentSceneConfig.relatedQuestions = JSON.parse(JSON.stringify(originalPresetData.related_questions));
+            renderRelatedQuestions(currentSceneConfig.relatedQuestions);
+        }
+    });
+}
+
+const btnRestoreSop = document.getElementById('btnRestoreSop');
+if (btnRestoreSop) {
+    btnRestoreSop.addEventListener('click', () => {
+        if (originalPresetData && originalPresetData.sop_checklist) {
+            currentSceneConfig.sopChecklist = JSON.parse(JSON.stringify(originalPresetData.sop_checklist));
+            renderSopChecklist(currentSceneConfig.sopChecklist);
+        }
+    });
+}
+
+// ============================================
+// 折叠/展开按钮事件
+// ============================================
+
+document.querySelectorAll('.bg-section-header').forEach(header => {
+    header.addEventListener('click', function() {
+        const target = this.getAttribute('data-target');
+        const content = document.getElementById(target);
+        const collapseBtn = this.querySelector('.btn-collapse-mini');
+        
+        if (content) {
+            content.classList.toggle('collapsed');
+            this.classList.toggle('expanded');
+        }
+    });
+});
+
+// 在场景选择时加载 SOP 预览（保持兼容性）
+if (typeof loadSopPreview === 'function') {
+    const _originalOpenBgModal = openBackgroundModal;
+    openBackgroundModal = async function(industry, scene) {
+        await _originalOpenBgModal(industry, scene);
+        if (scene && scene.id) {
+            try {
+                await loadSopPreview(scene.id);
+            } catch (e) {
+                console.error('Load SOP preview failed:', e);
+            }
+        }
+    };
+}

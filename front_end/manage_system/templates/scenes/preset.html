@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+
+{% block title %}预设场景管理 - AI教练后台管理系统{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-item">首页</span>
+<span class="breadcrumb-item">场景管理</span>
+<span class="breadcrumb-item">预设场景</span>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('manage.manage_static', filename='css/common.css') }}">
+<link rel="stylesheet" href="{{ url_for('manage.manage_static', filename='css/preset.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="preset-scenes-page">
+    <!-- 页面头部 -->
+    <div class="preset-header">
+        <div class="preset-header-content">
+            <div class="preset-title-group">
+                <h1>🏢 预设场景库</h1>
+                <p>浏览和选择系统预设的标准场景模板</p>
+            </div>
+            <div class="preset-search">
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="搜索场景名称..." id="searchInput" onkeyup="handleSearch()">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="preset-stats">
+        <div class="preset-stat-card">
+            <div class="preset-stat-icon" style="background: #dbeafe;">📚</div>
+            <div class="preset-stat-info">
+                <div class="preset-stat-value" id="totalCount">0</div>
+                <div class="preset-stat-label">总场景数</div>
+            </div>
+        </div>
+        <div class="preset-stat-card">
+            <div class="preset-stat-icon" style="background: #d1fae5;">🏢</div>
+            <div class="preset-stat-info">
+                <div class="preset-stat-value" id="industryCount">0</div>
+                <div class="preset-stat-label">覆盖行业</div>
+            </div>
+        </div>
+        <div class="preset-stat-card">
+            <div class="preset-stat-icon" style="background: #fef3c7;">🔥</div>
+            <div class="preset-stat-info">
+                <div class="preset-stat-value" id="hotScene">-</div>
+                <div class="preset-stat-label">最热场景</div>
+            </div>
+        </div>
+        <div class="preset-stat-card">
+            <div class="preset-stat-icon" style="background: #fce7f3;">📊</div>
+            <div class="preset-stat-info">
+                <div class="preset-stat-value" id="totalUsage">0</div>
+                <div class="preset-stat-label">总使用次数</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 行业筛选 -->
+    <div class="industry-filter">
+        <div class="industry-tabs">
+            <button class="industry-tab active" data-industry="all" onclick="filterByIndustry('all')">全部场景</button>
+            <button class="industry-tab" data-industry="automobile" onclick="filterByIndustry('automobile')">🚗 汽车销售</button>
+            <button class="industry-tab" data-industry="education" onclick="filterByIndustry('education')">📚 教育培训</button>
+            <button class="industry-tab" data-industry="realestate" onclick="filterByIndustry('realestate')">🏠 房产销售</button>
+            <button class="industry-tab" data-industry="insurance" onclick="filterByIndustry('insurance')">💼 保险金融</button>
+        </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loadingState" class="loading-text" style="display: none;">
+        <span class="loading"></span>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 空状态 -->
+    <div id="emptyState" class="preset-empty" style="display: none;">
+        <div class="preset-empty-icon">📭</div>
+        <div class="preset-empty-text">暂无符合条件的场景</div>
+        <div class="preset-empty-subtext">试试切换行业或修改搜索关键词</div>
+    </div>
+
+    <!-- 场景网格 -->
+    <div class="scenes-grid" id="scenesGrid"></div>
+</div>
+
+<!-- 场景详情模态框 -->
+<div class="modal-overlay" id="sceneDetailModal" style="display: none;">
+    <div class="modal scene-detail-modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="detailModalTitle">场景详情</h3>
+            <button class="modal-close" onclick="closeSceneDetail()">&times;</button>
+        </div>
+        <div class="modal-body" id="sceneDetailBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('manage.manage_static', filename='js/preset.js') }}"></script>
+{% endblock %}

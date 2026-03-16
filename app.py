@@ -24,6 +24,7 @@ from routes.scene_agent_routes import scene_create_bp
 from routes.preset_scene_routes import preset_scene_bp
 from routes.sop_routes import sop_bp
 from routes.assessment_view_routes import assessment_view_bp
+from routes.manage_routes import manage_bp
 from routes.progress_routes import register_progress_websocket
 from routes.realtime_routes import register_websocket
 
@@ -97,6 +98,13 @@ def industry_page():
         return f.read()
 
 
+@app.route('/industry/scene-config')
+def scene_config_page():
+    """场景配置页面"""
+    scene_config_template_path = INDUSTRY_TEMPLATE_DIR / "scene_config.html"
+    with open(scene_config_template_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
 @app.route('/industry/static/<path:filename>')
 def industry_static(filename):
     return send_from_directory(INDUSTRY_STATIC_DIR, filename)
@@ -116,6 +124,7 @@ app.register_blueprint(preset_scene_bp)
 app.register_blueprint(prompt_bp)
 app.register_blueprint(evaluate_bp)
 app.register_blueprint(assessment_view_bp)  # 新的评估查看页面
+app.register_blueprint(manage_bp)  # 后台管理系统
 # app.register_blueprint(dimension_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)

@@ -866,6 +866,28 @@ body::after {
     line-height: 1.4;
 }
 
+.bg-scene-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 0.75rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.meta-label {
+    color: var(--text-muted);
+}
+
+.meta-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
 /* 角色分配 */
 .bg-role-section {
     display: flex;
@@ -1375,4 +1397,363 @@ body::after {
 
 .bg-sop-btn-config span {
     font-size: 1rem;
+}
+
+/* ============================================
+   新增配置区域样式
+   ============================================ */
+
+/* 配置区块通用样式 */
+.bg-config-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.bg-config-section .bg-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.required-badge {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-left: 4px;
+}
+
+.btn-restore-mini {
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-restore-mini:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.bg-config-section .bg-hint {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+/* AI开场白输入框 */
+.bg-config-section input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: white;
+    transition: all 0.2s;
+}
+
+.bg-config-section input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+}
+
+/* 可折叠区域样式 */
+.bg-config-section.bg-collapsible {
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.bg-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bg-section-header:hover {
+    background: #f1f5f9;
+}
+
+.bg-section-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bg-section-header h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.question-count {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.bg-section-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-collapse-mini {
+    padding: 4px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-collapse-mini:hover {
+    background: #f1f5f9;
+}
+
+.btn-collapse-mini .icon-collapse {
+    transition: transform 0.3s;
+}
+
+.bg-section-header.expanded .icon-collapse {
+    transform: rotate(180deg);
+}
+
+.bg-section-content {
+    margin-top: 12px;
+    padding: 20px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    max-height: 500px;
+    overflow-y: auto;
+    transition: all 0.3s;
+}
+
+.bg-section-content.collapsed {
+    display: none;
+}
+
+/* 问题列表样式 */
+.question-list,
+.related-question-list,
+.sop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.question-item,
+.related-question-item,
+.sop-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.question-item:hover,
+.related-question-item:hover,
+.sop-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.question-number {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.question-content,
+.sop-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.question-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background: white;
+    transition: all 0.2s;
+}
+
+.question-input:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+}
+
+.question-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-icon {
+    padding: 6px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.btn-icon.btn-delete:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+/* 关联问题特殊样式 */
+.related-question-item {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.related-question-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.related-question-id {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.related-question-keywords {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.related-question-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* SOP项目特殊样式 */
+.sop-item {
+    align-items: flex-start;
+}
+
+.sop-checkbox {
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+.sop-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.sop-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.sop-description {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+/* 添加按钮 */
+.btn-add-item {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: white;
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-add-item:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #475569;
+}
+
+.btn-add-item svg {
+    stroke: currentColor;
+}
+
+/* ============================================
+   加载动画
+   ============================================ */
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

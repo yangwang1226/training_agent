@@ -7,6 +7,8 @@ from .scene_dao import (
     get_active_scenes,
     get_prompt_by_scene_id,
     get_prompt_by_name,
+    soft_delete_scene,
+    update_scene,
     SceneStatus
 )
 from .record_dao import (
@@ -40,8 +42,10 @@ __all__ = [
     'get_active_scenes',
     'get_prompt_by_scene_id',
     'get_prompt_by_name',
+    'soft_delete_scene',
+    'update_scene',
     'SceneStatus',
-        'save_coach_record',
+    'save_coach_record',
     'get_coach_record_by_session_id',
     'update_coach_record',
     'calculate_final_score',
