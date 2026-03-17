@@ -29,13 +29,18 @@
 </iframe>
 
 <script>
-// 获取场景代码参数
+// 获取URL参数
 const urlParams = new URLSearchParams(window.location.search);
 const sceneCode = urlParams.get('scene_code');
+const mode = urlParams.get('mode');
+const data = urlParams.get('data');
 
 if (sceneCode) {
-    // 加载场景配置页面到iframe
+    // 预设场景：加载场景配置页面到iframe
     document.getElementById('sceneConfigFrame').src = `/industry/scene-config?scene_code=${sceneCode}`;
+} else if (mode === 'custom' && data) {
+    // 自定义场景：传递mode和data参数
+    document.getElementById('sceneConfigFrame').src = `/industry/scene-config?mode=custom&data=${encodeURIComponent(data)}`;
 } else {
     alert('缺少场景参数');
     history.back();

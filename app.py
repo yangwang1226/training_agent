@@ -23,6 +23,7 @@ from routes import scene_bp, prompt_bp, evaluate_bp, progress_bp, realtime_bp
 from routes.scene_agent_routes import scene_create_bp
 from routes.preset_scene_routes import preset_scene_bp
 from routes.sop_routes import sop_bp
+from routes.sop_routes_extension import sop_extraction_bp
 from routes.assessment_view_routes import assessment_view_bp
 from routes.manage_routes import manage_bp
 from routes.custom_scene_routes import custom_scene_bp
@@ -131,6 +132,7 @@ app.register_blueprint(custom_scene_bp)  # 自定义场景创建
 app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)
 app.register_blueprint(sop_bp)
+app.register_blueprint(sop_extraction_bp)
 
 register_progress_websocket(sock)
 register_websocket(sock)

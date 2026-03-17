@@ -19,21 +19,32 @@ let originalConfig = null; // 用于恢复默认
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 从URL获取场景代码
+    // 从URL获取参数
     const urlParams = new URLSearchParams(window.location.search);
     sceneCode = urlParams.get('scene_code');
+    const mode = urlParams.get('mode');
+    const dataStr = urlParams.get('data');
     
-    if (!sceneCode) {
+    // 判断是预设场景还是自定义场景
+    if (mode === 'custom' && dataStr) {
+        // 自定义场景模式：直接使用传入的数据
+        try {
+            const customData = JSON.parse(decodeURIComponent(dataStr));
+            loadCustomSceneData(customData);
+            initEventListeners();
+        } catch (error) {
+            console.error('解析自定义场景数据失败:', error);
+            alert('加载配置失败，请返回重试');
+            history.back();
+        }
+    } else if (sceneCode) {
+        // 预设场景模式：从API加载
+        loadSceneConfig();
+        initEventListeners();
+    } else {
         alert('缺少场景参数');
         history.back();
-        return;
     }
-    
-    // 加载场景配置
-    loadSceneConfig();
-    
-    // 绑定事件
-    initEventListeners();
 });
 
 // 加载场景配置
@@ -87,6 +98,50 @@ async function loadSceneConfig() {
         history.back();
     } finally {
         showLoading(false);
+    }
+}
+
+
+// 加载自定义场景数据（无需API调用）
+function loadCustomSceneData(data) {
+    console.log('加载自定义场景数据:', data);
+    
+    // 转换自定义场景数据格式为currentConfig格式
+    currentConfig = {
+        sceneCode: 'custom_' + Date.now(),
+        sceneName: data.scene_name || '自定义场景',
+        sceneDescription: data.scene_description || '',
+        industryCode: data.industry || '',
+        aiRole: data.ai_role || '',
+        userRole: data.user_role || '',
+        difficulty: 'medium',
+        duration: 600,
+        openingLine: data.opening_line || '',
+        fixedQuestions: JSON.parse(JSON.stringify(data.fixed_questions || [])),
+        relatedQuestions: JSON.parse(JSON.stringify(data.related_questions || [])),
+        sopChecklist: JSON.parse(JSON.stringify(data.sop_checklist || []))
+    };
+    
+    // 自定义场景没有原始配置，用当前配置作为原始配置
+    originalConfig = JSON.parse(JSON.stringify(currentConfig));
+    
+    console.log('转换后的配置:', currentConfig);
+    console.log('固定问题数量:', currentConfig.fixedQuestions.length);
+    console.log('关联问题数量:', currentConfig.relatedQuestions.length);
+    console.log('SOP质检项数量:', currentConfig.sopChecklist.length);
+    
+    // 渲染页面
+    renderPage();
+    
+    // 自定义场景：将场景描述填充到场景背景输入框
+    const backgroundInput = document.getElementById('backgroundInput');
+    if (backgroundInput && data.scene_description) {
+        backgroundInput.value = data.scene_description;
+        // 更新字符计数
+        const charCount = document.getElementById('charCount');
+        if (charCount) {
+            charCount.textContent = data.scene_description.length;
+        }
     }
 }
 
@@ -415,10 +470,13 @@ async function submitAndStart() {
     const backgroundInput = document.getElementById('backgroundInput');
     const openingInput = document.getElementById('openingInput');
     
-    const background = backgroundInput.value.trim();
+    const background = backgroundInput ? backgroundInput.value.trim() : '';
     const opening = openingInput.value.trim();
     
-    if (!background) {
+    // 自定义场景不需要填写背景
+    const isCustomScene = currentConfig.sceneCode && currentConfig.sceneCode.startsWith('custom_');
+    
+    if (!isCustomScene && !background) {
         alert('请填写场景背景');
         backgroundInput.focus();
         return;
@@ -433,28 +491,60 @@ async function submitAndStart() {
     try {
         showLoading(true);
         
-        const response = await fetch('/api/scene/generate-from-preset', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                scene_code: sceneCode,
-                user_background: background,
-                opening_line: opening,
-                fixed_questions: currentConfig.fixedQuestions,
-                related_questions: currentConfig.relatedQuestions,
-                sop_checklist: currentConfig.sopChecklist
-            })
-        });
+        let response;
         
-        const result = await response.json();
-        
-        if (!result.success) {
-            throw new Error(result.error || '场景创建失败');
+        if (isCustomScene) {
+            // 自定义场景：保存到数据库
+            response = await fetch('/api/scene/save-custom', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    scene_name: currentConfig.sceneName,
+                    scene_description: currentConfig.sceneDescription,
+                    industry: currentConfig.industryCode,
+                    ai_role: currentConfig.aiRole,
+                    user_role: currentConfig.userRole,
+                    opening_line: opening,
+                    fixed_questions: currentConfig.fixedQuestions,
+                    related_questions: currentConfig.relatedQuestions,
+                    sop_checklist: currentConfig.sopChecklist,
+                    status: 2  // 已定制状态
+                })
+            });
+        } else {
+            // 预设场景：生成训练
+            response = await fetch('/api/scene/generate-from-preset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    scene_code: sceneCode,
+                    user_background: background,
+                    opening_line: opening,
+                    fixed_questions: currentConfig.fixedQuestions,
+                    related_questions: currentConfig.relatedQuestions,
+                    sop_checklist: currentConfig.sopChecklist
+                })
+            });
         }
         
-        window.location.href = `/realtime?session_id=${result.session_id}`;
+                const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || '操作失败');
+        }
+        
+        // 根据返回结果跳转
+        if (isCustomScene) {
+            // 自定义场景：使用返回的 redirect_url
+            window.location.href = result.redirect_url || '/manage_system/scenes';
+        } else {
+            // 预设场景：跳转到训练页面
+            window.location.href = `/realtime?session_id=${result.session_id}`;
+        }
         
     } catch (error) {
         console.error('提交失败:', error);

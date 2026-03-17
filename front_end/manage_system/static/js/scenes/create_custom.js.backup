@@ -32,7 +32,6 @@ function initElements() {
 
 // 初始化事件监听
 function initEventListeners() {
-    console.log('initEventListeners called');
     // 场景描述输入
     sceneDescriptionInput.addEventListener('input', function() {
         formData.sceneDescription = this.value;
@@ -150,9 +149,10 @@ async function handleNextStep() {
             // 将数据编码后传递给配置页面
             const encodedData = encodeURIComponent(JSON.stringify(data));
             
-            // 隐藏 Loading 并跳转
-            hideLoading();
-            window.location.href = `/manage_system/scene-config?mode=custom&data=${encodedData}`;
+            // 延迟跳转，让用户看到完成状态
+            setTimeout(() => {
+                window.location.href = `/manage_system/scene-config?mode=custom&data=${encodedData}`;
+            }, 1000);
         } else {
             hideLoading();
             showToast(result.error || 'AI生成失败，请重试', 'error');
@@ -254,8 +254,8 @@ function showToast(message, type = 'info') {
 }
 
 // 添加CSS动画
-const toastStyle = document.createElement('style');
-toastStyle.textContent = `
+const style = document.createElement('style');
+style.textContent = `
     @keyframes slideInRight {
         from {
             transform: translateX(400px);
@@ -278,4 +278,4 @@ toastStyle.textContent = `
         }
     }
 `;
-document.head.appendChild(toastStyle);
+document.head.appendChild(style);
