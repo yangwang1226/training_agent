@@ -27,6 +27,7 @@ from routes.sop_routes_extension import sop_extraction_bp
 from routes.assessment_view_routes import assessment_view_bp
 from routes.manage_routes import manage_bp
 from routes.custom_scene_routes import custom_scene_bp
+from routes.scene_prompt_routes import scene_prompt_bp
 from routes.progress_routes import register_progress_websocket
 from routes.realtime_routes import register_websocket
 
@@ -128,6 +129,7 @@ app.register_blueprint(evaluate_bp)
 app.register_blueprint(assessment_view_bp)  # 新的评估查看页面
 app.register_blueprint(manage_bp)  # 后台管理系统
 app.register_blueprint(custom_scene_bp)  # 自定义场景创建
+app.register_blueprint(scene_prompt_bp)  # 场景提示词生成
 # app.register_blueprint(dimension_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(realtime_bp)

@@ -6,6 +6,7 @@ from typing import Dict, Any
 import db as db_module
 from agent.service.scene import SceneAgent
 from agent.service.scene.preset_scene_service import PresetSceneService
+from agent.service.scene.prompt_generation_service import PromptGenerationService
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,9 @@ scene_agents: Dict[str, SceneAgent] = {}
 
 # 预设场景服务实例
 preset_service = PresetSceneService()
+
+# 动态提示词生成服务实例
+prompt_service = PromptGenerationService()
 
 
 def get_scene_agent(session_id: str) -> SceneAgent:
@@ -270,36 +274,83 @@ def generate_from_preset():
         
         logger.info(f"开始基于预设场景生成: {scene_code}")
         
-        # 1. 使用预设场景服务生成场景内容
-        scene_content = preset_service.generate_from_preset(
-            scene_code=scene_code,
-            user_background=user_background,
-            custom_requirements=custom_requirements
+                # 1. 加载预设场景配置
+        preset_data = preset_service.load_preset_scene(scene_code)
+        
+        if not preset_data:
+            return jsonify({
+                'success': False,
+                'error': f'预设场景不存在: {scene_code}'
+            })
+        
+        # 2. 使用动态提示词生成服务生成高质量对练提示词
+        logger.info(f"开始动态生成对练提示词: {preset_data.get('scene_name')}")
+        
+        # 准备场景数据
+        scene_data = {
+            'ai_role': preset_data.get('ai_role'),
+            'user_role': preset_data.get('user_role'),
+            'industry': preset_data.get('industry_code'),
+            'scene_description': preset_data.get('scene_description'),
+            'background_info': user_background or preset_data.get('background_info', ''),
+            'fixed_questions': fixed_questions or preset_data.get('fixed_questions', []),
+            'related_questions': related_questions or preset_data.get('related_questions', []),
+        }
+        
+        # 判断场景类型（从预设数据或默认为 sales）
+        scene_type = preset_data.get('scene_type', 'sales')
+        
+        full_prompt = prompt_service.generate_scene_prompt(
+            scene_type=scene_type,
+            scene_data=scene_data,
+            use_dynamic=True
         )
         
-        if not scene_content:
-            return jsonify({
-                'success': False,
-                'error': '场景内容生成失败'
-            })
-        
-        # 2. 构建完整提示词（结合手工模板）
-        full_prompt = preset_service.build_full_prompt(scene_content)
-        
+        # 如果动态生成失败，降级为预设场景服务的生成方式
         if not full_prompt:
-            return jsonify({
-                'success': False,
-                'error': '提示词构建失败'
-            })
+            logger.warning("动态生成失败，降级为预设场景服务")
+            scene_content = preset_service.generate_from_preset(
+                scene_code=scene_code,
+                user_background=user_background,
+                custom_requirements=custom_requirements
+            )
+            
+            if not scene_content:
+                return jsonify({
+                    'success': False,
+                    'error': '场景内容生成失败'
+                })
+            
+            full_prompt = preset_service.build_full_prompt(scene_content)
+            
+            if not full_prompt:
+                return jsonify({
+                    'success': False,
+                    'error': '提示词构建失败'
+                })
+            
+            # 使用 scene_content 中的数据
+            scene_name = f"{scene_content.industry}_{scene_content.ai_role}_场景"
+            industry = scene_content.industry
+            ai_role = scene_content.ai_role
+            role_type = scene_content.role_type
+            role_description = scene_content.role_description
+        else:
+            logger.info(f"动态生成对练提示词成功，长度: {len(full_prompt)} 字符")
+            # 使用预设数据
+            scene_name = preset_data.get('scene_name')
+            industry = preset_data.get('industry_code')
+            ai_role = preset_data.get('ai_role')
+            role_type = preset_data.get('user_role')
+            role_description = f"训练{role_type}的沟通技巧"
         
-                # 3. 准备场景数据
-        scene_name = f"{scene_content.industry}_{scene_content.ai_role}_场景"
+        # 3. 准备维度配置
         dimension_config = json.dumps({
-            "industry": scene_content.industry,
-            "role_type": scene_content.role_type,
-            "ai_role": scene_content.ai_role,
-            "role_description": scene_content.role_description,
-            "dimensions": [d.to_dict() for d in scene_content.dimensions]
+            "industry": industry,
+            "role_type": role_type,
+            "ai_role": ai_role,
+            "role_description": role_description,
+            "dimensions": []
         }, ensure_ascii=False)
         
                 # 3.5 处理 SOP 质检项（优先使用用户自定义，否则从预设复制）
@@ -317,20 +368,19 @@ def generate_from_preset():
                 sop_checklist_json = json.dumps(preset_sop, ensure_ascii=False)
                 logger.info(f"从预设场景复制了 {len(preset_sop)} 项 SOP 质检项")
         
-                # 4. 保存到数据库
+                        # 4. 保存到数据库
         scene_id = db_module.save_scene(
             scene_name=scene_name,
             scene_prompt=full_prompt,
             dimension_config=dimension_config,
-            role_type=scene_content.role_type,
-            role_description=scene_content.role_description,
-            industry=scene_content.industry,
-            training_goal=f"提升{scene_content.role_type}的沟通能力",
+            role_type=role_type,
+            role_description=role_description,
+            industry=industry,
+            training_goal=f"提升{role_type}的沟通能力",
             full_evaluation_prompt=full_prompt,
             sop_checklist=sop_checklist_json,
             # 新增字段
             preset_scene_code=scene_code,
-            background_hint=user_background,
             opening_line=opening_line,
             fixed_questions=json.dumps(fixed_questions, ensure_ascii=False) if fixed_questions else None,
             related_questions=json.dumps(related_questions, ensure_ascii=False) if related_questions else None,
@@ -348,7 +398,7 @@ def generate_from_preset():
         # 5. 增加预设场景的使用次数
         db_module.increment_usage_count(scene_code)
         
-        # 6. 返回结果
+                # 6. 返回结果
         return jsonify({
             'success': True,
             'scene_id': scene_id,
@@ -356,13 +406,11 @@ def generate_from_preset():
             'redirect_url': f'/realtime/{scene_id}',
             'message': '场景生成成功！准备开始对练',
             'scene_content': {
-                'industry': scene_content.industry,
-                'ai_role': scene_content.ai_role,
-                'role_type': scene_content.role_type,
-                'background_info': scene_content.background_info,
-                'main_questions_count': len(scene_content.main_questions),
-                'trigger_groups_count': len(scene_content.trigger_groups),
-                'dimensions_count': len(scene_content.dimensions)
+                'industry': industry,
+                'ai_role': ai_role,
+                'role_type': role_type,
+                'background_info': user_background or '',
+                'prompt_length': len(full_prompt)
             }
         })
         

@@ -14,9 +14,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 # 初始化 API Key
 dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
 
+# 导入动态提示词生成服务
+from agent.service.scene.prompt_generation_service import PromptGenerationService
+
 logger = logging.getLogger(__name__)
 
 custom_scene_bp = Blueprint('custom_scene', __name__, url_prefix='/api/scene')
+
+# 初始化动态提示词生成服务
+prompt_service = PromptGenerationService()
 
 
 def call_qwen_model(prompt: str, temperature: float = 0.3) -> str:
@@ -251,8 +257,27 @@ def save_custom_scene():
         sop_checklist = data.get('sop_checklist', [])
         scene_description = data.get('scene_description', '')
         
-        # 构建完整的场景提示词（简化版本）
-        scene_prompt = f"""
+                # 使用动态提示词生成服务生成高质量对练提示词
+        logger.info(f"开始动态生成对练提示词: {scene_name}")
+        
+        scene_prompt = prompt_service.generate_scene_prompt(
+            scene_type='sales',  # 默认使用 sales 类型
+            scene_data={
+                'ai_role': ai_role,
+                'user_role': user_role,
+                'industry': industry,
+                'scene_description': scene_description,
+                'background_info': scene_description,
+                'fixed_questions': fixed_questions,
+                'related_questions': related_questions,
+            },
+            use_dynamic=True
+        )
+        
+        # 如果动态生成失败，降级为简单拼接
+        if not scene_prompt:
+            logger.warning("动态生成失败，使用简单拼接方式")
+            scene_prompt = f"""
 # 场景：{scene_name}
 
 ## 角色设定
@@ -271,6 +296,8 @@ def save_custom_scene():
 ## 关联问题
 {json.dumps(related_questions, ensure_ascii=False, indent=2)}
 """
+        else:
+            logger.info(f"动态生成对练提示词成功，长度: {len(scene_prompt)} 字符")
         
         # 构建维度配置
         dimension_config = json.dumps({
@@ -292,7 +319,6 @@ def save_custom_scene():
             training_goal=f"提升{user_role}的沟通能力",
             full_evaluation_prompt=scene_prompt,
             sop_checklist=json.dumps(sop_checklist, ensure_ascii=False),
-            background_hint=scene_description,
             opening_line=opening_line,
             fixed_questions=json.dumps(fixed_questions, ensure_ascii=False),
             related_questions=json.dumps(related_questions, ensure_ascii=False),

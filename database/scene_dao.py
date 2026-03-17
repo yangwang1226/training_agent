@@ -23,36 +23,35 @@ def save_scene(
     create_name: str = None,
     dimension_config: str = None,
     role_type: str = None,
+    scene_type: str = 'sales',
     role_description: str = None,
     industry: str = None,
     training_goal: str = None,
     full_evaluation_prompt: str = None,
     sop_checklist: str = None,
-    # 新增字段
     preset_scene_code: str = None,
-    background_hint: str = None,
     opening_line: str = None,
     fixed_questions: str = None,
     related_questions: str = None
 ) -> Optional[int]:
     with get_db() as conn:
         with conn.cursor() as cursor:
-                        sql = """
+            sql = """
                 INSERT INTO ai_coach_scene 
                 (scene_name, scene_prompt, status, org_id, creator_id, create_name,
                  dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt, sop_checklist,
-                 preset_scene_code, background_hint, opening_line, fixed_questions, related_questions)
+                 preset_scene_code, opening_line, fixed_questions, related_questions, scene_type)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-        cursor.execute(sql, (
+            cursor.execute(sql, (
                 scene_name, scene_prompt, status, org_id, creator_id, create_name,
                 dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt, sop_checklist,
-                preset_scene_code, background_hint, opening_line, fixed_questions, related_questions
+                preset_scene_code, opening_line, fixed_questions, related_questions, scene_type
             ))
-        conn.commit()
-        scene_id = cursor.lastrowid
-        logger.info(f"场景保存成功：id={scene_id}, scene_name={scene_name}")
-        return scene_id
+            conn.commit()
+            scene_id = cursor.lastrowid
+            logger.info(f"场景保存成功：id={scene_id}, scene_name={scene_name}")
+            return scene_id
 
 
 def get_scene_by_id(scene_id: int) -> Optional[Dict[str, Any]]:

@@ -191,7 +191,6 @@ def update_scene_api(scene_id):
             scene_id=scene_id,
             scene_name=data.get('scene_name'),
             scene_prompt=data.get('scene_prompt'),
-            background_hint=data.get('background_hint'),
             role_type=data.get('role_type'),
             role_description=data.get('role_description'),
             industry=data.get('industry'),
