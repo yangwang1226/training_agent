@@ -2,8 +2,7 @@ from .realtime_base import (
     RealtimeConfig,
     RealtimeCallback,
     RealtimeClient,
-    ProviderType,
-    create_realtime_client
+    ProviderType
 )
 
 from .qwen.qwen_omni import (
@@ -18,7 +17,6 @@ __all__ = [
     "RealtimeCallback",
     "RealtimeClient",
     "ProviderType",
-    "create_realtime_client",
     "QwenOmniRealtime",
     "QwenOmniCallback",
     "B64PCMPlayer",

@@ -567,6 +567,27 @@ body {
     line-height: 1.5;
 }
 
+/* AI 模型名称高亮样式 */
+.scenario-value.provider-name {
+    color: var(--mint);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.scenario-value.provider-name::before {
+    content: "●";
+    font-size: 8px;
+    color: var(--mint);
+    animation: providerPulse 2s ease-in-out infinite;
+}
+
+@keyframes providerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
 .guide-list {
     list-style: none;
     display: flex;

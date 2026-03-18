@@ -29,10 +29,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastMessageDiv = null;
     let lastMessageRole = null;
     let lastMessageText = '';
-    let selectedProvider = 'qwen';  // 默认使用 qwen 模型
+    let selectedProvider = INITIAL_PROVIDER || 'qwen';  // 从后端获取或使用默认值
     let scenePrompt = '';
 
     loadSceneInfo();
+    loadProviderInfo();
 
     async function loadSceneInfo() {
         try {
@@ -53,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function parseAndDisplaySceneInfo(prompt) {
+        function parseAndDisplaySceneInfo(prompt) {
         scenarioNameEl.textContent = SCENE_NAME || '销售实战演练';
         
         const lines = prompt.split('\n');
@@ -72,6 +73,25 @@ document.addEventListener('DOMContentLoaded', function() {
             customerProfileEl.textContent = profileInfo.slice(0, -1);
         } else {
             customerProfileEl.textContent = 'AI模拟客户，与您进行销售实战演练';
+        }
+    }
+
+    async function loadProviderInfo() {
+        try {
+            const response = await fetch('/realtime/api/providers');
+            const data = await response.json();
+            if (data.success) {
+                const providers = data.providers;
+                const current = providers.find(p => p.id === selectedProvider);
+                if (current) {
+                    const providerEl = document.getElementById('currentProvider');
+                    providerEl.textContent = current.name;  // "通义千问" 或 "火山引擎"
+                    providerEl.title = current.description;  // 鼠标悬停显示详细说明
+                }
+            }
+        } catch (error) {
+            console.error('Error loading provider info:', error);
+            document.getElementById('currentProvider').textContent = selectedProvider.toUpperCase();
         }
     }
 
@@ -122,8 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
             window.audioSource = source;
             window.muteGain = muteGain;
 
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/api/realtime/ws/${SCENE_ID}?provider=qwen`;
+                        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/api/realtime/ws/${SCENE_ID}?provider=${selectedProvider}`;
             ws = new WebSocket(wsUrl);
             ws.binaryType = 'arraybuffer';
 

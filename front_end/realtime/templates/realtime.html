@@ -113,9 +113,13 @@
                                 <span class="scenario-label">场景</span>
                                 <span class="scenario-value" id="scenarioName">加载中...</span>
                             </div>
-                            <div class="scenario-item">
+                                                        <div class="scenario-item">
                                 <span class="scenario-label">客户档案</span>
                                 <span class="scenario-value" id="customerProfile">加载中...</span>
+                            </div>
+                            <div class="scenario-item">
+                                <span class="scenario-label">AI模型</span>
+                                <span class="scenario-value provider-name" id="currentProvider">加载中...</span>
                             </div>
                         </div>
                     </div>
@@ -166,9 +170,10 @@
         </div>
     </div>
 
-    <script>
+        <script>
         const SCENE_ID = "{{ scene_id }}";
         const SCENE_NAME = "{{ scene_name }}";
+        const INITIAL_PROVIDER = "{{ provider }}";
     </script>
     <script src="{{ url_for('realtime.static', filename='js/realtime.js') }}"></script>
 </body>

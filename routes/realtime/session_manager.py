@@ -119,10 +119,10 @@ class RealtimeSessionManager:
     def _create_client(self) -> bool:
         """创建 realtime 客户端"""
         try:
-            from llm import create_realtime_client, RealtimeConfig, ProviderType
+            from llm import RealtimeConfig, ProviderType, RealtimeClient
             
             config = RealtimeConfig.from_provider(ProviderType(self.provider))
-            self.client = create_realtime_client(self.provider, config)
+            self.client = RealtimeClient.create(self.provider, config)
             
             logger.info(f"Realtime client created: provider={self.provider}")
             return True

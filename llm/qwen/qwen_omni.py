@@ -2,7 +2,7 @@ import os
 import base64
 import logging
 import pyaudio
-from typing import Optional, Callable
+from typing import Optional
 
 import dashscope
 from dashscope.audio.qwen_omni import (
@@ -17,48 +17,7 @@ from llm.realtime_base import (
     ProviderType, logger
 )
 
-
-class B64PCMPlayer:
-    def __init__(self, pya: pyaudio.PyAudio, sample_rate: int = 24000):
-        self.pya = pya
-        self.sample_rate = sample_rate
-        self.stream = None
-        self.is_playing = False
-        self.audio_queue = []
-    
-    def start(self):
-        if not self.stream:
-            self.stream = self.pya.open(
-                format=pyaudio.paInt16,
-                channels=1,
-                rate=self.sample_rate,
-                output=True
-            )
-        self.is_playing = True
-    
-    def add_data(self, audio_b64: str):
-        try:
-            audio_data = base64.b64decode(audio_b64)
-            if self.stream and self.is_playing:
-                self.stream.write(audio_data)
-        except Exception as e:
-            logger.error(f"Play audio error: {e}")
-    
-    def stop(self):
-        self.is_playing = False
-        if self.stream:
-            self.stream.stop_stream()
-    
-    def cancel(self):
-        self.audio_queue = []
-        self.stop()
-    
-    def shutdown(self):
-        self.stop()
-        if self.stream:
-            self.stream.close()
-            self.stream = None
-
+from llm.untils.audio_player import B64PCMPlayer
 
 class QwenOmniCallback(OmniRealtimeCallback, RealtimeCallback):
     def __init__(self):
@@ -285,89 +244,3 @@ class QwenOmniRealtime(RealtimeClient):
                 self.conversation = None
         
         logger.info("Disconnected")
-
-
-class RealtimeSession:
-    def __init__(self, api_key: str = "", prompt_file: str = "", provider: str = "qwen"):
-        from pathlib import Path
-        self.config = RealtimeConfig.from_provider(ProviderType(provider.lower()))
-        if api_key:
-            self.config.api_key = api_key
-        self.prompt_file = prompt_file
-        self.provider = provider.lower()
-        self.client: Optional[RealtimeClient] = None
-        self.system_prompt: str = ""
-        self.is_running: bool = False
-        self._audio_buffer: list = []
-        self._text_buffer: str = ""
-    
-    def load_prompt(self) -> str:
-        from pathlib import Path
-        prompt_path = Path(self.prompt_file)
-        if not prompt_path.exists():
-            raise FileNotFoundError(f"Prompt file not found: {self.prompt_file}")
-        
-        with open(prompt_path, 'r', encoding='utf-8') as f:
-            self.system_prompt = f.read()
-        
-        logger.info(f"Loaded prompt from: {self.prompt_file}")
-        return self.system_prompt
-    
-    def start(self):
-        if self.is_running:
-            return
-        
-        if not self.system_prompt:
-            self.load_prompt()
-        
-        from llm.realtime_base import create_realtime_client
-        self.client = create_realtime_client(self.provider, self.config)
-        
-        self.client.on_text(self._on_text)
-        self.client.on_audio(self._on_audio)
-        self.client.on_status(self._on_status)
-        
-        self.client.connect(instructions=self.system_prompt)
-        self.is_running = True
-    
-    def _on_text(self, text: str, role: str, is_final: bool):
-        if role == "user":
-            self._text_buffer = f"[用户] {text}"
-        else:
-            self._text_buffer = f"[AI] {text}"
-    
-    def _on_audio(self, audio_b64: str):
-        self._audio_buffer.append(audio_b64)
-    
-    def _on_status(self, status: str, message: str):
-        logger.info(f"Status: {status} - {message}")
-    
-    def send_audio(self, audio_data: bytes):
-        if self.client and self.is_running:
-            self.client.send_audio(audio_data)
-    
-    def send_text(self, text: str):
-        if self.client and self.is_running:
-            self.client.send_text(text)
-    
-    def read_mic(self) -> Optional[bytes]:
-        if self.client and self.is_running:
-            return self.client.read_mic_audio()
-        return None
-    
-    def stop(self):
-        if self.client:
-            self.client.close()
-        self.is_running = False
-    
-    def get_text_buffer(self) -> str:
-        return self._text_buffer
-    
-    def clear_text_buffer(self):
-        self._text_buffer = ""
-    
-    def get_audio_buffer(self) -> list:
-        return self._audio_buffer
-    
-    def clear_audio_buffer(self):
-        self._audio_buffer = []
