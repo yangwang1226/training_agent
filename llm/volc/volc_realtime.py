@@ -11,7 +11,7 @@ from llm.realtime_base import (
     RealtimeConfig, RealtimeCallback, RealtimeClient,
     ProviderType, VOLC_RESOURCE_ID, VOLC_APP_KEY, logger
 )
-from llm.volc_protocol import VolcBinaryProtocol
+from llm.volc.volc_protocol import VolcBinaryProtocol
 
 VOLC_REALTIME_URL = "wss://openspeech.bytedance.com/api/v3/realtime/dialogue"
 

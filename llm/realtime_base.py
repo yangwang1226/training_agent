@@ -172,10 +172,10 @@ def create_realtime_client(provider: str = "qwen", config: RealtimeConfig = None
         config = RealtimeConfig.from_provider(provider_type)
     
     if provider_type == ProviderType.QWEN:
-        from llm.qwen_omni import QwenOmniRealtime
+        from llm.qwen.qwen_omni import QwenOmniRealtime
         return QwenOmniRealtime(config)
     elif provider_type == ProviderType.VOLC:
-        from llm.volc_realtime import VolcRealtimeClient
+        from llm.volc.volc_realtime import VolcRealtimeClient
         return VolcRealtimeClient(config)
         
     else:

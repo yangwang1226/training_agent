@@ -6,7 +6,7 @@ from .realtime_base import (
     create_realtime_client
 )
 
-from .qwen_omni import (
+from .qwen.qwen_omni import (
     QwenOmniRealtime,
     QwenOmniCallback,
     B64PCMPlayer,

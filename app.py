@@ -21,12 +21,12 @@ import uuid
 
 from routes import scene_bp, prompt_bp, evaluate_bp, progress_bp, realtime_bp
 from routes.scene_agent_routes import scene_create_bp
-from routes.preset_scene_routes import preset_scene_bp
+from routes.scene.preset_scene_routes import preset_scene_bp
 from routes.sop_routes import sop_bp
 from routes.sop_routes_extension import sop_extraction_bp
 from routes.assessment_view_routes import assessment_view_bp
 from routes.manage_routes import manage_bp
-from routes.custom_scene_routes import custom_scene_bp
+from routes.scene.custom_scene_routes import custom_scene_bp
 from routes.scene_prompt_routes import scene_prompt_bp
 from routes.progress_routes import register_progress_websocket
 from routes.realtime_routes import register_websocket
