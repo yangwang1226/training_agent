@@ -152,7 +152,9 @@ async function handleNextStep() {
             
             // 隐藏 Loading 并跳转
             hideLoading();
-            window.location.href = `/manage_system/scene-config?mode=custom&data=${encodedData}`;
+            const sceneId = result.scene_id;
+            const provider = 'qwen';  // 默认使用qwen，后续可以让用户选择
+            window.location.href = `/manage_system/scene-config?scene_id=${sceneId}&provider=${provider}`;
         } else {
             hideLoading();
             showToast(result.error || 'AI生成失败，请重试', 'error');

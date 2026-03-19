@@ -50,9 +50,9 @@ class AssessmentTaskManager:
             )
             
             # 获取对话转录
-            transcript = session_manager.get_transcript_text()
+            word_content = session_manager.get_transcript_text()
             
-            if not transcript:
+            if not word_content :
                 logger.warning("对话转录为空，跳过评估")
                 return None
             
@@ -60,7 +60,7 @@ class AssessmentTaskManager:
             assessment_params = self._prepare_assessment_params(
                 session_manager=session_manager,
                 dimensions=dimensions,
-                transcript=transcript,
+                word_content=word_content,
                 save_result=save_result
             )
             
@@ -78,7 +78,7 @@ class AssessmentTaskManager:
         self,
         session_manager,
         dimensions: List[Dict],
-        transcript: str,
+        word_content: str,
         save_result: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
@@ -87,7 +87,7 @@ class AssessmentTaskManager:
         Args:
             session_manager: 会话管理器
             dimensions: 评估维度列表
-            transcript: 对话转录
+            word_content: 对话转录
             save_result: 保存结果
             
         Returns:
@@ -97,11 +97,11 @@ class AssessmentTaskManager:
         
         params = {
             'session_id': session_manager.get_session_id(),
-            'transcript': transcript,
+            'word_content': word_content,
             'dimensions': dimensions,
             'industry': scene.get('industry', ''),
             'role_type': scene.get('ai_role', ''),
-            'background_info': scene.get('background', ''),
+            'role_description': scene.get('role_description', ''),
             'scene_id': session_manager.scene_id,
             'user_id': session_manager.get_user_id(),
         }

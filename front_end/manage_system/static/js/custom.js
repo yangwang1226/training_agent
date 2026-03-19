@@ -412,8 +412,8 @@ function editScene(sceneId) {
 /**
  * 开始训练
  */
-function startTraining(sceneId) {
-    window.location.href = `/realtime/${sceneId}`;
+function startTraining(sceneId, provider = 'qwen') {
+    window.location.href = `/realtime/${sceneId}?provider=${provider}`;
 }
 
 /**

@@ -22,12 +22,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // 从URL获取参数
     const urlParams = new URLSearchParams(window.location.search);
     sceneCode = urlParams.get('scene_code');
+    const sceneId = urlParams.get('scene_id');
+    const provider = urlParams.get('provider') || 'qwen';  // 获取provider参数，默认qwen
     const mode = urlParams.get('mode');
     const dataStr = urlParams.get('data');
     
-    // 判断是预设场景还是自定义场景
-    if (mode === 'custom' && dataStr) {
-        // 自定义场景模式：直接使用传入的数据
+    // 保存provider到全局变量供后续使用
+    window.realtimeProvider = provider;
+    
+    // 判断加载方式
+    if (sceneId) {
+        // 新方式：通过scene_id加载（推荐）
+        loadSceneById(sceneId);
+        initEventListeners();
+    } else if (mode === 'custom' && dataStr) {
+        // 兼容旧方式：自定义场景模式，直接使用传入的数据
         try {
             const customData = JSON.parse(decodeURIComponent(dataStr));
             loadCustomSceneData(customData);
@@ -47,7 +56,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 加载场景配置
+// 通过scene_id加载场景配置（新方式）
+async function loadSceneById(sceneId) {
+    try {
+        showLoading(true);
+        
+                // 调用API获取场景配置
+        const response = await fetch(`/api/scenes/${sceneId}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || '加载场景配置失败');
+        }
+        
+        const scene = result.data;
+        
+        // 解析JSON字段
+        const fixedQuestions = scene.fixed_questions ? JSON.parse(scene.fixed_questions) : [];
+        const relatedQuestions = scene.related_questions ? JSON.parse(scene.related_questions) : [];
+        const sopChecklist = scene.sop_checklist ? JSON.parse(scene.sop_checklist) : [];
+        
+        // 保存配置
+        currentConfig = {
+            sceneId: sceneId,
+            sceneName: scene.scene_name,
+            sceneDescription: scene.scene_description || '',
+            industry: scene.industry || '',
+            aiRole: scene.ai_role || '',
+            userRole: scene.role_type || '',
+            difficulty: scene.difficulty || 'medium',
+            duration: 600,
+            openingLine: scene.opening_line || '',
+            fixedQuestions: JSON.parse(JSON.stringify(fixedQuestions)),
+            relatedQuestions: JSON.parse(JSON.stringify(relatedQuestions)),
+            sopChecklist: JSON.parse(JSON.stringify(sopChecklist))
+        };
+        
+        // 保存原始配置（用于恢复默认）
+        originalConfig = JSON.parse(JSON.stringify(currentConfig));
+        
+        console.log('通过scene_id加载配置成功:', currentConfig);
+        
+        // 渲染界面
+        renderSceneInfo();
+        renderFixedQuestions();
+        renderRelatedQuestions();
+        renderSOPChecklist();
+        
+        showLoading(false);
+    } catch (error) {
+        console.error('加载场景配置失败:', error);
+        showLoading(false);
+        alert('加载场景配置失败：' + error.message);
+        history.back();
+    }
+}
+
+// 加载场景配置（兼容旧方式）
 async function loadSceneConfig() {
     try {
         showLoading(true);
@@ -538,12 +603,15 @@ async function submitAndStart() {
         }
         
         // 根据返回结果跳转
+        const provider = window.realtimeProvider || 'qwen';  // 使用保存的provider参数
+        
         if (isCustomScene) {
-            // 自定义场景：使用返回的 redirect_url
-            window.location.href = result.redirect_url || '/manage_system/scenes';
+            // 自定义场景：使用返回的 redirect_url，添加provider参数
+            const redirectUrl = result.redirect_url || '/manage_system/scenes';
+            window.location.href = redirectUrl.includes('?') ? `${redirectUrl}&provider=${provider}` : `${redirectUrl}?provider=${provider}`;
         } else {
-            // 预设场景：跳转到训练页面
-            window.location.href = `/realtime?session_id=${result.session_id}`;
+            // 预设场景：跳转到训练页面，添加provider参数
+            window.location.href = `/realtime?session_id=${result.session_id}&provider=${provider}`;
         }
         
     } catch (error) {

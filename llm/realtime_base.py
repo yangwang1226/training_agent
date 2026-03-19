@@ -24,10 +24,6 @@ class ProviderType(Enum):
     VOLC = "volc"
 
 
-VOLC_RESOURCE_ID = "volc.speech.dialog"
-VOLC_APP_KEY = "PlgvMymc7f3tQnJ6"
-
-
 @dataclass
 class RealtimeConfig:
     provider: ProviderType = ProviderType.QWEN
@@ -126,7 +122,7 @@ class RealtimeClient(ABC):
         self._instructions = ""
     
     @classmethod
-    def create(cls, provider: str = "qwen", config: RealtimeConfig = None) -> RealtimeClient:
+    def create(cls, provider: str = "qwen", config: RealtimeConfig = None) -> 'RealtimeClient':
         provider_type = ProviderType(provider.lower())
         
         if config is None:

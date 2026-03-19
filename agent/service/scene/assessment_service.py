@@ -66,17 +66,15 @@ class SceneAssessmentService:
         else:
             raise Exception(f"Qwen API error: {response.code} - {response.message}")
 
-    #将对话生成转录文字
     def _generate_transcript(self, word_content: str) -> str:
-        """将对话内容转换为转录文字"""
-        # 将JSON格式的word_content转换为可读文本（模拟recorder.get_transcript_text()的逻辑）
-        messages = json.loads(word_content)
-        transcript_lines = []
-        for msg in messages:
-            role_name = "用户" if msg['role'] == 'user' else "ai"
-            transcript_lines.append(f"[{msg['timestamp']}] {role_name}: {msg['content']}")
-        transcript = "\n".join(transcript_lines)
-        return transcript
+        """处理对话转录文本
+        
+        注意：word_content 已经是格式化的转录文本，直接返回即可
+        格式示例：
+        [2026-03-19 16:03:00] 用户: 你好
+        [2026-03-19 16:03:05] AI: 您好，欢迎...
+        """
+        return word_content
 
     def generate_report(
         self,
@@ -293,12 +291,26 @@ class SceneAssessmentService:
             ])
             
             prompt = f"""你是专业的销售质检专家。请严格按照以下SOP标准，逐项检查销售人员的对话表现。
-            【关键角色说明】
-            这是一个销售培训场景，对话转录格式说明：
-            - 标注为"用户"的发言 = 销售人员（被评估对象）
-            - 标注为"AI"的发言 = 模拟客户
-
-            ⚠️ 重要：你要评估的是销售人员（"用户"）是否按照SOP要求执行，而不是评估客户（"AI"）。
+            
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            【🎯 关键角色说明 - 请务必仔细阅读】
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            
+            这是一个销售培训场景，对话中有两个角色：
+            
+            1. 【销售人员】= 转录中标注为 "用户" 的发言
+               → 这是被评估的对象！
+               → 你需要检查TA是否按照SOP执行
+            
+            2. 【模拟客户】= 转录中标注为 "AI" 的发言
+               → 这是训练用的AI角色
+               → 不需要评估TA的表现
+            
+            ⚠️⚠️⚠️ 特别提醒：
+            - 只评估 "用户"（销售人员）的表现
+            - 不要评估 "AI"（模拟客户）的表现
+            - 如果SOP要求"主动问候"，要看"用户"是否说了问候语
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
             【SOP质检项】
             {items_text}

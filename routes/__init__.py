@@ -1,4 +1,4 @@
-from .scene_routes import scene_bp
+from .scene.scene_routes import scene_bp
 from .prompt_routes import prompt_bp
 from .evaluate_routes import evaluate_bp
 # from .dimension_routes import dimension_bp

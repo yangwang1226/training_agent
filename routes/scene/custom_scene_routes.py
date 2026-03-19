@@ -96,17 +96,29 @@ CUSTOM_SCENE_GENERATE_PROMPT = """
   "trigger_keywords": ["关键词1", "关键词2", "关键词3"]
 }}
 
+Apply
 ### 5. SOP质检项
 根据这个行业的最佳实践，生成SOP质检项（6-10个）：
 - "必须做"的关键动作（如：先建立信任再谈价格）
 - "禁止做"的错误行为（如：直接否定客户）
+- "建议做"的优化建议
 
-格式：
+每个质检项必须包含以下字段：
+- item_name: 质检项名称（简短，5-10字）
+- check_criteria: 检查标准的详细描述（说明如何判断是否符合要求）
+- check_type: 类型（must_do/must_not_do/should_do）
+- item_score: 分数（必须做=15-30分，禁止做=20-30分，建议做=5-15分）
+- category: 分类标签（如greeting/need_analysis/objection_handling等，可选）
+- keywords: 关键词数组（可选，用于自动检测，可为空数组）
+
+格式示例：
 {{
-  "title": "质检项标题",
-  "description": "具体描述",
-  "check_type": "must_do" 或 "must_not",
-  "weight": 10
+  "item_name": "开场问候",
+  "check_criteria": "是否主动热情招呼客户，第一时间建立良好印象，使用礼貌用语",
+  "check_type": "must_do",
+  "item_score": 15,
+  "category": "greeting",
+  "keywords": ["你好", "欢迎", "问候"]
 }}
 
 请严格按照以下JSON格式返回，不要包含任何其他文字：
@@ -126,7 +138,14 @@ CUSTOM_SCENE_GENERATE_PROMPT = """
         ...共10个
     ],
     "sop_checklist": [
-        {{"title": "质检项1", "description": "描述", "check_type": "must_do", "weight": 10}},
+        {{
+            "item_name": "质检项名称",
+            "check_criteria": "检查标准描述",
+            "check_type": "must_do",
+            "item_score": 15,
+            "category": "分类",
+            "keywords": ["关键词1", "关键词2"]
+        }},
         ...共6-10个
     ]
 }}
@@ -209,10 +228,34 @@ def generate_custom_scene():
         scene_config['ai_role'] = ai_role
         scene_config['user_role'] = user_role
         
-        logger.info(f"场景配置生成成功: {scene_config['scene_name']}")
+        # 保存临时场景配置到数据库
+        scene_id = db_module.save_scene(
+            scene_name=scene_config.get('scene_name', '临时场景'),
+            scene_prompt='',  # 稍后在确认页面完善
+            dimension_config='{}',
+            role_type=user_role,
+            role_description=f"模拟{ai_role}，训练{user_role}",
+            industry=scene_config.get('industry', ''),
+            training_goal=f"提升{user_role}的沟通能力",
+            full_evaluation_prompt='',
+            sop_checklist=json.dumps(scene_config.get('sop_checklist', []), ensure_ascii=False),
+            opening_line=scene_config.get('opening_line', ''),
+            fixed_questions=json.dumps(scene_config.get('fixed_questions', []), ensure_ascii=False),
+            related_questions=json.dumps(scene_config.get('related_questions', []), ensure_ascii=False),
+            status=0  # 草稿状态，待确认
+        )
+        
+        if not scene_id:
+            return jsonify({
+                'success': False,
+                'error': '保存场景配置失败'
+            }), 500
+        
+        logger.info(f"场景配置生成成功并已保存: {scene_config['scene_name']}, scene_id={scene_id}")
         
         return jsonify({
             'success': True,
+            'scene_id': scene_id,
             'data': scene_config,
             'message': '场景配置生成成功'
         })

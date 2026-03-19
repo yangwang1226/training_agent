@@ -12,13 +12,14 @@ import pyaudio
 import websocket
 
 from llm.realtime_base import (
-    RealtimeConfig, RealtimeCallback, RealtimeClient,
-    ProviderType, VOLC_RESOURCE_ID, VOLC_APP_KEY, logger
+    RealtimeConfig, RealtimeCallback, RealtimeClient, logger
 )
 from llm.volc.volc_protocol import VolcBinaryProtocol
 
 VOLC_REALTIME_URL = "wss://openspeech.bytedance.com/api/v3/realtime/dialogue"
 
+VOLC_RESOURCE_ID = "volc.speech.dialog"
+VOLC_APP_KEY = "PlgvMymc7f3tQnJ6"
 
 # ===== 音频设备管理（类似 Qwen 的实现）=====
 
@@ -33,46 +34,86 @@ class AudioPlayer:
         self.audio_queue: queue.Queue = queue.Queue()
         self.is_playing = False
         self._player_thread: Optional[threading.Thread] = None
+        self._instance_id = id(self)
+        logger.info(f"🎵 AudioPlayer created: instance_id={self._instance_id}")
 
     def start(self):
         if not self.stream:
-            self.stream = self.pya.open(
-                format=pyaudio.paInt16,
-                channels=self.channels,
-                rate=self.sample_rate,
-                output=True,
-                frames_per_buffer=3200
-            )
+            try:
+                self.stream = self.pya.open(
+                    format=pyaudio.paInt16,
+                    channels=self.channels,
+                    rate=self.sample_rate,
+                    output=True,
+                    frames_per_buffer=3200
+                )
+                logger.info(f"🎧 Audio output stream opened: {self.sample_rate}Hz, {self.channels}ch")
+            except Exception as e:
+                logger.error(f"❌ Failed to open audio stream: {e}", exc_info=True)
+                return
         self.is_playing = True
         self._player_thread = threading.Thread(target=self._play_loop, daemon=True)
         self._player_thread.start()
 
     def _play_loop(self):
         """独立线程播放音频，避免阻塞主逻辑"""
+        logger.info(f"🔊 Audio player thread started [instance {self._instance_id}]")
+        if not self.stream:
+            logger.error(f"❌ Audio stream is None, cannot play! [instance {self._instance_id}]")
+            return
+        logger.info(f"✅ Stream is ready [instance {self._instance_id}]: active={self.stream.is_active()}")
+        loop_count = 0
         while self.is_playing:
+            loop_count += 1
+            current_queue_size = self.audio_queue.qsize()
+            if loop_count % 10 == 1:  # 每10次循环打印一次
+                logger.info(f"🔄 Play loop iteration {loop_count} [instance {self._instance_id}], queue size: {current_queue_size}")
+            
             try:
                 audio_data = self.audio_queue.get(timeout=0.5)
-                if audio_data and self.stream:
-                    self.stream.write(audio_data)
             except queue.Empty:
                 continue
             except Exception as e:
-                logger.error(f"Audio play error: {e}")
+                logger.error(f"❌ Error getting from queue: {e}", exc_info=True)
                 time.sleep(0.1)
+                continue
+            
+            # 处理获取到的音频数据
+            try:
+                logger.debug(f"🎯 Playing {len(audio_data)} bytes from queue")
+                if audio_data and self.stream:
+                    self.stream.write(audio_data)
+                    logger.debug(f"✅ Played {len(audio_data)} bytes successfully")
+                else:
+                    logger.warning(f"⚠️ Skipped playback: audio_data={len(audio_data) if audio_data else 'empty'}, stream={'exists' if self.stream else 'None'}")
+            except Exception as e:
+                logger.error(f"❌ Audio play error: {e}", exc_info=True)
+                # 检查stream是否还有效
+                if self.stream:
+                    logger.error(f"Stream state: active={self.stream.is_active()}, stopped={self.stream.is_stopped()}")
+                time.sleep(0.1)
+        logger.info("🔇 Audio player thread stopped")
 
     def add_audio_bytes(self, audio_data: bytes):
         """接收原始 bytes 音频（Volc 协议直接产出 bytes）"""
         if audio_data:
-            self.audio_queue.put(audio_data)
+            # 验证音频数据大小（PCM Int16 应该是偶数字节）
+            if len(audio_data) % 2 != 0:
+                logger.warning(f"⚠️ Odd audio data size: {len(audio_data)} bytes")
+            
+            self.audio_queue.put(audio_data, block=False)  # 使用非阻塞put
+            logger.debug(f"🎵 Audio queued [instance {self._instance_id}]: {len(audio_data)} bytes, queue size: {self.audio_queue.qsize()}")
 
     def cancel(self):
         """用户打断时清空所有缓冲音频"""
+        cleared_count = 0
         while not self.audio_queue.empty():
             try:
                 self.audio_queue.get_nowait()
+                cleared_count += 1
             except queue.Empty:
                 break
-        logger.info("Audio buffer cleared")
+        logger.info(f"🗑️ Audio buffer cleared: {cleared_count} chunks removed")
 
     def stop(self):
         self.is_playing = False
@@ -259,7 +300,7 @@ class VolcRealtimeClient(RealtimeClient):
     # ─── WebSocket 回调 ───────────────────────────────────────────
 
     def _on_ws_open(self, ws):
-        logger.info("Volc WebSocket connected")
+        logger.info("🌐 Volc WebSocket connected")
 
         self._session_id = str(uuid4())
         self._connection_ready.clear()
@@ -270,7 +311,7 @@ class VolcRealtimeClient(RealtimeClient):
             payload={}
         )
         ws.send(start_frame, websocket.ABNF.OPCODE_BINARY)
-        logger.info("Volc: Sent StartConnection")
+        logger.info("📤 Volc: Sent StartConnection")
 
         self.callback.on_open()
         self.is_connected = True
@@ -287,15 +328,21 @@ class VolcRealtimeClient(RealtimeClient):
 
             logger.debug(f"Volc recv: type={msg_type}, event={event_id}")
 
-            # ── 音频数据（SERVER_ACK，无序列化）──
+                        # ── 音频数据（SERVER_ACK，无序列化）──
             if msg_type == 'SERVER_ACK' and isinstance(payload, bytes):
+                logger.info(f"📢 Received audio: {len(payload)} bytes, is_querying={self._is_user_querying}")
                 if payload and not self._is_user_querying:
                     # 直接送入播放器
                     if self.callback.player:
                         self.callback.player.add_audio_bytes(payload)
+                        logger.info(f"✅ Audio added to queue, queue size: {self.callback.player.audio_queue.qsize()}")
+                    else:
+                        logger.warning("⚠️ Player not available")
                     # 同时通知外部（base64 格式，与 Qwen 保持一致）
                     audio_b64 = base64.b64encode(payload).decode('ascii')
                     self.callback._emit_audio(audio_b64)
+                elif self._is_user_querying:
+                    logger.debug(f"🚫 Audio dropped (user is speaking)")
                 return
 
             # ── 事件消息（SERVER_FULL_RESPONSE）──
@@ -303,7 +350,7 @@ class VolcRealtimeClient(RealtimeClient):
 
                 # ═══ 连接/会话生命周期 ═══
                 if event_id == VolcBinaryProtocol.EVENT_CONNECTION_STARTED:
-                    logger.info("Volc: Connection started")
+                    logger.info("🔗 Volc: Connection started")
                     self._is_connection_started = True
                     self._connection_ready.set()
                     self._send_start_session()
@@ -313,7 +360,7 @@ class VolcRealtimeClient(RealtimeClient):
                     self.callback._emit_status("error", str(payload))
 
                 elif event_id == VolcBinaryProtocol.EVENT_SESSION_STARTED:
-                    logger.info("Volc: Session started")
+                    logger.info("✨ Volc: Session started")
                     self._is_session_started = True
                     self._session_ready.set()
                     self.callback._emit_status("session_created", "会话已创建")
@@ -328,21 +375,24 @@ class VolcRealtimeClient(RealtimeClient):
                 elif event_id == VolcBinaryProtocol.EVENT_TTS_START:  # 350
                     text = payload.get('text', '')
                     tts_type = payload.get('tts_type', '')
-                    logger.info(f"Volc TTS start ({tts_type}): {text[:50]}")
+                    logger.info(f"🗣️ Volc TTS start ({tts_type}): {text[:50]}...")
+                    self._is_user_querying = False  # AI开始说话，用户不再查询状态
                     if text:
                         self.callback._emit_text(text, role="ai", is_final=False)
 
                 elif event_id == VolcBinaryProtocol.EVENT_TTS_END:  # 359
-                    logger.info("Volc: TTS ended")
+                    logger.info("✅ Volc: TTS ended")
                     self.callback._emit_status("listening", "等待用户输入...")
 
                 # ═══ ASR 事件 ═══
                 elif event_id == VolcBinaryProtocol.EVENT_ASR_SPEECH_STARTED:  # 450
-                    logger.info("Volc: VAD speech started - interrupting playback")
+                    logger.info("🎤 Volc: VAD speech started - interrupting playback")
                     self._is_user_querying = True
                     # 🔴 关键：用户打断时清空播放缓冲
                     if self.callback.player:
+                        queue_size_before = self.callback.player.audio_queue.qsize()
                         self.callback.player.cancel()
+                        logger.info(f"🗑️ Cleared {queue_size_before} audio chunks from buffer")
                     self.callback._emit_status("speaking", "用户正在说话...")
 
                 elif event_id == VolcBinaryProtocol.EVENT_ASR_RESULT:  # 451
@@ -351,12 +401,14 @@ class VolcRealtimeClient(RealtimeClient):
                         text = result.get('text', '')
                         is_interim = result.get('is_interim', False)
                         if text:
+                            status = "(interim)" if is_interim else "(final)"
+                            logger.info(f"💬 User said {status}: {text}")
                             self.callback._emit_text(
                                 text, role="user", is_final=not is_interim
                             )
 
                 elif event_id == VolcBinaryProtocol.EVENT_ASR_ENDED:  # 459
-                    logger.info("Volc: ASR ended")
+                    logger.info("🛑 Volc: ASR ended (user stopped speaking)")
                     self._is_user_querying = False
                     self.callback._emit_status("processing", "处理中...")
 
