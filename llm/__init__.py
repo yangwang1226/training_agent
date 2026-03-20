@@ -12,6 +12,11 @@ from .qwen.qwen_omni import (
     B64PCMPlayer
 )
 
+from .volc import (
+    VolcRealtimeClient,
+    VolcRealtimeCallback
+)
+
 __all__ = [
     "RealtimeConfig",
     "ProviderType", 
@@ -20,5 +25,7 @@ __all__ = [
     "RealtimeSession",
     "QwenOmniRealtime",
     "QwenOmniCallback",
-    "B64PCMPlayer"
+    "B64PCMPlayer",
+    "VolcRealtimeClient",
+    "VolcRealtimeCallback"
 ]

@@ -160,3 +160,6 @@ def register_websocket(sock):
         )
         
         handler.handle()
+    
+        # ==================== Volc 火山引擎路由（已废弃，使用统一路由）====================
+    # Volc 现在通过 /api/realtime/ws/<scene_id>?provider=volc 访问

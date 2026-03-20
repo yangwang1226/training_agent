@@ -4,8 +4,8 @@ from typing import Dict, Any
 
 import websockets
 
-import config
-import protocol
+from llm.volc.realtime_dialog import config
+from llm.volc.realtime_dialog import protocol
 
 
 class RealtimeDialogClient:

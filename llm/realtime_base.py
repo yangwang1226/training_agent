@@ -132,7 +132,7 @@ class RealtimeClient(ABC):
             from llm.qwen.qwen_omni import QwenOmniRealtime
             return QwenOmniRealtime(config)
         elif provider_type == ProviderType.VOLC:
-            from llm.volc.volc_realtime import VolcRealtimeClient
+            from llm.volc import VolcRealtimeClient
             return VolcRealtimeClient(config)
             
         else:

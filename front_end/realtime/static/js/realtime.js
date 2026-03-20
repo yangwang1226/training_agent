@@ -29,7 +29,20 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastMessageDiv = null;
     let lastMessageRole = null;
     let lastMessageText = '';
-    let selectedProvider = INITIAL_PROVIDER || 'qwen';  // 从后端获取或使用默认值
+    // 从 URL 参数读取 provider（优先级最高）
+    function getProviderFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const urlProvider = params.get('provider');
+        if (urlProvider) {
+            console.log('📌 Provider from URL:', urlProvider);
+            return urlProvider;
+        }
+        // 兜底使用后端传入的默认值
+        return typeof INITIAL_PROVIDER !== 'undefined' ? INITIAL_PROVIDER : 'qwen';
+    }
+
+    let selectedProvider = getProviderFromURL();
+    console.log('✅ Using provider:', selectedProvider);
     let scenePrompt = '';
 
     loadSceneInfo();
@@ -142,8 +155,11 @@ document.addEventListener('DOMContentLoaded', function() {
             window.audioSource = source;
             window.muteGain = muteGain;
 
-                        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            // 统一使用 provider 参数路由
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${wsProtocol}//${window.location.host}/api/realtime/ws/${SCENE_ID}?provider=${selectedProvider}`;
+            console.log('📡 Connecting to:', selectedProvider, wsUrl);
+            
             ws = new WebSocket(wsUrl);
             ws.binaryType = 'arraybuffer';
 
@@ -244,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 timestamp: new Date().toISOString()
             }));
             
-                        // 不立即关闭WebSocket，等待后端处理完成后发送ready_to_close消息
+            // 不立即关闭WebSocket，等待后端处理完成后发送ready_to_close消息
             // 设置超时保护，10秒后强制关闭（给评估报告生成留足时间）
             setTimeout(() => {
                 if (ws && ws.readyState === WebSocket.OPEN) {

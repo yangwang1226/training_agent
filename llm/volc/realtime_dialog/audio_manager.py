@@ -12,8 +12,8 @@ from typing import Optional, Dict, Any
 
 import pyaudio
 
-import config
-from realtime_dialog_client import RealtimeDialogClient
+from llm.volc.realtime_dialog import config
+from llm.volc.realtime_dialog.realtime_dialog_client import RealtimeDialogClient
 
 
 @dataclass
