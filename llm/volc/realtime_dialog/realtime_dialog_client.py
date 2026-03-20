@@ -9,15 +9,16 @@ from llm.volc.realtime_dialog import protocol
 
 
 class RealtimeDialogClient:
-    def __init__(self, config: Dict[str, Any], session_id: str, output_audio_format: str = "pcm",
-                 mod: str = "audio", recv_timeout: int = 10) -> None:
-        self.config = config
+    def __init__(self, session_id: str, output_audio_format: str = "pcm",
+                 mod: str = "audio", recv_timeout: int = 10, prompt: str=None) -> None:
+        self.config = config.ws_connect_config
         self.logid = ""
         self.session_id = session_id
         self.output_audio_format = output_audio_format
         self.mod = mod
         self.recv_timeout = recv_timeout
         self.ws = None
+        self.prompt = prompt
 
     async def connect(self) -> None:
         """建立WebSocket连接"""
@@ -48,6 +49,8 @@ class RealtimeDialogClient:
         # StartSession request
         if self.output_audio_format == "pcm_s16le":
             config.start_session_req["tts"]["audio_config"]["format"] = "pcm_s16le"
+        if self.prompt:
+            config.start_session_req["dialog"]["character_manifest"] = self.prompt
         request_params = config.start_session_req
         payload_bytes = str.encode(json.dumps(request_params))
         payload_bytes = gzip.compress(payload_bytes)

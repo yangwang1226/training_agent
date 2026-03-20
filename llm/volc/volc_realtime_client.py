@@ -10,7 +10,7 @@ import queue
 from typing import Callable, Optional, Dict, Any
 from uuid import uuid4
 
-from llm.realtime_base import RealtimeClient, RealtimeCallback, RealtimeConfig
+from llm.realtime_base import RealtimeClient, RealtimeConfig, RealtimeCallback
 from llm.volc.realtime_dialog.audio_manager import DialogSession
 from llm.volc.realtime_dialog import config as volc_config
 
@@ -72,15 +72,10 @@ class VolcRealtimeClient(RealtimeClient):
         # 运行状态
         self.is_running = False
         
+        # prompt
+        self.prompt = ""
         logger.info("VolcRealtimeClient initialized")
     
-    def set_api_key(self, api_key: str = None):
-        """设置 API 密钥"""
-        if api_key:
-            self.config.api_key = api_key
-            logger.info("API key updated for VolcRealtimeClient")
-        else:
-            logger.warning("No API key provided to set_api_key")
 
     def on_text(self, handler: Callable):
         if self.callback:
@@ -95,20 +90,21 @@ class VolcRealtimeClient(RealtimeClient):
     def on_status(self, handler: Callable):
         if self.callback:
             self.callback.on_status(handler)
-        return self            
+        return self          
     
-    def _build_ws_config(self) -> Dict[str, Any]:
-        """构建火山引擎 WebSocket 配置"""
-        return {
-            'base_url': "wss://openspeech.bytedance.com/api/v3/realtime/dialogue",
-            'headers': {
-                'X-Api-App-ID': self.config.volc_app_id,
-                'X-Api-Access-Key': self.config.api_key,
-                'X-Api-Resource-Id': 'volc.speech.dialog',
-                'X-Api-App-Key': "PlgvMymc7f3tQnJ6",
-                'X-Api-Connect-Id': str(uuid4()),
-            }
-        }
+    # def _build_ws_config(self) -> Dict[str, Any]:
+    #     """构建火山引擎 WebSocket 配置"""
+    #     return {
+    #         'base_url': "wss://openspeech.bytedance.com/api/v3/realtime/dialogue",
+    #         'headers': {
+    #             'X-Api-App-ID': self.config.volc_app_id,
+    #             'X-Api-Access-Key': self.config.api_key,
+    #             'X-Api-Resource-Id': 'volc.speech.dialog',
+    #             'X-Api-App-Key': "PlgvMymc7f3tQnJ6",
+    #             'X-Api-Connect-Id': str(uuid4()),
+    #         },
+    #         'prompt' : self.prompt
+    #     }
     
     def connect(self, instructions: str = "", api_key: str = None):
         """
@@ -126,6 +122,8 @@ class VolcRealtimeClient(RealtimeClient):
         
         logger.info(f"🔥 Connecting to Volc Realtime: app_id={self.config.volc_app_id}")
         
+        if instructions:
+            self.prompt = instructions
         # 启动异步线程
         self.is_running = True
         self.async_thread = threading.Thread(
@@ -171,9 +169,10 @@ class VolcRealtimeClient(RealtimeClient):
         try:
             # 创建自定义的 DialogSession
             self.dialog_session = CustomDialogSession(
-                ws_config=self._build_ws_config(),
+                # ws_config=self._build_ws_config(),
                 callback=self.callback,
-                audio_input_queue=self.audio_input_queue
+                audio_input_queue=self.audio_input_queue,
+                prompt = self.prompt
             )
             
             # 连接到火山引擎
@@ -261,7 +260,7 @@ class CustomDialogSession(DialogSession):
     扩展原有的 DialogSession，将响应转换为 RealtimeCallback
     """
     
-    def __init__(self, ws_config: Dict[str, Any], callback: VolcRealtimeCallback, audio_input_queue: queue.Queue):
+    def __init__(self, callback: VolcRealtimeCallback, audio_input_queue: queue.Queue, prompt: str=None):
         # 不调用父类 __init__，手动初始化
         self.callback = callback
         self.audio_input_queue = audio_input_queue
@@ -272,11 +271,12 @@ class CustomDialogSession(DialogSession):
         
         self.session_id = str(uuid.uuid4())
         self.client = RealtimeDialogClient(
-            config=ws_config,
+            # config=ws_config,
             session_id=self.session_id,
             output_audio_format="pcm_s16le",
             mod="audio",
-            recv_timeout=10
+            recv_timeout=10,
+            prompt=prompt
         )
         
         # 状态控制

@@ -138,9 +138,9 @@ class RealtimeClient(ABC):
         else:
             raise ValueError(f"Unknown provider: {provider}")
         
-    @abstractmethod
-    def set_api_key(self, api_key: str = None):
-        pass
+    # @abstractmethod
+    # def set_api_key(self, api_key: str = None):
+    #     pass
     
     def on_text(self, handler: Callable):
         if self.callback:
