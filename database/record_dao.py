@@ -86,15 +86,15 @@ def save_coach_record(
                  ai_score, ai_summary, dimension_result, ai_advise, sop_result, sop_score, final_score)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
-                word_content = VALUES(word_content),
-                oss_file_path = VALUES(oss_file_path),
-                call_duration = VALUES(call_duration),
-                ai_score = VALUES(ai_score),
-                ai_summary = VALUES(ai_summary),
-                dimension_result = VALUES(dimension_result),
-                ai_advise = VALUES(ai_advise),
-                sop_result = VALUES(sop_result),
-                sop_score = VALUES(sop_score)
+                word_content = COALESCE(VALUES(word_content), word_content),
+                oss_file_path = COALESCE(VALUES(oss_file_path), oss_file_path),
+                call_duration = COALESCE(VALUES(call_duration), call_duration),
+                ai_score = COALESCE(VALUES(ai_score), ai_score),
+                ai_summary = COALESCE(VALUES(ai_summary), ai_summary),
+                dimension_result = COALESCE(VALUES(dimension_result), dimension_result),
+                ai_advise = COALESCE(VALUES(ai_advise), ai_advise),
+                sop_result = COALESCE(VALUES(sop_result), sop_result),
+                sop_score = COALESCE(VALUES(sop_score), sop_score)
             """
             cursor.execute(sql, (
                 session_id, scene_id, user_id, word_content, oss_file_path, call_duration,
@@ -114,11 +114,11 @@ def get_coach_record_by_session_id(session_id: str) -> Optional[Dict[str, Any]]:
 
 
 # 允许更新的字段白名单（从数据库表结构动态获取更好，这里先硬编码）
-    ALLOWED_UPDATE_FIELDS = {
-        'word_content', 'oss_file_path', 'call_duration', 
-        'ai_score', 'ai_summary', 'dimension_result', 'ai_advise', 
-        'sop_result', 'sop_score', 'final_score'
-    }
+ALLOWED_UPDATE_FIELDS = {
+    'word_content', 'oss_file_path', 'call_duration', 
+    'ai_score', 'ai_summary', 'dimension_result', 'ai_advise', 
+    'sop_result', 'sop_score', 'final_score'
+}
 
 def update_coach_record(session_id: str, **kwargs) -> bool:
     """

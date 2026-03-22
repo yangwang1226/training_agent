@@ -161,5 +161,67 @@ def register_websocket(sock):
         
         handler.handle()
     
-        # ==================== Volc 火山引擎路由（已废弃，使用统一路由）====================
+    # ==================== Volc 火山引擎路由（已废弃，使用统一路由）====================
     # Volc 现在通过 /api/realtime/ws/<scene_id>?provider=volc 访问
+
+
+@realtime_bp.route('/api/upload_audio', methods=['POST'])
+def upload_frontend_audio():
+    """
+    接收前端混音后的录音文件
+    """
+    try:
+        session_id = request.form.get('session_id')
+        if not session_id:
+            return jsonify({'success': False, 'error': '缺少 session_id'}), 400
+            
+        if 'audio' not in request.files:
+            return jsonify({'success': False, 'error': '未找到音频文件'}), 400
+            
+        file = request.files['audio']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '空文件'}), 400
+            
+        # 保存文件
+        from datetime import datetime
+        import uuid
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # 尝试获取场景名用于拼凑文件名，如果拿不到就用默认的
+        scene_name = "前端混音"
+        
+        # 后缀默认为 webm (浏览器 MediaRecorder 常用格式)
+        filename = f"{scene_name}_{timestamp}_{session_id[:8]}.webm"
+        audio_dir = project_root / "audio_file"
+        audio_dir.mkdir(exist_ok=True)
+        filepath = audio_dir / filename
+        
+        file.save(str(filepath))
+        relative_path = f"audio_file/{filename}"
+        logger.info(f"成功保存前端混音文件: {filepath}")
+        
+        # 使用更新函数来保存路径。考虑到前端可能在后端生成记录前就发起了请求，
+        # 我们做个简单的重试等待机制（最长等待3秒）
+        import time
+        from database.record_dao import update_coach_record, get_coach_record_by_session_id
+        
+        max_retries = 30
+        for i in range(max_retries):
+            record = get_coach_record_by_session_id(session_id)
+            if record:
+                # 记录已存在，执行安全更新
+                update_coach_record(session_id, oss_file_path=relative_path)
+                logger.info(f"✅ 音频路径已成功存入数据库: {session_id} -> {relative_path}")
+                break
+            else:
+                # 记录尚未被 session_end 创建，等待 0.1 秒再试
+                time.sleep(0.1)
+        else:
+            logger.error(f"❌ 更新前端录音路径失败：等待3秒后仍未找到 session_id 为 {session_id} 的基础记录")
+            
+        return jsonify({'success': True, 'path': relative_path})
+        
+    except Exception as e:
+        logger.error(f"前端上传音频失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+

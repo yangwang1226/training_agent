@@ -23,12 +23,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let durationInterval = null;
     let messageCount = 0;
     let currentAudioContext = null;
-    let audioQueue = [];
+        let audioQueue = [];
     let isPlayingAudio = false;
     let currentAudioSource = null;
     let lastMessageDiv = null;
     let lastMessageRole = null;
     let lastMessageText = '';
+    
+    // 前端混音录制变量
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let mixDestination = null;
+    let currentSessionId = null;
+    let sessionStartTimeMs = null;
     // 从 URL 参数读取 provider（优先级最高）
     function getProviderFromURL() {
         const params = new URLSearchParams(window.location.search);
@@ -111,12 +118,20 @@ document.addEventListener('DOMContentLoaded', function() {
     startBtn.addEventListener('click', startSession);  // 直接开始，不再选择模型
     stopBtn.addEventListener('click', stopSession);
 
-    async function startSession() {
+        async function startSession() {
         try {
+            // 清空之前的聊天记录
+            chatMessages.innerHTML = '';
+            messageCount = 0;
+            if (messageCountEl) messageCountEl.textContent = '0';
+            lastMessageDiv = null;
+            lastMessageRole = null;
+            lastMessageText = '';
+            
             startBtn.disabled = true;
             updateStatus('connecting', '正在连接...');
 
-            audioStream = await navigator.mediaDevices.getUserMedia({ 
+            audioStream = await navigator.mediaDevices.getUserMedia({  
                 audio: {
                     sampleRate: 16000,
                     channelCount: 1,
@@ -154,6 +169,44 @@ document.addEventListener('DOMContentLoaded', function() {
             window.scriptProcessor = scriptProcessor;
             window.audioSource = source;
             window.muteGain = muteGain;
+
+            // 建立前端混音器，用于记录双方对话
+            if (!currentAudioContext) {
+                currentAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+            }
+            if (currentAudioContext.state === 'suspended') {
+                await currentAudioContext.resume();
+            }
+            
+            mixDestination = currentAudioContext.createMediaStreamDestination();
+            // 1. 将麦克风流直接接入混音器 (利用浏览器的 MediaStreamTrack)
+            const micSourceNode = currentAudioContext.createMediaStreamSource(audioStream);
+            micSourceNode.connect(mixDestination);
+
+                        // 初始化 MediaRecorder 记录混音流
+            recordedChunks = [];
+            
+            // 动态选择支持的格式
+            let options = {};
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                options = { mimeType: 'audio/webm;codecs=opus' };
+            } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                options = { mimeType: 'audio/webm' };
+            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' };
+            }
+            
+            mediaRecorder = new MediaRecorder(mixDestination.stream, options);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            };
+            // 不传参数，这样在调用 stop() 时才会一次性触发 ondataavailable，
+            // 能确保拿到完整的一个大 Blob
+            mediaRecorder.start(); 
+            console.log('✅ 前端混音录制已启动', options);
+            sessionStartTimeMs = Date.now();
 
             // 统一使用 provider 参数路由
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -250,35 +303,75 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAudioContext = null;
         }
 
-        // ✅ 发送结束信号给后端，触发保存和评估
+        // ✅ 停止录音，上传混音文件，然后发送结束信号触发评估
         if (ws && ws.readyState === WebSocket.OPEN) {
-            console.log('发送会话结束信号...');
-            updateStatus('processing', '正在保存对话记录和生成评估报告...');
+            updateStatus('processing', '正在保存双向混音录音...');
             
-            ws.send(JSON.stringify({
-                type: 'session_end',
-                timestamp: new Date().toISOString()
-            }));
-            
-            // 不立即关闭WebSocket，等待后端处理完成后发送ready_to_close消息
-            // 设置超时保护，10秒后强制关闭（给评估报告生成留足时间）
-            setTimeout(() => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    console.log('超时，强制关闭WebSocket');
-                    ws.close();
-                }
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                }
-                handleDisconnect();
-            }, 10000);
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                console.log('正在停止混音录制...');
+                
+                mediaRecorder.onstop = async () => {
+                    console.log('录音已停止，准备生成 Blob，chunks 数量:', recordedChunks.length);
+                    const audioType = recordedChunks[0] ? recordedChunks[0].type : 'audio/webm';
+                    const audioBlob = new Blob(recordedChunks, { type: audioType });
+                    console.log('生成混音音频 Blob，类型:', audioType, '大小:', audioBlob.size, '字节');
+                    
+                    // 关键时序优化：先发送结束信令让后端创建包含基础信息的记录，然后再上传音频更新路径。
+                    // 避免后端记录还未创建导致更新丢失。
+                    console.log('发送会话结束信号，触发后端建表...');
+                    updateStatus('processing', '正在生成评估报告...');
+                    ws.send(JSON.stringify({
+                        type: 'session_end',
+                        timestamp: new Date().toISOString()
+                    }));
+
+                    if (currentSessionId && audioBlob.size > 0) {
+                        console.log('准备调用上传接口...');
+                        const formData = new FormData();
+                        formData.append('audio', audioBlob, 'record.webm');
+                        formData.append('session_id', currentSessionId);
+                        
+                        try {
+                            // 去掉 await，不阻塞后续超时逻辑，让它在后台默默上传
+                            fetch('/realtime/api/upload_audio', {
+                                method: 'POST',
+                                body: formData
+                            }).then(async (response) => {
+                                const resData = await response.json();
+                                if (resData.success) {
+                                    console.log('✅ 前端混音文件上传并关联成功:', resData.path);
+                                } else {
+                                    console.error('❌ 后端返回上传失败:', resData.error);
+                                }
+                            }).catch(e => {
+                                console.error('❌ 接口调用异常（网络/跨域）:', e);
+                            });
+                        } catch (e) {
+                            console.error('❌ 发起上传请求异常:', e);
+                        }
+                    } else {
+                        console.warn('⚠️ 放弃上传: sessionId为空或文件大小为0');
+                    }
+                    
+                    setTimeout(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            console.log('超时，强制关闭WebSocket');
+                            ws.close();
+                        }
+                        handleDisconnect();
+                    }, 30000);
+                };
+                mediaRecorder.stop();
+            } else {
+                // 没有录音，直接结束
+                ws.send(JSON.stringify({
+                    type: 'session_end',
+                    timestamp: new Date().toISOString()
+                }));
+                setTimeout(() => { if (ws) ws.close(); handleDisconnect(); }, 30000);
+            }
         } else {
-            if (ws) {
-                ws.close();
-            }
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-            }
+            if (ws) ws.close();
             handleDisconnect();
         }
     }
@@ -303,25 +396,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleWebSocketMessage(data) {
         switch (data.type) {
-            case 'text':
+                        case 'text':
                 const role = data.role || 'ai';
                 const text = data.text || '';
                 const isFinal = data.is_final || false;
                 
                 if (text.trim()) {
-                    if (isFinal) {
+                    if (role === 'user') {
+                        // ASR (用户): 返回的始终是当前句的全量文本，应覆盖
                         if (lastMessageDiv && lastMessageRole === role) {
-                            lastMessageText += text;
-                            lastMessageDiv.querySelector('.message-text').textContent = lastMessageText;
+                            lastMessageDiv.querySelector('.message-text').textContent = text;
                         } else {
                             addMessage(text.trim(), role);
-                            lastMessageText = text;
                             lastMessageRole = role;
                         }
+                        // 如果用户这句话定稿了，将其标记解除，下一句话强制创建新气泡
+                        if (isFinal) {
+                            lastMessageDiv = null;
+                        }
                     } else {
+                        // LLM (AI): 返回的是增量 token，应追加
                         if (lastMessageDiv && lastMessageRole === role) {
-                            lastMessageText = text;
-                            lastMessageDiv.querySelector('.message-text').textContent = text;
+                            // AI 说话时如果中间被前端清除了队列（比如用户打断），也可能要处理
+                            lastMessageText += text;
+                            lastMessageDiv.querySelector('.message-text').textContent = lastMessageText;
                         } else {
                             addMessage(text.trim(), role);
                             lastMessageText = text;
@@ -336,8 +434,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     playAudio(audioData);
                 }
                 break;
-            case 'status':
+                        case 'status':
                 updateStatus(data.status, data.message);
+                if (data.status === 'connected' && data.session_id) {
+                    currentSessionId = data.session_id;
+                    console.log('✅ 获取到 session_id:', currentSessionId);
+                }
                 if (data.status === 'speaking') {
                     if (currentAudioSource) {
                         try {
@@ -359,9 +461,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('对话记录已保存:', data.path);
                 updateStatus('processing', '对话记录已保存，正在生成评估报告...');
                 break;
-            case 'assessment_complete':
-                console.log('评估报告生成成功，会话ID:', data.session_id);
-                updateStatus('completed', '✅ 评估报告已生成');
+            case 'assessment_submitted':
+                console.log('评估任务已提交，会话ID:', data.session_id);
+                updateStatus('completed', '✅ 评估任务已提交...');
                 setTimeout(() => {
                     window.location.href = `/evaluate?session_id=${data.session_id}`;
                 }, 1500);
@@ -564,7 +666,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         currentAudioSource = currentAudioContext.createBufferSource();
         currentAudioSource.buffer = audioBuffer;
+        // 连接到扬声器
         currentAudioSource.connect(currentAudioContext.destination);
+        // 连接到混音器 (录制)
+        if (mixDestination) {
+            currentAudioSource.connect(mixDestination);
+        }
         
         currentAudioSource.start(currentAudioContext.currentTime);
         

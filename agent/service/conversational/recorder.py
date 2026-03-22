@@ -34,13 +34,54 @@ class ConversationRecorder:
         self.system_prompt = prompt
     
     def add_message(self, role: str, text: str):
-        if text and text.strip():
+        if not text:
+            return
+            
+        clean_text = text.strip()
+        if not clean_text:
+            return
+            
+        # 统一角色名称映射（避免出现 user/trainer 和 ai/assistant 混用的情况）
+        normalized_role = role
+        if role in ['user', 'User', '用户']:
+            normalized_role = 'user'
+        elif role in ['ai', 'assistant', 'AI', 'trainer']:
+            normalized_role = 'ai'
+            
+        now = datetime.now()
+        current_time_str = now.strftime('%H:%M:%S')
+        
+        # 如果消息列表为空，直接添加
+        if not self.messages:
             self.messages.append({
-                'role': role,
-                'text': text.strip(),
-                'timestamp': datetime.now().strftime('%H:%M:%S')
+                'role': normalized_role,
+                'text': clean_text,
+                'timestamp': current_time_str,
+                '_time': now  # 内部使用，用于时间判断
             })
-            logger.info(f"[{role}] {text[:50]}...")
+            logger.info(f"[{normalized_role}] {clean_text[:50]}...")
+            return
+            
+        last_msg = self.messages[-1]
+        
+        # 判断是否应该合并到上一条消息：
+        # 1. 角色相同
+        # 2. 与上一条消息的时间间隔在 5 秒以内（针对流式分块）
+        time_diff = (now - last_msg.get('_time', now)).total_seconds()
+        
+        if last_msg['role'] == normalized_role and time_diff < 5.0:
+            # 拼接文本，如果原文本不为空且新文本不是标点，可能需要加空格（英文），中文直接拼
+            last_msg['text'] += clean_text
+            last_msg['_time'] = now  # 更新最后活动时间
+            # 这里不打印 log 避免日志被切片刷屏
+        else:
+            self.messages.append({
+                'role': normalized_role,
+                'text': clean_text,
+                'timestamp': current_time_str,
+                '_time': now
+            })
+            logger.info(f"[{normalized_role}] {clean_text[:50]}...")
     
     def add_audio_chunk(self, audio_b64: str):
         try:
@@ -76,31 +117,11 @@ class ConversationRecorder:
         return bytes(header)
     
     def _save_audio_file(self) -> Optional[str]:
-        if not self.audio_chunks:
-            logger.info("No audio data to save")
-            return None
-        
-        timestamp = self.start_time.strftime('%Y%m%d_%H%M%S')
-        safe_scene_name = "".join(c for c in self.scene_name if c.isalnum() or c in ('_', '-'))
-        filename = f"{safe_scene_name}_{timestamp}_{self.session_id[:8]}.wav"
-        filepath = AUDIO_DIR / filename
-        
-        try:
-            total_pcm_size = sum(len(chunk) for chunk in self.audio_chunks)
-            
-            with open(filepath, 'wb') as f:
-                wav_header = self._create_wav_header(total_pcm_size)
-                f.write(wav_header)
-                
-                for chunk in self.audio_chunks:
-                    f.write(chunk)
-            
-            relative_path = f"audio_file/{filename}"
-            logger.info(f"Audio saved to: {filepath}, size: {total_pcm_size} bytes")
-            return relative_path
-        except Exception as e:
-            logger.error(f"Save audio error: {e}")
-            return None
+        # ⚠️ [架构变更]：录音功能已迁移至前端混音并直接上传
+        # 此处的单向 PCM 保存逻辑已废弃，避免生成只有 AI 声音的冗余 wav 文件。
+        # 真实的文件路径将在前端调用 /api/upload_audio 时更新进数据库
+        logger.info("Skip backend audio save. Using frontend mixed audio recording instead.")
+        return None
     
     def _calculate_duration(self) -> int:
         if self._total_audio_bytes == 0:

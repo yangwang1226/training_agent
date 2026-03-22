@@ -9,6 +9,14 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
+        <!-- 加载遮罩层 -->
+    <div id="loadingContainer" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(244, 247, 254, 0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #E2E8F0; border-top-color: #4318FF; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        <div id="loadingText" style="margin-top: 20px; font-size: 18px; color: #1B2559; font-weight: 500;">正在获取评估报告...</div>
+        <p style="margin-top: 10px; font-size: 14px; color: #707EAE;">大模型正在深度分析您的对话，请耐心等待</p>
+    </div>
+
     <div class="page-container">
         <!-- Header -->
         <header class="report-header">

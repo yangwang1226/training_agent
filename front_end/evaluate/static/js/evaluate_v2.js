@@ -200,43 +200,72 @@ function getGradeText(score) {
 // ===================================
 
 /**
- * 从API加载报告数据
+ * 从API加载报告数据 (带轮询机制，支持大模型异步生成)
  */
-async function loadReport(sessionId) {
+async function loadReport(sessionId, retryCount = 0) {
+    const MAX_RETRIES = 30; // 30次 * 3秒 = 等待 90秒
     try {
-        showLoading(true);
+        if (retryCount === 0) {
+            showLoading(true, '正在获取评估报告...');
+        } else {
+            showLoading(true, `大模型正在深度评估中，请稍候... (已等待 ${retryCount * 3} 秒)`);
+        }
         
         const response = await fetch(`/evaluate/api/report/${sessionId}`);
-        const result = await response.json();
         
-        if (!result.success) {
-            showError(result.error || '加载失败');
+        // 如果后端返回 404（还没建表）或者 202（正在生成）
+        if ((response.status === 404 || response.status === 202) && retryCount < MAX_RETRIES) {
+            console.log(`报告生成中，3秒后重试...(${retryCount+1}/${MAX_RETRIES})`);
+            setTimeout(() => loadReport(sessionId, retryCount + 1), 3000);
             return;
         }
         
-        // 先显示容器再渲染报告，避免 ECharts 在 display:none 容器中初始化导致尺寸为0
+        const result = await response.json();
+        
+        // 如果遇到明确是状态 pending，也可以走这个分支（兼容处理）
+        if (!result.success) {
+            if ((result.status === 'pending' || result.error?.includes('未找到') || result.error?.includes('生成中')) && retryCount < MAX_RETRIES) {
+                console.log(`生成中，3秒后重试...(${retryCount+1}/${MAX_RETRIES})`);
+                setTimeout(() => loadReport(sessionId, retryCount + 1), 3000);
+                return;
+            }
+            showError(result.error || '加载失败');
+            showLoading(false);
+            return;
+        }
+        
+        // 成功获取到报告数据
         showLoading(false);
         renderReport(result.data);
         
     } catch (error) {
         console.error('加载报告失败:', error);
-        showError('网络错误: ' + error.message);
-        showLoading(false);
+        if (retryCount < MAX_RETRIES) {
+            setTimeout(() => loadReport(sessionId, retryCount + 1), 3000);
+        } else {
+            showError('网络错误或报告生成超时，请稍后刷新重试');
+            showLoading(false);
+        }
     }
 }
 
 /**
  * 显示/隐藏加载状态
  */
-function showLoading(show) {
+function showLoading(show, text = '正在加载...') {
     const loading = document.getElementById('loadingContainer');
     const content = document.querySelector('.report-main');
+    const textEl = document.getElementById('loadingText');
     
     if (loading) {
         loading.style.display = show ? 'flex' : 'none';
     }
+    if (textEl && show) {
+        textEl.textContent = text;
+    }
     if (content) {
-        content.style.display = show ? 'none' : 'block';
+        // 即使加载中也不隐藏头部，只隐藏主体或通过遮罩覆盖（当前设计为覆盖全屏）
+        // content.style.display = show ? 'none' : 'block';
     }
 }
 

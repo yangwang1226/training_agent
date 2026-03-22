@@ -141,11 +141,13 @@ class WebSocketHandler:
             if not self.session_manager.connect():
                 return False
             
-            # 发送已连接状态
-            self.session_manager.send_status(
-                'connected',
-                f'已连接到服务器 (服务商：{self.provider})'
-            )
+                        # 发送已连接状态及 session_id 供前端绑定混音录音
+            self.session_manager.ws.send(json.dumps({
+                'type': 'status',
+                'status': 'connected',
+                'message': f'已连接到服务器 (服务商：{self.provider})',
+                'session_id': self.session_manager.get_session_id()
+            }))
             
             return True
             

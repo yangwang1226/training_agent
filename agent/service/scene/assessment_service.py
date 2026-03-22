@@ -453,9 +453,15 @@ class SceneAssessmentService:
             # 提取 AI 评估总结
             ai_summary = report.get("summary", "")
             
-            # 只保存维度评分结果
-            dimension_scores = report.get("dimension_scores", [])
-            dimension_result_text = json.dumps(dimension_scores, ensure_ascii=False) if dimension_scores else None
+                        # 保存完整的评估结果，包括维度评分、亮点、改进建议等
+            dimension_result_data = {
+                "dimension_scores": report.get("dimension_scores", []),
+                "highlights": report.get("highlights", []),
+                "improvements": report.get("improvements", []),
+                "key_moments": report.get("key_moments", []),
+                "golden_sentences": report.get("golden_sentences", [])
+            }
+            dimension_result_text = json.dumps(dimension_result_data, ensure_ascii=False)
             
             # 生成 AI 建议
             ai_advise = report.get("ai_advise", self._generate_ai_advise(report))
