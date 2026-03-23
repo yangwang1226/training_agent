@@ -580,7 +580,7 @@ async function submitAndStart() {
             });
         } else {
             // 预设场景：生成训练
-            response = await fetch('/api/scene/generate-from-preset', {
+            response = await fetch('/api/preset-scene/generate-from-preset', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

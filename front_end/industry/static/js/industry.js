@@ -529,7 +529,7 @@ async function submitWithBackground(backgroundHint) {
         const openingLine = openingInput ? openingInput.value.trim() : currentSceneConfig.openingLine;
         
         // 直接调用预设场景生成 API（包含完整配置）
-        const response = await fetch('/api/scene/generate-from-preset', {
+        const response = await fetch('/api/preset-scene/generate-from-preset', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

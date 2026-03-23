@@ -84,7 +84,7 @@ function saveSopItems() {
         <h4>2. 场景生成后自动保存</h4>
         <pre>// industry.js
 async function submitWithBackground(backgroundHint) {
-    const data = await fetch('/api/scene/generate-from-preset', {...});
+    const data = await fetch('/api/preset-scene/generate-from-preset', {...});
     
     if (data.success) {
         const sceneId = data.scene_id;

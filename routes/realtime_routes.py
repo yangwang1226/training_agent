@@ -12,8 +12,8 @@ from agent.service.conversational import ConversationRecorder
 from agent.service.scene.assessment_service import assessment_service as scene_assessment_service
 from agent.service.scene.async_assessment_processor import get_async_processor
 
-from .realtime.websocket_handler import WebSocketHandler
-from .realtime.provider_config import ProviderConfigManager
+from service.realtime.websocket_handler import WebSocketHandler
+from service.realtime.provider_config import ProviderConfigManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
