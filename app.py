@@ -60,9 +60,9 @@ def sop_static(filename):
 @app.route('/')
 def index():
     """
-    首页 - 跳转到行业选择页面
+    首页 - 重定向到后台管理系统
     """
-    return redirect('/industry/')
+    return redirect('/manage_system/')
 
 
 @app.route('/sop/config')

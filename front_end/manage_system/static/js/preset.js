@@ -8,10 +8,10 @@ let allScenes = [];
 
 // 行业映射
 const INDUSTRY_MAP = {
-    'automobile': { name: '汽车销售', icon: '🚗', color: '#3b82f6' },
-    'education': { name: '教育培训', icon: '📚', color: '#10b981' },
-    'realestate': { name: '房产销售', icon: '🏠', color: '#f59e0b' },
-    'insurance': { name: '保险金融', icon: '💼', color: '#8b5cf6' }
+    'automobile': { name: '汽车', icon: '汽', color: '#3b82f6' },
+    'education': { name: '教育', icon: '教', color: '#10b981' },
+    'realestate': { name: '房产', icon: '房', color: '#f59e0b' },
+    'insurance': { name: '金融', icon: '金', color: '#8b5cf6' }
 };
 
 // 难度映射
@@ -160,7 +160,7 @@ function createSceneCard(scene) {
         
         <div class="scene-card-footer">
             <div class="scene-difficulty">
-                <span>🎯 难度:</span>
+                <span>难度等级:</span>
                 <span class="difficulty-stars ${difficultyClass}">${stars}</span>
             </div>
             <div class="scene-usage">
@@ -171,10 +171,10 @@ function createSceneCard(scene) {
         
         <div class="scene-card-actions">
             <button class="btn btn-outline btn-sm" onclick="viewSceneDetail('${scene.scene_code}'); event.stopPropagation();">
-                📖 查看详情
+                查看详情
             </button>
             <button class="btn btn-primary btn-sm" onclick="useScene('${scene.scene_code}'); event.stopPropagation();">
-                ▶️ 立即使用
+                立即使用
             </button>
         </div>
     `;
@@ -258,7 +258,7 @@ async function viewSceneDetail(sceneCode) {
             const detailHtml = `
                 <div class="scene-detail">
                     <div class="scene-detail-section">
-                        <h4>📋 基本信息</h4>
+                        <h4>基本信息</h4>
                         <div class="scene-detail-grid">
                             <div class="scene-detail-item">
                                 <label>场景名称</label>
@@ -284,12 +284,12 @@ async function viewSceneDetail(sceneCode) {
                     </div>
                     
                     <div class="scene-detail-section">
-                        <h4>📝 场景描述</h4>
+                        <h4>场景描述</h4>
                         <div class="scene-detail-text">${escapeHtml(scene.scene_description || '暂无描述')}</div>
                     </div>
                     
                     <div class="scene-detail-section">
-                        <h4>👥 角色设定</h4>
+                        <h4>角色设定</h4>
                         <div class="scene-detail-grid">
                             <div class="scene-detail-item">
                                 <label>AI角色</label>
@@ -304,14 +304,14 @@ async function viewSceneDetail(sceneCode) {
                     
                     ${scene.opening_line ? `
                     <div class="scene-detail-section">
-                        <h4>💬 开场白</h4>
+                        <h4>开场白</h4>
                         <div class="scene-detail-text">${escapeHtml(scene.opening_line)}</div>
                     </div>
                     ` : ''}
                     
                     <div class="scene-detail-actions">
                         <button class="btn btn-outline" onclick="closeSceneDetail()">取消</button>
-                        <button class="btn btn-primary" onclick="useScene('${scene.scene_code}')" style="flex: 2;">▶️ 立即使用</button>
+                        <button class="btn btn-primary" onclick="useScene('${scene.scene_code}')" style="flex: 2;">立即使用</button>
                     </div>
                 </div>
             `;

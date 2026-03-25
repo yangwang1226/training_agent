@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AI教练后台管理系统{% endblock %}</title>
+    <title>{% block title %}AI 智能教练 - 训练平台{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/manage_system/static/css/layout.css">
     <link rel="stylesheet" href="/manage_system/static/css/common.css">
     {% block extra_css %}{% endblock %}
@@ -13,56 +16,40 @@
         <!-- 侧边栏 -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h1 class="logo">🎯 AI教练</h1>
-                <p class="subtitle">后台管理系统</p>
+                <h1 class="logo"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> AI 教练</h1>
+                <p class="subtitle">智能训练平台</p>
             </div>
             
             <nav class="sidebar-nav">
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="/manage_system/" class="nav-link">
-                            <span class="nav-icon">📊</span>
-                            <span class="nav-text">仪表盘</span>
+                        <a href="/" class="nav-link">
+                            <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>
+                            <span class="nav-text">首页</span>
                         </a>
                     </li>
                     <li class="nav-item active">
-                        <a href="/manage_system/scenes" class="nav-link">
-                            <span class="nav-icon">🎬</span>
-                            <span class="nav-text">场景管理</span>
-                        </a>
-                        <ul class="nav-submenu">
-                            <li><a href="/manage_system/scenes/preset">预设场景库</a></li>
-                            <li><a href="/manage_system/scenes/custom">自定义场景</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/manage_system/records" class="nav-link">
-                            <span class="nav-icon">📝</span>
-                            <span class="nav-text">训练记录</span>
+                        <a href="/manage_system/builder" class="nav-link">
+                            <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></span>
+                            <span class="nav-text">构建器</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/manage_system/users" class="nav-link">
-                            <span class="nav-icon">👥</span>
-                            <span class="nav-text">用户管理</span>
+                        <a href="/progress" class="nav-link">
+                            <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg></span>
+                            <span class="nav-text">练习</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/manage_system/assessment" class="nav-link">
-                            <span class="nav-icon">⚙️</span>
-                            <span class="nav-text">评估配置</span>
+                        <a href="/history" class="nav-link">
+                            <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg></span>
+                            <span class="nav-text">训练历史</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/manage_system/analytics" class="nav-link">
-                            <span class="nav-icon">📈</span>
-                            <span class="nav-text">数据分析</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/manage_system/settings" class="nav-link">
-                            <span class="nav-icon">🔧</span>
-                            <span class="nav-text">系统设置</span>
+                        <a href="/recordings" class="nav-link">
+                            <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+                            <span class="nav-text">录音库</span>
                         </a>
                     </li>
                 </ul>
@@ -70,13 +57,13 @@
             
             <div class="sidebar-footer">
                 <div class="user-info">
-                    <div class="user-avatar">👤</div>
+                    <div class="user-avatar"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
                     <div class="user-details">
-                        <div class="user-name">管理员</div>
-                        <div class="user-role">超级管理员</div>
+                        <div class="user-name">学员</div>
+                        <div class="user-role">训练中</div>
                     </div>
                 </div>
-                <a href="/logout" class="logout-btn">退出</a>
+                <a href="/logout" class="logout-btn">退出登录</a>
             </div>
         </aside>
         
@@ -90,12 +77,14 @@
                     {% endblock %}
                 </div>
                 <div class="top-bar-actions">
-                    <button class="icon-btn" title="通知">
-                        <span class="badge">3</span>
-                        🔔
-                    </button>
-                    <button class="icon-btn" title="帮助">❓</button>
-                </div>
+    <button class="icon-btn" aria-label="通知" title="通知">
+        <span class="badge">3</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+    </button>
+    <button class="icon-btn" aria-label="帮助" title="帮助">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    </button>
+</div>
             </header>
             
             <!-- 页面内容 -->
@@ -106,6 +95,39 @@
     </div>
     
     <script src="/manage_system/static/js/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === '/' && link.querySelector('.nav-text') && link.querySelector('.nav-text').textContent.trim() === '首页') {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // 更新激活状态
+                        document.querySelectorAll('.nav-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        this.closest('.nav-item').classList.add('active');
+                        
+                        // 将首页嵌入主内容区
+                        const contentWrapper = document.querySelector('.content-wrapper');
+                        if (contentWrapper) {
+                            contentWrapper.innerHTML = `
+                                <iframe src="/" style="width: 100%; height: calc(100vh - 100px); border: none; border-radius: 8px; background: #fff;" title="首页"></iframe>
+                            `;
+                            contentWrapper.style.padding = '0';
+                        }
+                        
+                        // 更新面包屑
+                        const breadcrumb = document.querySelector('.breadcrumb');
+                        if (breadcrumb) {
+                            breadcrumb.innerHTML = '<span class="breadcrumb-item">首页</span>';
+                        }
+                    });
+                }
+            });
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,952 @@
+{% extends "layout.html" %}
+
+{% block title %}场景构建器 - AI教练后台管理系统{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-item"><a href="/manage_system/">首页</a></span>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-item active">场景构建器</span>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* /typeset + Yoodli-inspired Scene Builder */
+:root {
+    /* Yoodli-inspired Color Palette */
+    --primary-purple: #6366f1;
+    --primary-purple-dark: #4f46e5;
+    --secondary-cyan: #06b6d4;
+    --secondary-orange: #f97316;
+    --accent-pink: #ec4899;
+    
+    /* Typeset colors */
+    --ink-black: #1a1a1a;
+    --ink-gray: #4a4a4a;
+    --ink-light: #767676;
+    --paper-white: #fefefe;
+    --bg-subtle: #fafafa;
+    
+    /* Typography */
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    
+    /* Spacing */
+    --space-xs: 0.5rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2rem;
+    --space-xl: 3rem;
+    --space-2xl: 4rem;
+}
+
+.builder-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-md);
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Back button */
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ink-gray);
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: var(--space-xl);
+    transition: color 0.3s ease;
+}
+
+.back-button:hover {
+    color: var(--ink-black);
+}
+
+.back-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Main heading */
+.builder-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: var(--primary-purple);
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    line-height: 1.2;
+}
+
+/* Main input area */
+.input-section {
+    background: var(--paper-white);
+    border: 2px solid #e0e7ff;
+    border-radius: 16px;
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    transition: all 0.3s ease;
+}
+
+.input-section:focus-within {
+    border-color: var(--primary-purple);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.input-label {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink-gray);
+    margin-bottom: var(--space-sm);
+    display: block;
+}
+
+.main-textarea {
+    width: 100%;
+    min-height: 200px;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink-black);
+    border: none;
+    outline: none;
+    resize: vertical;
+    background: transparent;
+}
+
+.main-textarea::placeholder {
+    color: var(--ink-light);
+}
+
+/* Action buttons in textarea */
+.textarea-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid #e5e7eb;
+}
+
+.action-left {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink-light);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    background: var(--bg-subtle);
+    color: var(--primary-purple);
+}
+
+.icon-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.ai-create-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--paper-white);
+    color: var(--primary-purple);
+    border: 2px solid var(--primary-purple);
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+    box-shadow: none;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Editorial ink-fill effect */
+.ai-create-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary-purple);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    z-index: 0;
+}
+
+.ai-create-btn:hover::before {
+    transform: scaleX(1);
+}
+
+.ai-create-btn:hover {
+    color: var(--paper-white);
+    border-color: var(--primary-purple);
+}
+
+.ai-create-btn span,
+.ai-create-btn svg {
+    position: relative;
+    z-index: 1;
+}
+
+.ai-create-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ai-create-btn:hover svg {
+    transform: rotate(12deg) scale(1.1);
+}
+
+/* Divider section */
+.divider-section {
+    text-align: center;
+    margin: var(--space-2xl) 0;
+    position: relative;
+}
+
+.divider-text {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-light);
+    background: var(--paper-white);
+    padding: 0 var(--space-md);
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+}
+
+.divider-section::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+    z-index: 0;
+}
+
+/* Template section */
+.template-section-title {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink-black);
+    text-align: center;
+    margin-bottom: var(--space-lg);
+}
+
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-2xl);
+}
+
+/* Template card - Yoodli style */
+.template-card {
+    background: var(--paper-white);
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: var(--space-lg);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.template-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-purple), var(--secondary-cyan));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.template-card:hover::before {
+    transform: scaleX(1);
+}
+
+.template-card:hover {
+    border-color: var(--primary-purple);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+    transform: translateY(-4px);
+}
+
+.template-card.purple::before {
+    background: linear-gradient(90deg, #a855f7, #ec4899);
+}
+
+.template-card.cyan::before {
+    background: linear-gradient(90deg, #06b6d4, #3b82f6);
+}
+
+.template-card.orange::before {
+    background: linear-gradient(90deg, #f97316, #eab308);
+}
+
+.template-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-sm);
+    filter: grayscale(0.3);
+    transition: filter 0.3s ease;
+}
+
+.template-card:hover .template-icon {
+    filter: grayscale(0);
+}
+
+.template-title {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink-black);
+    margin-bottom: var(--space-xs);
+}
+
+.template-description {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-light);
+    line-height: 1.5;
+}
+
+/* View all templates link */
+.view-all-link {
+    text-align: center;
+    margin-top: var(--space-md);
+}
+
+.view-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ink-gray);
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.view-all-btn:hover {
+    background: #fafafa;
+    color: var(--ink-black);
+}
+
+.view-all-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+.view-all-btn:hover svg {
+    transform: translateX(4px);
+}
+
+/* Bottom actions */
+.bottom-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-xl);
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.875rem 1.75rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: var(--ink-black);
+    color: var(--paper-white);
+    border-color: var(--ink-black);
+}
+
+.btn-primary:hover {
+    background: var(--ink-gray);
+    border-color: var(--ink-gray);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--ink-gray);
+    border-color: #e5e7eb;
+}
+
+.btn-secondary:hover {
+    background: #fafafa;
+    border-color: var(--ink-light);
+    color: var(--ink-black);
+}
+
+/* All Templates Section */
+.all-templates-section {
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-2xl);
+    border-top: 1px solid #e5e7eb;
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Template tabs */
+.template-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: var(--space-xl);
+    border-bottom: 1px solid #e5e7eb;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.template-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.template-tabs::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 2px;
+}
+
+.template-tab {
+    padding: 0.75rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink-gray);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.template-tab:hover {
+    color: var(--ink-black);
+}
+
+.template-tab.active {
+    color: var(--primary-purple);
+    border-bottom-color: var(--primary-purple);
+    font-weight: 600;
+}
+
+/* Templates full grid */
+.templates-full-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Loading state */
+.templates-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: var(--primary-purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.templates-loading p {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-gray);
+}
+
+/* Full template card - /quieter + /distill style */
+.full-template-card {
+    background: var(--paper-white);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.full-template-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--primary-purple);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.full-template-card:hover {
+    border-color: var(--ink-light);
+}
+
+.full-template-card:hover::before {
+    transform: scaleY(1);
+}
+
+/* Card icon - /quieter style: minimal, single color */
+.full-card-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    opacity: 0.7;
+}
+
+/* Card content */
+.full-card-title {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink-black);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.full-card-role {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--ink-light);
+    margin-bottom: 0.75rem;
+}
+
+.full-card-description {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--ink-gray);
+    margin-bottom: 1rem;
+}
+
+.full-card-btn {
+    width: 100%;
+    padding: 0.625rem;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+    background: transparent;
+    color: var(--ink-gray);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: block;
+}
+
+.full-card-btn:hover {
+    border-color: var(--ink-black);
+    color: var(--ink-black);
+    background: #fafafa;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .builder-container {
+        padding: var(--space-lg) var(--space-sm);
+    }
+    
+    .template-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .templates-full-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bottom-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="builder-container">
+    <!-- Back button -->
+    <a href="/manage_system/" class="back-button">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        返回资源库
+    </a>
+
+    <!-- Main heading -->
+    <h1 class="builder-heading">你的训练场景是关于什么的？</h1>
+
+    <!-- Main input area -->
+    <div class="input-section">
+        <label class="input-label">场景描述</label>
+        <textarea 
+            class="main-textarea" 
+            id="sceneDescription"
+            placeholder="用几句话描述您的训练场景...\n\n例如：客户服务场景，处理客户投诉和退款请求。我需要练习如何以同理心倾听客户，提供解决方案，并确保客户满意度。"
+        ></textarea>
+        
+        <div class="textarea-actions">
+            <div class="action-left">
+                <button class="icon-btn" title="添加附件">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                </button>
+                <button class="icon-btn" title="格式选项">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+            
+            <button class="ai-create-btn" id="aiCreateBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>使用AI创作</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider-section">
+        <span class="divider-text">或者从模板开始</span>
+    </div>
+
+    <!-- Template section -->
+    <div class="template-section">
+        <div class="template-grid">
+            <div class="template-card purple" data-template="custom">
+                <div class="template-icon">💜</div>
+                <h3 class="template-title">自定义</h3>
+                <p class="template-description">从零开始创建完全定制的场景</p>
+            </div>
+            
+            <div class="template-card cyan" data-template="sales">
+                <div class="template-icon">❄️</div>
+                <h3 class="template-title">冷销售电话</h3>
+                <p class="template-description">练习销售沟通技巧</p>
+            </div>
+            
+            <div class="template-card orange" data-template="mentor">
+                <div class="template-icon">🎓</div>
+                <h3 class="template-title">导师辅导</h3>
+                <p class="template-description">提升指导和培训能力</p>
+            </div>
+        </div>
+        
+        <div class="view-all-link">
+            <a href="#all-templates" class="view-all-btn" id="viewAllBtn">
+                查看全部模板
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- All Templates Section (隐藏，点击"查看全部"后展开) -->
+    <div class="all-templates-section" id="allTemplatesSection" style="display: none;">
+        <div class="divider-section">
+            <span class="divider-text">所有预设场景</span>
+        </div>
+        
+        <!-- Tab navigation -->
+        <nav class="template-tabs">
+            <button class="template-tab active" data-category="all">全部</button>
+            <button class="template-tab" data-category="sales">销售</button>
+            <button class="template-tab" data-category="learning">学习</button>
+            <button class="template-tab" data-category="interview">面试</button>
+            <button class="template-tab" data-category="other">其他</button>
+        </nav>
+        
+        <!-- Templates grid -->
+        <div class="templates-full-grid" id="templatesFullGrid">
+            <!-- Loading state -->
+            <div class="templates-loading" id="templatesLoading">
+                <div class="loading-spinner"></div>
+                <p>加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom actions -->
+    <!-- <div class="bottom-actions">
+        <button class="btn btn-secondary" id="saveDraftBtn">保存草稿</button>
+        <button class="btn btn-primary" id="continueBtn">继续配置</button>
+    </div> -->
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Template card click handler
+document.querySelectorAll('.template-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const template = this.dataset.template;
+        
+        // Remove active state from all cards
+        document.querySelectorAll('.template-card').forEach(c => {
+            c.style.borderColor = '#e5e7eb';
+        });
+        
+        // Add active state to clicked card
+        this.style.borderColor = 'var(--primary-purple)';
+        
+        // Load template content
+        loadTemplate(template);
+    });
+});
+
+function loadTemplate(template) {
+    const textarea = document.getElementById('sceneDescription');
+    const templates = {
+        custom: '',
+        sales: '这是一个冷销售电话场景。\n\n我需要练习如何有效地与潜在客户建立联系，介绍产品价值，处理异议，并推动销售进程。重点关注开场白、需求挖掘和异议处理技巧。',
+        mentor: '这是一个导师辅导场景。\n\n我需要练习如何指导团队成员，提供建设性反馈，设定发展目标，并激励他们实现潜力。重点关注倾听技巧、提问技巧和激励方法。'
+    };
+    
+    textarea.value = templates[template] || '';
+    textarea.focus();
+}
+
+// AI Create button
+document.getElementById('aiCreateBtn').addEventListener('click', function() {
+    const description = document.getElementById('sceneDescription').value.trim();
+    
+    if (!description) {
+        alert('请先输入场景描述');
+        return;
+    }
+    
+    // Show loading state
+    this.innerHTML = '<span>AI 正在生成...</span>';
+    this.disabled = true;
+    
+    // Simulate AI generation (replace with actual API call)
+    setTimeout(() => {
+        alert('AI 生成功能开发中...');
+        this.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            使用AI创作
+        `;
+        this.disabled = false;
+    }, 2000);
+});
+
+// Save draft button
+document.getElementById('saveDraftBtn').addEventListener('click', function() {
+    const description = document.getElementById('sceneDescription').value.trim();
+    
+    if (!description) {
+        alert('请先输入场景描述');
+        return;
+    }
+    
+    // Save to localStorage or API
+    localStorage.setItem('sceneDraft', description);
+    alert('草稿已保存');
+});
+
+// Continue button
+document.getElementById('continueBtn').addEventListener('click', function() {
+    const description = document.getElementById('sceneDescription').value.trim();
+    
+    if (!description) {
+        alert('请先输入场景描述');
+        return;
+    }
+    
+    // Save and redirect to configuration page
+    localStorage.setItem('sceneDescription', description);
+    window.location.href = '/manage_system/scenes/create-custom';
+});
+
+// Load draft on page load
+window.addEventListener('DOMContentLoaded', function() {
+    const draft = localStorage.getItem('sceneDraft');
+    if (draft) {
+        document.getElementById('sceneDescription').value = draft;
+    }
+});
+// View All Templates functionality
+let allPresetScenes = [];
+let currentTemplateCategory = 'all';
+
+document.getElementById('viewAllBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    const section = document.getElementById('allTemplatesSection');
+    
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        
+        // Smooth scroll to section
+        setTimeout(() => {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+        
+        // Load templates if not loaded yet
+        if (allPresetScenes.length === 0) {
+            loadAllTemplates();
+        }
+    } else {
+        section.style.display = 'none';
+    }
+});
+
+// Load all preset scenes
+async function loadAllTemplates() {
+    const loading = document.getElementById('templatesLoading');
+    const grid = document.getElementById('templatesFullGrid');
+    
+    try {
+        const response = await fetch('/manage_system/api/preset-scenes');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            allPresetScenes = data.data;
+            renderAllTemplates(allPresetScenes);
+        }
+    } catch (error) {
+        console.error('Error loading templates:', error);
+        grid.innerHTML = '<p style="text-align: center; color: var(--ink-gray); padding: 2rem;">加载失败，请重试</p>';
+    }
+}
+
+// Render all templates
+function renderAllTemplates(templates) {
+    const grid = document.getElementById('templatesFullGrid');
+    
+    if (!templates || templates.length === 0) {
+        grid.innerHTML = '<p style="text-align: center; color: var(--ink-gray); padding: 2rem; grid-column: 1/-1;">暂无场景模板</p>';
+        return;
+    }
+    
+    // /quieter + /distill: minimal single-character icons
+    const icons = {
+        'sales': '◆',
+        'learning': '○',
+        'interview': '△',
+        'customer_service': '◇',
+        'other': '□'
+    };
+    
+    grid.innerHTML = templates.map(template => `
+        <div class="full-template-card">
+            <div class="full-card-icon">${icons[template.industry] || '●'}</div>
+            <h3 class="full-card-title">${escapeHtml(template.scene_name)}</h3>
+            <p class="full-card-role">${escapeHtml(template.role_type || '通用教练')}</p>
+            <p class="full-card-description">${escapeHtml(truncateText(template.scene_prompt, 100))}</p>
+            <a href="/manage_system/scenes/create-custom?template=${template.scene_code}" class="full-card-btn">使用此模板</a>
+        </div>
+    `).join('');
+}
+
+// Template category filter
+document.querySelectorAll('.template-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        // Update active state
+        document.querySelectorAll('.template-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Filter templates
+        currentTemplateCategory = this.dataset.category;
+        filterAllTemplates();
+    });
+});
+
+function filterAllTemplates() {
+    let filtered = allPresetScenes;
+    
+    if (currentTemplateCategory !== 'all') {
+        filtered = filtered.filter(t => 
+            t.industry === currentTemplateCategory || 
+            t.category === currentTemplateCategory
+        );
+    }
+    
+    renderAllTemplates(filtered);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function truncateText(str, length) {
+    if (!str) return '';
+    return str.length > length ? str.substring(0, length) + '...' : str;
+}
+</script>
+{% endblock %}

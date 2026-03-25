@@ -132,15 +132,11 @@ function renderScenes(scenes) {
             <td>${formatDateTime(scene.created_time)}</td>
             <td>
                 <div class="table-actions">
-                    <button class="btn btn-link btn-sm" onclick="viewSceneDetail(${scene.id})" title="查看详情">
-                        👁️ 查看
-                    </button>
+                    <button class="btn btn-link btn-sm" onclick="viewSceneDetail(${scene.id})" title="查看详情">查看</button>
                     <button class="btn btn-link btn-sm" onclick="editScene(${scene.id})" title="编辑">
-                        ✏️ 编辑
+                        编辑
                     </button>
-                    <button class="btn btn-link btn-sm text-danger" onclick="deleteScene(${scene.id}, '${escapeHtml(scene.scene_name)}')" title="删除">
-                        🗑️ 删除
-                    </button>
+                    <button class="btn btn-link btn-sm text-danger" onclick="deleteScene(${scene.id}, '${escapeHtml(scene.scene_name)}')" title="删除">删除</button>
                 </div>
             </td>
         </tr>
@@ -449,16 +445,8 @@ function getStatusBadge(status) {
  * 获取场景图标
  */
 function getSceneIcon(industry) {
-    const iconMap = {
-        '汽车': '🚗',
-        '教育': '📚',
-        '保险': '🛡️',
-        '零售': '🛒',
-        '金融': '💰',
-        '医疗': '🏥',
-        '房产': '🏠'
-    };
-    return iconMap[industry] || '🎯';
+    if (!industry) return 'AI';
+    return industry.charAt(0);
 }
 
 /**

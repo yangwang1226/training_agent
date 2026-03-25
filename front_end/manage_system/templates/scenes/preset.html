@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+<!-- {% extends "layout.html" %} -->
 
 {% block title %}预设场景管理 - AI教练后台管理系统{% endblock %}
 
@@ -19,7 +19,7 @@
     <div class="preset-header">
         <div class="preset-header-content">
             <div class="preset-title-group">
-                <h1>🏢 预设场景库</h1>
+                <h1>预设场景库</h1>
                 <p>浏览和选择系统预设的标准场景模板</p>
             </div>
             <div class="preset-search">
@@ -34,28 +34,28 @@
     <!-- 统计卡片 -->
     <div class="preset-stats">
         <div class="preset-stat-card">
-            <div class="preset-stat-icon" style="background: #dbeafe;">📚</div>
+            <div class="preset-stat-icon">总</div>
             <div class="preset-stat-info">
                 <div class="preset-stat-value" id="totalCount">0</div>
                 <div class="preset-stat-label">总场景数</div>
             </div>
         </div>
         <div class="preset-stat-card">
-            <div class="preset-stat-icon" style="background: #d1fae5;">🏢</div>
+            <div class="preset-stat-icon">业</div>
             <div class="preset-stat-info">
                 <div class="preset-stat-value" id="industryCount">0</div>
                 <div class="preset-stat-label">覆盖行业</div>
             </div>
         </div>
         <div class="preset-stat-card">
-            <div class="preset-stat-icon" style="background: #fef3c7;">🔥</div>
+            <div class="preset-stat-icon">热</div>
             <div class="preset-stat-info">
                 <div class="preset-stat-value" id="hotScene">-</div>
                 <div class="preset-stat-label">最热场景</div>
             </div>
         </div>
         <div class="preset-stat-card">
-            <div class="preset-stat-icon" style="background: #fce7f3;">📊</div>
+            <div class="preset-stat-icon">用</div>
             <div class="preset-stat-info">
                 <div class="preset-stat-value" id="totalUsage">0</div>
                 <div class="preset-stat-label">总使用次数</div>
@@ -70,7 +70,7 @@
             <button class="industry-tab" data-industry="automobile" onclick="filterByIndustry('automobile')">🚗 汽车销售</button>
             <button class="industry-tab" data-industry="education" onclick="filterByIndustry('education')">📚 教育培训</button>
             <button class="industry-tab" data-industry="realestate" onclick="filterByIndustry('realestate')">🏠 房产销售</button>
-            <button class="industry-tab" data-industry="insurance" onclick="filterByIndustry('insurance')">💼 保险金融</button>
+            <button class="industry-tab" data-industry="insurance" onclick="filterByIndustry('insurance')">保险金融</button>
         </div>
     </div>
 

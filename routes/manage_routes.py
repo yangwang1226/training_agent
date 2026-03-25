@@ -1,4 +1,4 @@
-"""后台管理系统路由"""
+﻿"""后台管理系统路由"""
 import logging
 from pathlib import Path
 from flask import Blueprint, render_template, jsonify, request, send_from_directory, render_template_string
@@ -18,7 +18,7 @@ manage_bp = Blueprint(
     static_folder=str(Path(__file__).parent.parent / 'front_end' / 'manage_system' / 'static')
 )
 
-# 静态文件路由
+# 静态文件路�?
 @manage_bp.route('/static/<path:filename>')
 def manage_static(filename):
     """提供静态文件"""
@@ -30,8 +30,16 @@ def manage_static(filename):
 
 @manage_bp.route('/')
 def index():
-    """后台管理首页（仪表盘）"""
+    """后台管理首页 - 带左侧菜单，右侧嵌入欢迎页"""
     return render_template('dashboard.html')
+
+
+@manage_bp.route('/welcome-content')
+def welcome_content():
+    """欢迎页内容（供iframe嵌入）"""
+    welcome_path = Path(__file__).parent.parent / 'front_end' / 'templates' / 'welcome.html'
+    with open(welcome_path, 'r', encoding='utf-8') as f:
+        return f.read()
 
 
 @manage_bp.route('/scenes')
@@ -76,13 +84,25 @@ def scene_config_custom_page():
     return render_template('scenes/scene_config.html')
 
 
+@manage_bp.route('/builder')
+def scene_builder_page():
+    """场景构建器页面 - Yoodli风格"""
+    return render_template('scene_builder.html')
+
+
+@manage_bp.route('/templates')
+def template_selector_page():
+    """模板选择器页面 - Yoodli风格"""
+    return render_template('template_selector.html')
+
+
 # ==================== API路由 ====================
 
 @manage_bp.route('/api/scenes', methods=['GET'])
 def get_scenes_api():
     """获取场景列表API（包括所有状态的自定义场景）"""
     try:
-        # 获取所有未删除的场景（包括草稿、进行中、已完成）
+        # 获取所有未删除的场景（包括草稿、进行中、已完成�?
         from database.connection import get_db
         
         with get_db() as conn:
@@ -96,9 +116,9 @@ def get_scenes_api():
                 cursor.execute(sql)
                 scenes = cursor.fetchall()
         
-        # 为每个场景添加训练次数统计（后续可以从训练记录表统计）
+        # 为每个场景添加训练次数统计（后续可以从训练记录表统计�?
         for scene in scenes:
-            scene['training_count'] = 0  # 暂时设为0，后续可以从数据库统计
+            scene['training_count'] = 0  # 暂时设为0，后续可以从数据库统�?
         
         return jsonify({
             'success': True,
@@ -151,7 +171,7 @@ def delete_scene_api(scene_id):
                 'message': '场景不存在'
             }), 404
         
-        # 执行软删除
+        # 执行软删除（将 deleted 字段设置为 1）
         success = db_module.soft_delete_scene(scene_id)
         
         if success:
@@ -285,3 +305,6 @@ def get_preset_scene_detail_api(scene_code):
             'success': False,
             'message': str(e)
         }), 500
+
+
+

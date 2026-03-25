@@ -6,27 +6,47 @@
 }
 
 /* ==================== 页面头部 ==================== */
+/* ====== BOLDER PAGE HEADER ====== */
 .page-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-}
-
-.page-title-group {
-    flex: 1;
+    align-items: flex-end; /* 底部对齐，更有力量感 */
+    margin-bottom: 40px;
+    border-bottom: 2px solid var(--color-text-primary); /* 粗黑分割线 */
+    padding-bottom: 24px;
 }
 
 .page-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 8px;
+    font-size: 40px; /* BOLDER */
+    font-weight: 800;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+    letter-spacing: -0.04em;
+    line-height: 1;
 }
 
 .page-subtitle {
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 16px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+/* 强对比的主按钮 */
+.btn-primary {
+    background: var(--color-text-primary);
+    color: var(--color-bg-surface);
+    border: 2px solid var(--color-text-primary);
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+}
+.btn-primary:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.15);
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
 }
 
 .page-actions {
@@ -46,7 +66,7 @@
     background: white;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm); border: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     gap: 16px;
@@ -59,13 +79,17 @@
 }
 
 .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 16px;
+    font-weight: 700;
+    background: var(--color-bg-body);
+    color: var(--color-primary);
+    border: 1px solid var(--color-border);
 }
 
 .stat-info {
@@ -73,11 +97,13 @@
 }
 
 .stat-value {
-    font-size: 28px;
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    font-size: 32px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    letter-spacing: -1px;
 }
 
 .stat-label {
@@ -134,7 +160,7 @@
 .filter-tab.active {
     background: white;
     color: #2563eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm); border: 1px solid var(--color-border);
 }
 
 /* 搜索框 */
@@ -171,19 +197,23 @@
 .scene-name-cell {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
 .scene-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 8px;
+    background: var(--color-bg-body);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 16px;
+    color: var(--color-primary);
     flex-shrink: 0;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 
 .scene-info {
@@ -193,11 +223,13 @@
 
 .scene-name {
     font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 2px;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 15px;
+    letter-spacing: -0.01em;
 }
 
 .scene-meta {
@@ -218,21 +250,28 @@
 .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    justify-content: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
     font-size: 12px;
     font-weight: 500;
-    border-radius: 12px;
+    border-radius: 6px; /* 使用更现代的小圆角而不是大药丸 */
+    border: 1px solid transparent;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .status-badge.status-preset {
-    background: #d1fae5;
-    color: #065f46;
+    background: #f0fdf4;
+    color: #059669;
+    border-color: #bbf7d0;
 }
 
 .status-badge.status-custom {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
 }
 
 .status-badge.status-draft {
@@ -250,7 +289,9 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    color: #6b7280;
+    color: var(--color-text-secondary);
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    font-size: 13px;
 }
 
 .training-count .count {
@@ -428,4 +469,63 @@
     .table-container {
         overflow-x: auto;
     }
+}
+/* ====== 修复表格排版与按钮 (去AI塑料感) ====== */
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 8px;
+}
+
+.table th {
+    background: var(--color-bg-body);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-size: 13px;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+.table tr:hover td {
+    background: var(--color-bg-body);
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-link {
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-link:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.btn-link.text-danger {
+    color: var(--color-danger);
+}
+
+.btn-link.text-danger:hover {
+    background: rgba(244, 63, 94, 0.1);
 }

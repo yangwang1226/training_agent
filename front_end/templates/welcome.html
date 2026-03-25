@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎 - AI教练平台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* /typeset - Editorial & Typographic Excellence */
+        :root {
+            /* Sophisticated Color Palette */
+            --ink-black: #1a1a1a;
+            --ink-gray: #4a4a4a;
+            --ink-light: #767676;
+            --paper-white: #fefefe;
+            --accent-burgundy: #8b2635;
+            --accent-navy: #1e3a5f;
+            --accent-gold: #c9a961;
+            --accent-sage: #6b8e7f;
+            
+            /* Typography Scale */
+            --font-display: 'Playfair Display', 'Source Serif 4', Georgia, serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            
+            /* Spacing Scale (8pt grid) */
+            --space-xs: 0.5rem;
+            --space-sm: 1rem;
+            --space-md: 1.5rem;
+            --space-lg: 3rem;
+            --space-xl: 4.5rem;
+            --space-2xl: 6rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--paper-white);
+            font-family: var(--font-body);
+            color: var(--ink-black);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Editorial Layout Grid */
+        .container {
+            max-width: 1200px;
+            width: 90%;
+            padding: var(--space-2xl) var(--space-md);
+            position: relative;
+        }
+
+        /* Masthead - Editorial Style */
+        .masthead {
+            text-align: center;
+            border-bottom: 3px solid var(--ink-black);
+            padding-bottom: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+            animation: fadeInDown 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Display Typography - Magazine Headline Style */
+        .headline {
+            font-family: var(--font-display);
+            font-size: clamp(3.5rem, 8vw, 7rem);
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+            color: var(--ink-black);
+            margin-bottom: var(--space-md);
+            position: relative;
+        }
+
+        /* Gradient accent on headline */
+        .headline-accent {
+            background: linear-gradient(135deg, var(--accent-burgundy), var(--accent-navy));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+
+        /* Subheadline - Editorial Dek */
+        .dek {
+            font-family: var(--font-body);
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-light);
+            margin-top: var(--space-sm);
+        }
+
+        /* Ornamental Separator */
+        .separator {
+            width: 60px;
+            height: 3px;
+            background: var(--accent-gold);
+            margin: var(--space-lg) auto;
+            position: relative;
+        }
+
+        .separator::before,
+        .separator::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .separator::before {
+            left: -16px;
+        }
+
+        .separator::after {
+            right: -16px;
+        }
+
+        /* Feature Grid - Magazine Layout */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-lg);
+            margin-top: var(--space-2xl);
+            animation: fadeInUp 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.3s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Feature Card - Editorial Module */
+        .feature-card {
+            padding: var(--space-lg);
+            border: 1px solid #e5e5e5;
+            background: #fafafa;
+            transition: all 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-burgundy);
+            transform: scaleY(0);
+            transform-origin: bottom;
+            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+
+        .feature-card:nth-child(2)::before {
+            background: var(--accent-navy);
+        }
+
+        .feature-card:nth-child(3)::before {
+            background: var(--accent-sage);
+        }
+
+        .feature-card:hover {
+            background: var(--paper-white);
+            border-color: var(--ink-black);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleY(1);
+            transform-origin: top;
+        }
+
+        .feature-number {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 300;
+            color: var(--ink-light);
+            line-height: 1;
+            margin-bottom: var(--space-sm);
+        }
+
+        .feature-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--ink-black);
+            margin-bottom: var(--space-sm);
+            line-height: 1.2;
+        }
+
+        .feature-description {
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            color: var(--ink-gray);
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        /* Call-to-Action Section */
+        .cta-section {
+            margin-top: var(--space-2xl);
+            padding-top: var(--space-2xl);
+            border-top: 1px solid #e5e5e5;
+            text-align: center;
+            animation: fadeIn 1.2s ease-out 0.6s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .cta-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 700;
+            color: var(--ink-black);
+            margin-bottom: var(--space-lg);
+            line-height: 1.2;
+        }
+
+        .button-group {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Editorial Button Styles */
+        .btn {
+            font-family: var(--font-body);
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 1rem 2.5rem;
+            border: 2px solid var(--ink-black);
+            background: var(--paper-white);
+            color: var(--ink-black);
+            transition: all 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--ink-black);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+            z-index: 0;
+        }
+
+        .btn:hover::before {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .btn:hover {
+            color: var(--paper-white);
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-primary {
+            background: var(--ink-black);
+            color: var(--paper-white);
+        }
+
+        .btn-primary::before {
+            background: var(--accent-burgundy);
+        }
+
+        /* Stats Section - Magazine Infographic Style */
+        .stats-section {
+            margin-top: var(--space-2xl);
+            padding: var(--space-2xl) 0;
+            background: #fafafa;
+            margin-left: calc(-50vw + 50%);
+            margin-right: calc(-50vw + 50%);
+            animation: fadeInUp 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-lg);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: var(--space-md);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: 900;
+            color: var(--accent-burgundy);
+            line-height: 1;
+            margin-bottom: var(--space-sm);
+        }
+
+        .stat-label {
+            font-family: var(--font-body);
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-gray);
+        }
+
+        /* Editorial Footer */
+        .editorial-footer {
+            margin-top: var(--space-2xl);
+            padding-top: var(--space-lg);
+            border-top: 3px solid var(--ink-black);
+            text-align: center;
+        }
+
+        .footer-text {
+            font-family: var(--font-body);
+            font-size: 0.875rem;
+            color: var(--ink-light);
+            letter-spacing: 0.05em;
+        }
+
+        /* Responsive Typography */
+        @media (max-width: 768px) {
+            :root {
+                --space-lg: 2rem;
+                --space-xl: 3rem;
+                --space-2xl: 4rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+        }
+
+        /* Print-inspired ornaments */
+        .ornament {
+            text-align: center;
+            color: var(--accent-gold);
+            font-size: 1.5rem;
+            margin: var(--space-lg) 0;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Masthead -->
+        <header class="masthead">
+            <h1 class="headline">
+                <span class="headline-accent">AI</span> 教练
+            </h1>
+            <p class="dek">智能化培训管理系统</p>
+        </header>
+
+        <!-- Feature Grid -->
+        <section class="features-grid">
+            <article class="feature-card">
+                <div class="feature-number">01</div>
+                <h3 class="feature-title">场景构建器</h3>
+                <p class="feature-description">创建和管理多样化的培训场景，支持自定义配置，满足不同行业需求。</p>
+            </article>
+
+            <article class="feature-card">
+                <div class="feature-number">02</div>
+                <h3 class="feature-title">智能评估</h3>
+                <p class="feature-description">基于AI的实时评估系统，提供详细的表现分析和改进建议。</p>
+            </article>
+
+            <article class="feature-card">
+                <div class="feature-number">03</div>
+                <h3 class="feature-title">数据追踪</h3>
+                <p class="feature-description">完整的训练记录和进度跟踪，帮助您持续提升培训效果。</p>
+            </article>
+        </section>
+
+        <div class="ornament">❖ ❖ ❖</div>
+
+        <!-- Stats Section -->
+        <section class="stats-section">
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-number" data-target="156">0</div>
+                    <div class="stat-label">训练场景</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="2600">0</div>
+                    <div class="stat-label">活跃用户</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="89">0</div>
+                    <div class="stat-label">完成率 %</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="4.8">0</div>
+                    <div class="stat-label">平均评分</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="cta-section">
+            <h2 class="cta-title">开始您的智能培训之旅</h2>
+            <div class="separator"></div>
+            <div class="button-group">
+                <a href="/manage_system/scenes" class="btn btn-primary"><span>创建你的第一个场景</span></a>
+                <!-- <a href="/manage_system/builder" class="btn"><span>创建场景</span></a>
+                <a href="/manage_system/records" class="btn"><span>训练记录</span></a> -->
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="editorial-footer">
+            <p class="footer-text">© 2026 AI 教练平台</p>
+        </footer>
+    </div>
+
+    <script>
+        // Smooth counter animation with easing
+        function animateCounter(element) {
+            const target = parseFloat(element.getAttribute('data-target'));
+            const isDecimal = target % 1 !== 0;
+            const duration = 2500;
+            const startTime = performance.now();
+            
+            function easeOutExpo(x) {
+                return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+            }
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easedProgress = easeOutExpo(progress);
+                
+                const currentValue = easedProgress * target;
+                
+                if (isDecimal) {
+                    element.textContent = currentValue.toFixed(1);
+                } else if (target >= 1000) {
+                    element.textContent = Math.floor(currentValue).toLocaleString();
+                } else {
+                    element.textContent = Math.floor(currentValue);
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    if (isDecimal) {
+                        element.textContent = target.toFixed(1);
+                    } else if (target >= 1000) {
+                        element.textContent = target.toLocaleString();
+                    } else {
+                        element.textContent = target;
+                    }
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+        
+        // Intersection Observer for stats animation
+        const observerOptions = {
+            threshold: 0.5,
+            rootMargin: '0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const statNumbers = entry.target.querySelectorAll('.stat-number');
+                    statNumbers.forEach((el, index) => {
+                        setTimeout(() => {
+                            animateCounter(el);
+                        }, index * 100);
+                    });
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        const statsSection = document.querySelector('.stats-section');
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+    </script>
+</body>
+</html>
