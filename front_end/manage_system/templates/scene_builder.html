@@ -900,15 +900,31 @@ function renderAllTemplates(templates) {
         'other': '□'
     };
     
-    grid.innerHTML = templates.map(template => `
+    // Industry labels for tags
+    const industryLabels = {
+        'sales': '销售',
+        'learning': '学习', 
+        'interview': '面试',
+        'customer_service': '客服',
+        'other': '其他'
+    };
+    
+    grid.innerHTML = templates.map(template => {
+        const industryTag = industryLabels[template.industry] || template.industry || '其他';
+        
+        return `
         <div class="full-template-card">
-            <div class="full-card-icon">${icons[template.industry] || '●'}</div>
+            <div class="card-header-row">
+                <div class="full-card-icon">${icons[template.industry] || '●'}</div>
+                <span class="card-industry-tag">${industryTag}</span>
+            </div>
             <h3 class="full-card-title">${escapeHtml(template.scene_name)}</h3>
             <p class="full-card-role">${escapeHtml(template.role_type || '通用教练')}</p>
             <p class="full-card-description">${escapeHtml(truncateText(template.scene_prompt, 100))}</p>
             <a href="/manage_system/scenes/create-custom?template=${template.scene_code}" class="full-card-btn">使用此模板</a>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Template category filter
