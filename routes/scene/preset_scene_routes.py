@@ -450,7 +450,9 @@ def get_scene_config(scene_code: str):
             }), 404
         
         # 获取SOP质检项
-        sop_checklist = SOPChecklistDAO.get_preset_sop_checklist(scene_code) or []
+        sop_checklist = SOPChecklistDAO.get_preset_sop_checklist(scene_code)
+        if sop_checklist is None:
+            sop_checklist = []
         
         # 解析固定问题和关联问题
         fixed_questions = []
@@ -459,16 +461,24 @@ def get_scene_config(scene_code: str):
         if scene.get('fixed_questions'):
             try:
                 fixed_questions = json.loads(scene['fixed_questions']) if isinstance(scene['fixed_questions'], str) else scene['fixed_questions']
-            except:
-                pass
+                # 确保是列表
+                if not isinstance(fixed_questions, list):
+                    fixed_questions = []
+            except Exception as e:
+                logger.warning(f"解析固定问题失败: {e}")
+                fixed_questions = []
         
         if scene.get('related_questions'):
             try:
                 related_questions = json.loads(scene['related_questions']) if isinstance(scene['related_questions'], str) else scene['related_questions']
-            except:
-                pass
+                # 确保是列表
+                if not isinstance(related_questions, list):
+                    related_questions = []
+            except Exception as e:
+                logger.warning(f"解析关联问题失败: {e}")
+                related_questions = []
         
-        # 构建响应数据
+                # 构建响应数据
         config_data = {
             'scene_code': scene['scene_code'],
             'scene_name': scene['scene_name'],
@@ -479,10 +489,12 @@ def get_scene_config(scene_code: str):
             'difficulty': scene.get('difficulty', 'medium'),
             'estimated_duration': 600,  # 默认10分钟
             'opening_line': scene.get('opening_line', ''),
-            'fixed_questions': fixed_questions,
-            'related_questions': related_questions,
-            'sop_checklist': sop_checklist
+            'fixed_questions': fixed_questions if isinstance(fixed_questions, list) else [],
+            'related_questions': related_questions if isinstance(related_questions, list) else [],
+            'sop_checklist': sop_checklist if isinstance(sop_checklist, list) else []
         }
+        
+        logger.info(f"返回场景配置: {scene['scene_code']}, 固定问题: {len(config_data['fixed_questions'])}项, 关联问题: {len(config_data['related_questions'])}项, SOP: {len(config_data['sop_checklist'])}项")
         
         return jsonify({
             'success': True,

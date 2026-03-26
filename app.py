@@ -33,6 +33,7 @@ from routes.realtime_routes import register_websocket
 
 app = Flask(__name__, template_folder='front_end/templates', static_folder='front_end/static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
+app.config['JSON_AS_ASCII'] = False  # 支持中文 JSON 输出
 
 
 @app.before_request

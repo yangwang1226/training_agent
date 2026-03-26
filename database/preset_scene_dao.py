@@ -65,7 +65,8 @@ def get_all_active_preset_scenes() -> List[Dict[str, Any]]:
             sql = """
                 SELECT 
                     id, industry_code, scene_code, scene_name, scene_description,
-                    ai_role, user_role, difficulty, usage_count, opening_line, created_time
+                    ai_role, user_role, difficulty, usage_count, opening_line, created_time,
+                    scene_type
                 FROM ai_coach_preset_scene 
                 WHERE is_active = 1
                 ORDER BY industry_code ASC, usage_count DESC

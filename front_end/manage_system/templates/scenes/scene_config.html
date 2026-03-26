@@ -1,0 +1,1301 @@
+{% extends "layout.html" %}
+
+{% block title %}场景配置 - AI教练后台管理系统{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-item"><a href="/manage_system/">首页</a></span>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-item"><a href="/manage_system/builder">构建器</a></span>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-item active">场景配置</span>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* === Typeset Design System === */
+:root {
+    /* Colors */
+    --ink-black: #1a1a1a;
+    --ink-gray: #4a4a4a;
+    --ink-light: #767676;
+    --paper-white: #fefefe;
+    --bg-subtle: #fafafa;
+    --border-light: #e5e7eb;
+    
+    /* Accents */
+    --primary-purple: #6366f1;
+    --primary-purple-dark: #4f46e5;
+    --accent-cyan: #06b6d4;
+    --accent-orange: #f97316;
+    
+    /* Typography */
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    
+    /* Spacing */
+    --space-xs: 0.5rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2rem;
+    --space-xl: 3rem;
+    --space-2xl: 4rem;
+}
+
+/* === Layout Override === */
+.config-page {
+    background: transparent;
+    min-height: auto;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.config-header {
+    background: var(--paper-white);
+    border-bottom: 1px solid var(--border-light);
+    padding: var(--space-lg) var(--space-xl);
+    margin: -2rem -2rem var(--space-xl) -2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ink-gray);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    background: var(--bg-subtle);
+    border-color: var(--ink-light);
+    color: var(--ink-black);
+}
+
+.page-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    color: var(--primary-purple);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.btn-start-training {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--ink-black);
+    color: var(--paper-white);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-start-training::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary-purple);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    z-index: 0;
+}
+
+.btn-start-training:hover::before {
+    transform: scaleX(1);
+}
+
+.btn-start-training span,
+.btn-start-training svg {
+    position: relative;
+    z-index: 1;
+}
+
+.config-main {
+    padding: 0;
+}
+
+.config-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* === Section Styles === */
+.config-section {
+    background: var(--paper-white);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    transition: all 0.3s ease;
+}
+
+.config-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.section-header h2 {
+    font-family: var(--font-body);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--ink-black);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.required {
+    color: var(--accent-orange);
+    font-size: 1rem;
+}
+
+.btn-restore {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--ink-light);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    padding: 0.375rem 0.875rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-restore:hover {
+    color: var(--primary-purple);
+    border-color: var(--primary-purple);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+/* === Scene Info Card === */
+.scene-info-card {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--bg-subtle);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+}
+
+.scene-icon {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper-white);
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.scene-details {
+    flex: 1;
+}
+
+.scene-name {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ink-black);
+    margin: 0 0 var(--space-xs) 0;
+    line-height: 1.3;
+}
+
+.scene-desc {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    color: var(--ink-gray);
+    line-height: 1.6;
+    margin: 0 0 var(--space-sm) 0;
+}
+
+.scene-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.meta-item {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--ink-light);
+}
+
+.meta-item strong {
+    color: var(--ink-gray);
+    font-weight: 600;
+}
+
+/* === Form Elements === */
+.config-textarea,
+.config-input {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--ink-black);
+    background: var(--paper-white);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.config-textarea:focus,
+.config-input:focus {
+    outline: none;
+    border-color: var(--primary-purple);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.config-textarea::placeholder,
+.config-input::placeholder {
+    color: var(--ink-light);
+}
+
+.char-counter {
+    text-align: right;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    margin-top: 0.25rem;
+}
+
+.hint {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--ink-light);
+    margin: var(--space-xs) 0 0 0;
+    font-style: italic;
+}
+
+/* === Collapsible Sections === */
+.config-section.collapsible .section-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.config-section.collapsible .section-header:hover {
+    background: var(--bg-subtle);
+    margin: 0 calc(-1 * var(--space-md));
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    border-radius: 6px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.count-badge {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--primary-purple);
+    background: rgba(99, 102, 241, 0.1);
+    padding: 0.25rem 0.625rem;
+    border-radius: 12px;
+}
+
+.btn-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--ink-light);
+    transition: all 0.2s ease;
+}
+
+.btn-toggle:hover {
+    color: var(--ink-black);
+}
+
+.icon-toggle {
+    transition: transform 0.3s ease;
+}
+
+.section-content.collapsed {
+    display: none;
+}
+
+.section-content.collapsed ~ .section-header .icon-toggle {
+    transform: rotate(-90deg);
+}
+
+/* === Question Items === */
+.question-item,
+.related-question-item,
+.sop-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    margin-bottom: var(--space-sm);
+    transition: all 0.2s ease;
+}
+
+.question-item:hover,
+.related-question-item:hover,
+.sop-item:hover {
+    background: var(--paper-white);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.question-number,
+.sop-number {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--paper-white);
+    background: var(--primary-purple);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.question-input,
+.sop-input,
+.trigger-input {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-black);
+    background: transparent;
+    border: none;
+    padding: 0.25rem;
+}
+
+.question-input:focus,
+.sop-input:focus,
+.trigger-input:focus {
+    outline: none;
+}
+
+.btn-delete-item {
+    background: transparent;
+    border: none;
+    color: var(--ink-light);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-delete-item:hover {
+    background: #fee;
+    color: #c33;
+}
+
+.related-question-item {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.related-question-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.related-question-body {
+    padding-left: 32px;
+    padding-top: var(--space-xs);
+}
+
+.related-question-body label {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink-gray);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+/* === Add Button === */
+.btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--primary-purple);
+    background: transparent;
+    border: 1px dashed var(--primary-purple);
+    padding: 0.625rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    justify-content: center;
+    margin-top: var(--space-sm);
+}
+
+.btn-add:hover {
+    background: rgba(99, 102, 241, 0.05);
+    border-style: solid;
+}
+
+/* === Action Buttons === */
+.config-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    padding-top: var(--space-xl);
+    border-top: 1px solid var(--border-light);
+    margin-top: var(--space-xl);
+}
+
+.btn-cancel,
+.btn-submit {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    padding: 0.875rem 2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-cancel {
+    background: transparent;
+    color: var(--ink-gray);
+    border: 1px solid var(--border-light);
+}
+
+.btn-cancel:hover {
+    background: var(--bg-subtle);
+    color: var(--ink-black);
+    border-color: var(--ink-light);
+}
+
+.btn-submit {
+    background: var(--ink-black);
+    color: var(--paper-white);
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-submit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary-purple);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    z-index: 0;
+}
+
+.btn-submit:hover::before {
+    transform: scaleX(1);
+}
+
+.btn-submit span,
+.btn-submit svg {
+    position: relative;
+    z-index: 1;
+}
+
+/* === Empty State === */
+.config-section p[style*="color: #999"] {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-light) !important;
+    font-style: italic;
+}
+
+/* === Loading States === */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.loading-placeholder {
+    animation: shimmer 1.5s infinite;
+}
+
+/* === Smooth Transitions === */
+.config-section {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.config-section:nth-child(1) { animation-delay: 0.05s; }
+.config-section:nth-child(2) { animation-delay: 0.1s; }
+.config-section:nth-child(3) { animation-delay: 0.15s; }
+.config-section:nth-child(4) { animation-delay: 0.2s; }
+.config-section:nth-child(5) { animation-delay: 0.25s; }
+.config-section:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === Focus States === */
+.config-input:focus,
+.config-textarea:focus {
+    animation: focusPulse 0.3s ease-out;
+}
+
+@keyframes focusPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    .config-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-md);
+    }
+    
+    .config-container {
+        padding: 0 var(--space-sm);
+    }
+    
+    .scene-info-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .scene-icon {
+        margin: 0 auto;
+    }
+    
+    .scene-meta {
+        justify-content: center;
+    }
+    
+    .config-actions {
+        flex-direction: column;
+    }
+    
+    .btn-cancel,
+    .btn-submit {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-page">
+    <!-- 顶部导航栏 -->
+    <header class="config-header">
+        <div class="header-left">
+            <button class="btn-back" onclick="history.back()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                返回场景选择
+            </button>
+            <h1 class="page-title" id="pageTitle">场景配置</h1>
+        </div>
+        <div class="header-right">
+            <button class="btn-start-training" id="btnStartTraining">
+                开始训练
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主内容区域 -->
+    <main class="config-main">
+        <div class="config-container">
+            
+            <!-- 场景信息 -->
+            <section class="config-section">
+                <div class="section-header">
+                    <h2>🔍 场景信息</h2>
+                </div>
+                <div class="scene-info-card">
+                    <div class="scene-icon" id="sceneIcon">🚗</div>
+                    <div class="scene-details">
+                        <h3 class="scene-name" id="sceneName">
+                            <span class="loading-placeholder" style="display: inline-block; width: 200px; height: 24px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px;"></span>
+                        </h3>
+                        <p class="scene-desc" id="sceneDesc">
+                            <span class="loading-placeholder" style="display: inline-block; width: 100%; height: 16px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px;"></span>
+                        </p>
+                        <div class="scene-meta">
+                            <span class="meta-item">
+                                <strong>AI扮演：</strong>
+                                <span id="aiRole">-</span>
+                            </span>
+                            <span class="meta-item">
+                                <strong>你扮演：</strong>
+                                <span id="userRole">-</span>
+                            </span>
+                            <span class="meta-item">
+                                <strong>难度：</strong>
+                                <span id="difficulty">-</span>
+                            </span>
+                            <span class="meta-item">
+                                <strong>时长：</strong>
+                                <span id="duration">-</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 场景背景 -->
+            <section class="config-section">
+                <div class="section-header">
+                    <h2>📝 场景背景 <span class="required">*</span></h2>
+                </div>
+                <div class="section-content">
+                    <textarea id="backgroundInput" 
+                        class="config-textarea"
+                        placeholder="例如：客户是30岁女性，预算20万左右，关注安全性和外观，周末带家人来看车..."
+                        maxlength="200"
+                        rows="4"></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span>/200
+                    </div>
+                    <p class="hint">💡 描述客户特征或场景细节，AI将据此生成更真实的对话体验</p>
+                </div>
+            </section>
+
+            <!-- AI开场白 -->
+            <section class="config-section">
+                <div class="section-header">
+                    <div>
+                        <h2>🎤 AI开场白 <span class="required">*</span></h2>
+                    </div>
+                    <button class="btn-restore" id="btnRestoreOpening">恢复默认</button>
+                </div>
+                <div class="section-content">
+                    <input type="text" 
+                        id="openingInput" 
+                        class="config-input"
+                        placeholder="对练开始后，AI（模拟客户）说的第一句话..."
+                        maxlength="500">
+                    <p class="hint">💡 训练开始时AI的第一句话，设定对话的基调和场景氛围</p>
+                </div>
+            </section>
+
+            <!-- 固定问题 -->
+            <section class="config-section collapsible">
+                <div class="section-header clickable" data-target="fixedQuestionsContent">
+                    <div class="header-left">
+                        <h2>💬 固定问题（AI必问）</h2>
+                        <span class="count-badge" id="fixedQuestionCount">0 个问题</span>
+                    </div>
+                    <div class="header-right">
+                        <button class="btn-restore" id="btnRestoreFixed" onclick="event.stopPropagation()">恢复默认</button>
+                        <button class="btn-toggle">
+                            <svg class="icon-toggle" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content collapsed" id="fixedQuestionsContent">
+                    <div class="question-list" id="fixedQuestionList">
+                        <!-- 动态生成 -->
+                    </div>
+                    <button class="btn-add" id="btnAddFixed">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        添加问题
+                    </button>
+                </div>
+            </section>
+
+            <!-- 关联问题 -->
+            <section class="config-section collapsible">
+                <div class="section-header clickable" data-target="relatedQuestionsContent">
+                    <div class="header-left">
+                        <h2>🔗 关联问题（情境触发）</h2>
+                        <span class="count-badge" id="relatedQuestionCount">0 个问题</span>
+                    </div>
+                    <div class="header-right">
+                        <button class="btn-restore" id="btnRestoreRelated" onclick="event.stopPropagation()">恢复默认</button>
+                        <button class="btn-toggle">
+                            <svg class="icon-toggle" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content collapsed" id="relatedQuestionsContent">
+                    <div class="related-question-list" id="relatedQuestionList">
+                        <!-- 动态生成 -->
+                    </div>
+                    <button class="btn-add" id="btnAddRelated">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        添加关联问题
+                    </button>
+                </div>
+            </section>
+
+            <!-- SOP质检项 -->
+            <section class="config-section collapsible">
+                <div class="section-header clickable" data-target="sopChecklistContent">
+                    <div class="header-left">
+                        <h2>✅ SOP质检项</h2>
+                        <span class="count-badge" id="sopChecklistCount">0 个质检项</span>
+                    </div>
+                    <div class="header-right">
+                        <button class="btn-restore" id="btnRestoreSop" onclick="event.stopPropagation()">恢复默认</button>
+                        <button class="btn-toggle">
+                            <svg class="icon-toggle" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content collapsed" id="sopChecklistContent">
+                    <div class="sop-list" id="sopList">
+                        <!-- 动态生成 -->
+                    </div>
+                    <button class="btn-add" id="btnAddSop">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        添加质检项
+                    </button>
+                </div>
+            </section>
+
+            <!-- 底部操作按钮 -->
+            <section class="config-actions">
+                <button class="btn-cancel" onclick="history.back()">取消</button>
+                <button class="btn-submit" id="btnSubmit">
+                    开始训练
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </section>
+
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/industry/static/js/scene_config.js"></script>
+<script>
+// 覆盖原有的初始化逻辑，从URL参数加载预设场景
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 页面加载完成，开始初始化...');
+    
+    // 检查必需的DOM元素
+    const requiredElements = [
+        'sceneName', 'sceneDesc', 'pageTitle', 'aiRole', 'userRole',
+        'difficulty', 'duration', 'openingInput', 'backgroundInput',
+        'fixedQuestionList', 'relatedQuestionList', 'sopList'
+    ];
+    
+    const missingElements = requiredElements.filter(id => !document.getElementById(id));
+    
+    if (missingElements.length > 0) {
+        console.error('❌ 缺少必需的DOM元素:', missingElements);
+        alert('页面初始化失败：缺少必需的元素 - ' + missingElements.join(', '));
+        return;
+    }
+    
+    console.log('✅ 所有必需元素检查通过');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const sceneCode = urlParams.get('scene_code');
+    
+    if (!sceneCode) {
+        console.error('❌ URL参数中缺少 scene_code');
+        alert('缺少场景参数');
+        history.back();
+        return;
+    }
+    
+    console.log('📋 场景代码:', sceneCode);
+    
+    try {
+        // 加载预设场景配置
+        console.log('正在加载场景配置，scene_code:', sceneCode);
+        const response = await fetch(`/api/preset-scene/config/${sceneCode}`);
+        const result = await response.json();
+        
+        console.log('API响应:', result);
+        
+        if (!result.success) {
+            throw new Error(result.error || '加载场景配置失败');
+        }
+        
+        const config = result.data;
+        console.log('场景配置数据:', config);
+        
+        // 填充场景信息（移除骨架屏）
+        const sceneNameEl = document.getElementById('sceneName');
+        const sceneDescEl = document.getElementById('sceneDesc');
+        const pageTitleEl = document.getElementById('pageTitle');
+        const aiRoleEl = document.getElementById('aiRole');
+        const userRoleEl = document.getElementById('userRole');
+        const difficultyEl = document.getElementById('difficulty');
+        const durationEl = document.getElementById('duration');
+        
+        if (sceneNameEl) sceneNameEl.innerHTML = config.scene_name;
+        if (sceneDescEl) sceneDescEl.innerHTML = config.scene_description;
+        if (pageTitleEl) pageTitleEl.textContent = config.scene_name;
+        if (aiRoleEl) aiRoleEl.textContent = config.ai_role;
+        if (userRoleEl) userRoleEl.textContent = config.user_role;
+        
+        // 难度映射
+        if (difficultyEl) {
+            const difficultyMap = {
+                'easy': '简单',
+                'medium': '中等',
+                'hard': '困难'
+            };
+            difficultyEl.textContent = difficultyMap[config.difficulty] || config.difficulty;
+        }
+        
+        // 时长
+        if (durationEl) {
+            const minutes = Math.ceil(config.estimated_duration / 60);
+            durationEl.textContent = `约${minutes}分钟`;
+        }
+        
+        // 填充开场白
+        const openingInput = document.getElementById('openingInput');
+        if (openingInput && config.opening_line) {
+            openingInput.value = config.opening_line;
+        }
+        
+        // 填充固定问题
+        if (config.fixed_questions && Array.isArray(config.fixed_questions) && config.fixed_questions.length > 0) {
+            renderFixedQuestions(config.fixed_questions);
+        } else {
+            renderFixedQuestions([]);
+        }
+        
+        // 填充关联问题
+        if (config.related_questions && Array.isArray(config.related_questions) && config.related_questions.length > 0) {
+            renderRelatedQuestions(config.related_questions);
+        } else {
+            renderRelatedQuestions([]);
+        }
+        
+        // 填充SOP质检项
+        if (config.sop_checklist && Array.isArray(config.sop_checklist) && config.sop_checklist.length > 0) {
+            renderSopChecklist(config.sop_checklist);
+        } else {
+            renderSopChecklist([]);
+        }
+        
+        // 保存场景代码供后续使用
+        window.currentSceneCode = sceneCode;
+        
+    } catch (error) {
+        console.error('❌ 加载场景配置失败:', error);
+        console.error('错误堆栈:', error.stack);
+        console.error('错误详情:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+        });
+        
+        // 显示友好的错误信息
+        const mainContent = document.querySelector('.config-main');
+        if (mainContent) {
+            mainContent.innerHTML = `
+                <div style="max-width: 600px; margin: 3rem auto; padding: 2rem; background: #fee; border: 1px solid #fcc; border-radius: 8px; text-align: center;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c33" stroke-width="2" style="margin: 0 auto 1rem;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h2 style="color: #c33; margin-bottom: 1rem; font-family: var(--font-display);">加载场景配置失败</h2>
+                    <p style="color: #666; margin-bottom: 1.5rem; font-family: var(--font-body);">${error.message}</p>
+                    <button onclick="history.back()" style="background: #c33; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-family: var(--font-body); font-weight: 600;">返回上一页</button>
+                    <p style="color: #999; font-size: 0.875rem; margin-top: 1rem; font-family: var(--font-body);">请打开浏览器控制台（F12）查看详细错误信息</p>
+                </div>
+            `;
+        } else {
+            alert('加载场景配置失败: ' + error.message + '\n\n请打开浏览器控制台查看详细错误信息');
+        }
+    }
+});
+
+// 添加全局错误处理
+window.addEventListener('error', function(event) {
+    console.error('全局错误捕获:', event.error);
+    console.error('错误消息:', event.message);
+    console.error('错误位置:', event.filename, 'Line:', event.lineno, 'Column:', event.colno);
+});
+
+// 渲染固定问题列表
+function renderFixedQuestions(questions) {
+    const container = document.getElementById('fixedQuestionList');
+    const countBadge = document.getElementById('fixedQuestionCount');
+    
+    if (!container) {
+        console.error('fixedQuestionList 元素不存在');
+        return;
+    }
+    
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<p style="color: #999; padding: 1rem; text-align: center;">暂无固定问题</p>';
+        if (countBadge) countBadge.textContent = '0 个问题';
+        window.fixedQuestions = [];
+        return;
+    }
+    
+    container.innerHTML = questions.map((q, index) => `
+        <div class="question-item" data-index="${index}">
+            <div class="question-content">
+                <span class="question-number">${index + 1}</span>
+                <input type="text" class="question-input" value="${escapeHtml(q.question || q)}" readonly>
+            </div>
+            <button class="btn-delete-item" onclick="deleteFixedQuestion(${index})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+    
+    if (countBadge) countBadge.textContent = `${questions.length} 个问题`;
+    window.fixedQuestions = questions;
+}
+
+// 渲染关联问题列表
+function renderRelatedQuestions(questions) {
+    const container = document.getElementById('relatedQuestionList');
+    const countBadge = document.getElementById('relatedQuestionCount');
+    
+    if (!container) {
+        console.error('relatedQuestionList 元素不存在');
+        return;
+    }
+    
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<p style="color: #999; padding: 1rem; text-align: center;">暂无关联问题</p>';
+        if (countBadge) countBadge.textContent = '0 个问题';
+        window.relatedQuestions = [];
+        return;
+    }
+    
+    container.innerHTML = questions.map((q, index) => `
+        <div class="related-question-item" data-index="${index}">
+            <div class="related-question-header">
+                <span class="question-number">${index + 1}</span>
+                <input type="text" class="question-input" value="${escapeHtml(q.question || '')}" readonly>
+                <button class="btn-delete-item" onclick="deleteRelatedQuestion(${index})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="related-question-body">
+                <label>触发条件：</label>
+                <input type="text" class="trigger-input" value="${escapeHtml(q.trigger || '')}" readonly>
+            </div>
+        </div>
+    `).join('');
+    
+    if (countBadge) countBadge.textContent = `${questions.length} 个问题`;
+    window.relatedQuestions = questions;
+}
+
+// 渲染SOP质检项列表
+function renderSopChecklist(items) {
+    const container = document.getElementById('sopList');
+    const countBadge = document.getElementById('sopChecklistCount');
+    
+    if (!container) {
+        console.error('sopList 元素不存在');
+        return;
+    }
+    
+    if (!items || items.length === 0) {
+        container.innerHTML = '<p style="color: #999; padding: 1rem; text-align: center;">暂无质检项</p>';
+        if (countBadge) countBadge.textContent = '0 个质检项';
+        window.sopChecklist = [];
+        return;
+    }
+    
+    container.innerHTML = items.map((item, index) => `
+        <div class="sop-item" data-index="${index}">
+            <div class="sop-content">
+                <span class="sop-number">${index + 1}</span>
+                <input type="text" class="sop-input" value="${escapeHtml(item.item || item)}" readonly>
+            </div>
+            <button class="btn-delete-item" onclick="deleteSopItem(${index})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+    
+    if (countBadge) countBadge.textContent = `${items.length} 个质检项`;
+    window.sopChecklist = items;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 字符计数功能
+const backgroundInput = document.getElementById('backgroundInput');
+const charCount = document.getElementById('charCount');
+
+if (backgroundInput && charCount) {
+    backgroundInput.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+    });
+}
+
+// 折叠/展开功能
+document.querySelectorAll('.section-header.clickable').forEach(header => {
+    header.addEventListener('click', function(e) {
+        // 如果点击的是恢复按钮，不触发折叠
+        if (e.target.closest('.btn-restore')) return;
+        
+        const targetId = this.dataset.target;
+        const content = document.getElementById(targetId);
+        const icon = this.querySelector('.icon-toggle');
+        
+        if (content) {
+            content.classList.toggle('collapsed');
+            if (icon) {
+                icon.style.transform = content.classList.contains('collapsed') 
+                    ? 'rotate(-90deg)' 
+                    : 'rotate(0deg)';
+            }
+        }
+    });
+});
+
+// 修改开始训练按钮的处理
+const btnStartTraining = document.getElementById('btnStartTraining');
+const btnSubmit = document.getElementById('btnSubmit');
+
+if (btnStartTraining) {
+    btnStartTraining.addEventListener('click', startTraining);
+}
+if (btnSubmit) {
+    btnSubmit.addEventListener('click', startTraining);
+}
+
+async function startTraining() {
+    const backgroundInput = document.getElementById('backgroundInput').value.trim();
+    const openingLine = document.getElementById('openingInput').value.trim();
+    
+    if (!openingLine) {
+        showNotification('请填写AI开场白', 'warning');
+        document.getElementById('openingInput').focus();
+        return;
+    }
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+            </svg>
+            <span>正在生成场景...</span>
+        `;
+        
+        // 调用生成接口
+        const response = await fetch('/api/preset-scene/generate-from-preset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                scene_code: window.currentSceneCode,
+                user_background: backgroundInput,
+                opening_line: openingLine,
+                fixed_questions: window.fixedQuestions || [],
+                related_questions: window.relatedQuestions || [],
+                sop_checklist: window.sopChecklist || []
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>生成成功，正在跳转...</span>
+            `;
+            showNotification('场景生成成功！', 'success');
+            
+            // 延迟跳转，让用户看到成功提示
+            setTimeout(() => {
+                window.location.href = result.redirect_url;
+            }, 800);
+        } else {
+            throw new Error(result.error || '生成失败');
+        }
+    } catch (error) {
+        console.error('开始训练失败:', error);
+        showNotification('生成失败: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+// 通知提示函数
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#6366f1'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        font-weight: 500;
+        z-index: 10000;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// 添加动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

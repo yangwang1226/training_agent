@@ -62,8 +62,8 @@ def custom_scenes_page():
 
 @manage_bp.route('/scene-config')
 def scene_config_page():
-    """场景配置页面（嵌入管理系统）"""
-    return render_template('scenes/config.html')
+    """场景配置页面（继承管理系统布局，用于预设场景配置）"""
+    return render_template('scenes/scene_config.html')
 
 
 @manage_bp.route('/scenes/edit/<int:scene_id>')

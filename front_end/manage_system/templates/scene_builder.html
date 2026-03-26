@@ -229,22 +229,46 @@
     transform: rotate(12deg) scale(1.1);
 }
 
-/* Divider section */
+/* Divider section - Reduced spacing */
 .divider-section {
     text-align: center;
-    margin: var(--space-2xl) 0;
+    margin: var(--space-xl) 0 var(--space-lg) 0;
     position: relative;
 }
 
-.divider-text {
+.view-all-templates-btn {
     font-family: var(--font-body);
     font-size: 0.875rem;
-    color: var(--ink-light);
+    color: var(--ink-gray);
     background: var(--paper-white);
-    padding: 0 var(--space-md);
+    padding: 0.5rem 1.25rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
     position: relative;
     z-index: 1;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-all-templates-btn:hover {
+    color: var(--primary-purple);
+    border-color: var(--primary-purple);
+    background: rgba(99, 102, 241, 0.05);
+    transform: translateY(2px);
+}
+
+.view-all-templates-btn svg {
+    width: 16px;
+    height: 16px;
+    animation: bounce-down 2s infinite;
+}
+
+@keyframes bounce-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
 }
 
 .divider-section::before {
@@ -429,26 +453,26 @@
     color: var(--ink-black);
 }
 
-/* All Templates Section */
+/* All Templates Section - Reduced spacing */
 .all-templates-section {
-    margin-top: var(--space-2xl);
-    padding-top: var(--space-2xl);
-    border-top: 1px solid #e5e7eb;
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
     animation: fadeIn 0.6s ease-out;
+    scroll-margin-top: 1rem;
 }
 
-/* Template tabs */
+/* Template tabs - Compact layout */
 .template-tabs {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: var(--space-xl);
+    gap: 0.25rem;
+    margin-bottom: var(--space-lg);
     border-bottom: 1px solid #e5e7eb;
     overflow-x: auto;
     scrollbar-width: thin;
 }
 
 .template-tabs::-webkit-scrollbar {
-    height: 4px;
+    height: 3px;
 }
 
 .template-tabs::-webkit-scrollbar-thumb {
@@ -457,9 +481,9 @@
 }
 
 .template-tab {
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 1rem;
     font-family: var(--font-body);
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     color: var(--ink-gray);
     background: transparent;
@@ -468,24 +492,22 @@
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .template-tab:hover {
     color: var(--ink-black);
+    background: rgba(99, 102, 241, 0.05);
 }
 
 .template-tab.active {
     color: var(--primary-purple);
     border-bottom-color: var(--primary-purple);
     font-weight: 600;
+    background: rgba(99, 102, 241, 0.08);
 }
 
-/* Templates full grid */
-.templates-full-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-}
+
 
 /* Loading state */
 .templates-loading {
@@ -582,6 +604,38 @@
     margin-bottom: 1rem;
 }
 
+.card-meta {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.card-industry-tag {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    padding: 0.25rem 0.5rem;
+    background: #fafafa;
+    border-radius: 4px;
+}
+
 .full-card-btn {
     width: 100%;
     padding: 0.625rem;
@@ -604,6 +658,147 @@
     background: #fafafa;
 }
 
+/* Templates header with search - Compact */
+.templates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    gap: var(--space-md);
+}
+
+.templates-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.templates-count {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-gray);
+    font-weight: 500;
+}
+
+/* Search box - Compact */
+.search-box {
+    position: relative;
+    width: 280px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 2.25rem 0.5rem 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--ink-black);
+    transition: all 0.2s ease;
+    background: var(--bg-subtle);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-purple);
+    background: var(--paper-white);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.08);
+}
+
+.search-input::placeholder {
+    color: var(--ink-light);
+}
+
+.search-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-light);
+    pointer-events: none;
+}
+
+.search-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* 3x4 Grid layout - 3列4行 - Compact spacing */
+.templates-full-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-bottom: var(--space-lg);
+}
+
+/* Load more trigger */
+.load-more-trigger {
+    text-align: center;
+    padding: 2rem;
+}
+
+.load-more-trigger .loading-spinner {
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 0.5rem;
+}
+
+.load-more-trigger p {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-gray);
+}
+
+/* Templates end message */
+.templates-end {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.templates-end p {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--ink-gray);
+}
+
+/* Back to top button */
+.back-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 48px;
+    height: 48px;
+    background: var(--primary-purple);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.back-to-top:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.back-to-top svg {
+    width: 24px;
+    height: 24px;
+}
+
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1023px) {
+    .templates-full-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 /* Responsive */
 @media (max-width: 768px) {
     .builder-container {
@@ -616,6 +811,10 @@
     
     .templates-full-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .search-box {
+        width: 100%;
     }
     
     .bottom-actions {
@@ -632,12 +831,12 @@
 {% block content %}
 <div class="builder-container">
     <!-- Back button -->
-    <a href="/manage_system/" class="back-button">
+    <!-- <a href="/manage_system/" class="back-button">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
         返回资源库
-    </a>
+    </a> -->
 
     <!-- Main heading -->
     <h1 class="builder-heading">你的训练场景是关于什么的？</h1>
@@ -674,65 +873,62 @@
         </div>
     </div>
 
-    <!-- Divider -->
+        <!-- Divider -->
     <div class="divider-section">
-        <span class="divider-text">或者从模板开始</span>
+        <button class="view-all-templates-btn" id="scrollToTemplatesBtn">
+            查看全部模板
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+        </button>
     </div>
 
-    <!-- Template section -->
-    <div class="template-section">
-        <div class="template-grid">
-            <div class="template-card purple" data-template="custom">
-                <div class="template-icon">💜</div>
-                <h3 class="template-title">自定义</h3>
-                <p class="template-description">从零开始创建完全定制的场景</p>
-            </div>
-            
-            <div class="template-card cyan" data-template="sales">
-                <div class="template-icon">❄️</div>
-                <h3 class="template-title">冷销售电话</h3>
-                <p class="template-description">练习销售沟通技巧</p>
-            </div>
-            
-            <div class="template-card orange" data-template="mentor">
-                <div class="template-icon">🎓</div>
-                <h3 class="template-title">导师辅导</h3>
-                <p class="template-description">提升指导和培训能力</p>
-            </div>
-        </div>
-        
-        <div class="view-all-link">
-            <a href="#all-templates" class="view-all-btn" id="viewAllBtn">
-                查看全部模板
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </a>
-        </div>
-    </div>
 
-    <!-- All Templates Section (隐藏，点击"查看全部"后展开) -->
-    <div class="all-templates-section" id="allTemplatesSection" style="display: none;">
-        <div class="divider-section">
-            <span class="divider-text">所有预设场景</span>
+    
+        <!-- All Templates Section -->
+    <div class="all-templates-section" id="allTemplatesSection">
+        <!-- Header with search -->
+        <div class="templates-header">
+            <div class="templates-header-left">
+                <span class="templates-count" id="templatesCount">加载中...</span>
+            </div>
+            <div class="search-box">
+                <input type="text" class="search-input" id="templateSearch" placeholder="搜索功能开发中...">
+                <span class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </span>
+            </div>
         </div>
         
         <!-- Tab navigation -->
         <nav class="template-tabs">
             <button class="template-tab active" data-category="all">全部</button>
-            <button class="template-tab" data-category="sales">销售</button>
-            <button class="template-tab" data-category="learning">学习</button>
-            <button class="template-tab" data-category="interview">面试</button>
+            <button class="template-tab" data-category="sales">销售场景</button>
+            <button class="template-tab" data-category="service">服务场景</button>
+            <button class="template-tab" data-category="interview">面试场景</button>
             <button class="template-tab" data-category="other">其他</button>
         </nav>
         
         <!-- Templates grid -->
         <div class="templates-full-grid" id="templatesFullGrid">
-            <!-- Loading state -->
+            <!-- Initial loading state -->
             <div class="templates-loading" id="templatesLoading">
                 <div class="loading-spinner"></div>
                 <p>加载中...</p>
             </div>
+        </div>
+        
+        <!-- Load more trigger -->
+        <div class="load-more-trigger" id="loadMoreTrigger" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>加载更多...</p>
+        </div>
+        
+        <!-- End message -->
+        <div class="templates-end" id="templatesEnd" style="display: none;">
+            <p>已显示全部 <span id="totalCount">0</span> 个模板</p>
         </div>
     </div>
 
@@ -802,33 +998,27 @@ document.getElementById('aiCreateBtn').addEventListener('click', function() {
     }, 2000);
 });
 
-// Save draft button
-document.getElementById('saveDraftBtn').addEventListener('click', function() {
-    const description = document.getElementById('sceneDescription').value.trim();
-    
-    if (!description) {
-        alert('请先输入场景描述');
-        return;
-    }
-    
-    // Save to localStorage or API
-    localStorage.setItem('sceneDraft', description);
-    alert('草稿已保存');
-});
+// Save draft button (button may be commented out in HTML)
+var saveDraftBtn = document.getElementById('saveDraftBtn');
+if (saveDraftBtn) {
+    saveDraftBtn.addEventListener('click', function() {
+        const description = document.getElementById('sceneDescription').value.trim();
+        if (!description) { alert('请先输入场景描述'); return; }
+        localStorage.setItem('sceneDraft', description);
+        alert('草稿已保存');
+    });
+}
 
-// Continue button
-document.getElementById('continueBtn').addEventListener('click', function() {
-    const description = document.getElementById('sceneDescription').value.trim();
-    
-    if (!description) {
-        alert('请先输入场景描述');
-        return;
-    }
-    
-    // Save and redirect to configuration page
-    localStorage.setItem('sceneDescription', description);
-    window.location.href = '/manage_system/scenes/create-custom';
-});
+// Continue button (button may be commented out in HTML)
+var continueBtn = document.getElementById('continueBtn');
+if (continueBtn) {
+    continueBtn.addEventListener('click', function() {
+        const description = document.getElementById('sceneDescription').value.trim();
+        if (!description) { alert('请先输入场景描述'); return; }
+        localStorage.setItem('sceneDescription', description);
+        window.location.href = '/manage_system/scenes/create-custom';
+    });
+}
 
 // Load draft on page load
 window.addEventListener('DOMContentLoaded', function() {
@@ -837,122 +1027,385 @@ window.addEventListener('DOMContentLoaded', function() {
         document.getElementById('sceneDescription').value = draft;
     }
 });
-// View All Templates functionality
-let allPresetScenes = [];
-let currentTemplateCategory = 'all';
+// ============================================
+// Lazy Loading Templates System
+// ============================================
 
-document.getElementById('viewAllBtn')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    
-    const section = document.getElementById('allTemplatesSection');
-    
-    if (section.style.display === 'none') {
-        section.style.display = 'block';
-        
-        // Smooth scroll to section
-        setTimeout(() => {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-        
-        // Load templates if not loaded yet
-        if (allPresetScenes.length === 0) {
-            loadAllTemplates();
-        }
-    } else {
-        section.style.display = 'none';
+// State management
+const templateState = {
+    allTemplates: [],           // 所有模板数据
+    filteredTemplates: [],      // 筛选后的模板
+    displayedTemplates: [],     // 已显示的模板
+    currentPage: 0,             // 当前页码
+    pageSize: 12,               // 每页12个（4x3布局）
+    currentCategory: 'all',     // 当前分类
+    searchQuery: '',            // 搜索关键词
+    isLoading: false,           // 是否正在加载
+    hasMore: true,              // 是否还有更多
+    templatesLoaded: false      // 是否已加载过数据
+};
+
+// ============================================
+// 初始化
+// ============================================
+function initSceneBuilder() {
+    try {
+        setupSearch();
+        setupTabs();
+        setupIntersectionObserver();
+        setupBackToTop();
+        setupScrollToTemplates();
+    } catch(e) { 
+        console.error('Setup error:', e);
     }
-});
+    
+    // 页面加载时直接获取并显示模板
+    fetchAllTemplates();
+}
 
-// Load all preset scenes
-async function loadAllTemplates() {
-    const loading = document.getElementById('templatesLoading');
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSceneBuilder);
+} else {
+    initSceneBuilder();
+}
+
+// ============================================
+// 获取所有模板数据
+// ============================================
+async function fetchAllTemplates() {
+    if (templateState.isLoading) return;
+    
+    templateState.isLoading = true;
+    const loadingEl = document.getElementById('templatesLoading');
     const grid = document.getElementById('templatesFullGrid');
     
     try {
         const response = await fetch('/manage_system/api/preset-scenes');
         const data = await response.json();
         
-        if (data.success && data.data) {
-            allPresetScenes = data.data;
-            renderAllTemplates(allPresetScenes);
+        console.log('✅ API 返回数据:', data);
+        
+        // 获取模板数组（兼容不同的返回格式）
+        let templates = [];
+        if (data.preset_scenes && Array.isArray(data.preset_scenes)) {
+            templates = data.preset_scenes;
+        } else if (data.data && Array.isArray(data.data)) {
+            templates = data.data;
+        } else if (Array.isArray(data)) {
+            templates = data;
+        }
+        
+        console.log(`📊 加载了 ${templates.length} 个模板`);
+        
+        if (templates.length > 0) {
+            console.log('🔍 第一个模板示例:', templates[0]);
+            
+            // 保存数据
+            templateState.allTemplates = templates;
+            templateState.filteredTemplates = templates;
+            templateState.templatesLoaded = true;
+            
+            // 更新模板数量显示
+            updateTemplateCount(templates.length);
+            
+            // 隐藏加载动画
+            if (loadingEl) loadingEl.style.display = 'none';
+            
+            // 直接渲染所有模板（暂不分页）
+            renderTemplates(templates, false);
+            
+            // 显示结束消息
+            const endMessage = document.getElementById('templatesEnd');
+            const totalCount = document.getElementById('totalCount');
+            if (endMessage) endMessage.style.display = 'block';
+            if (totalCount) totalCount.textContent = templates.length;
+        } else {
+            console.error('❌ 没有找到模板数据');
+            if (loadingEl) loadingEl.style.display = 'none';
+            showError('暂无可用模板');
         }
     } catch (error) {
-        console.error('Error loading templates:', error);
-        grid.innerHTML = '<p style="text-align: center; color: var(--ink-gray); padding: 2rem;">加载失败，请重试</p>';
+        console.error('❌ 加载失败:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        showError('加载失败，请检查网络连接');
+    } finally {
+        templateState.isLoading = false;
     }
 }
 
-// Render all templates
-function renderAllTemplates(templates) {
-    const grid = document.getElementById('templatesFullGrid');
+// ============================================
+// 加载下一页
+// ============================================
+function loadNextPage() {
+    if (templateState.isLoading || !templateState.hasMore) return;
     
-    if (!templates || templates.length === 0) {
-        grid.innerHTML = '<p style="text-align: center; color: var(--ink-gray); padding: 2rem; grid-column: 1/-1;">暂无场景模板</p>';
+    templateState.isLoading = true;
+    const loadMoreTrigger = document.getElementById('loadMoreTrigger');
+    if (loadMoreTrigger) loadMoreTrigger.style.display = 'block';
+    
+    // 模拟延迟，提供更好的用户体验
+    setTimeout(() => {
+        const start = templateState.currentPage * templateState.pageSize;
+        const end = start + templateState.pageSize;
+        const pageTemplates = templateState.filteredTemplates.slice(start, end);
+        
+        if (pageTemplates.length > 0) {
+            renderTemplates(pageTemplates, true); // append = true
+            templateState.displayedTemplates.push(...pageTemplates);
+            templateState.currentPage++;
+            
+            // 检查是否还有更多
+            templateState.hasMore = end < templateState.filteredTemplates.length;
+        } else {
+            templateState.hasMore = false;
+        }
+        
+        // 更新UI状态
+        updateLoadingState();
+        templateState.isLoading = false;
+    }, 300);
+}
+
+// ============================================
+// 渲染模板
+// ============================================
+function renderTemplates(templates, append = false) {
+    console.log('Rendering', templates.length, 'templates, append:', append);
+    
+    const grid = document.getElementById('templatesFullGrid');
+    if (!grid) {
+        console.error('Grid element not found!');
         return;
     }
     
-    // /quieter + /distill: minimal single-character icons
+    // 图标映射（根据 industry_code）
     const icons = {
-        'sales': '◆',
-        'learning': '○',
-        'interview': '△',
-        'customer_service': '◇',
-        'other': '□'
+        'automobile': '🚗',
+        'retail': '🛒',
+        'finance': '💰',
+        'education': '📚',
+        'healthcare': '🏥',
+        'technology': '💻',
+        'service': '🤝',
+        'other': '●'
     };
     
-    // Industry labels for tags
+    // 分类标签映射
     const industryLabels = {
-        'sales': '销售',
-        'learning': '学习', 
-        'interview': '面试',
-        'customer_service': '客服',
+        'automobile': '汽车',
+        'retail': '零售',
+        'finance': '金融',
+        'education': '教育',
+        'healthcare': '医疗',
+        'technology': '科技',
+        'service': '服务',
         'other': '其他'
     };
     
-    grid.innerHTML = templates.map(template => {
-        const industryTag = industryLabels[template.industry] || template.industry || '其他';
+        const html = templates.map(template => {
+        const industryTag = industryLabels[template.industry_code] || template.industry_code || '其他';
+        const icon = icons[template.industry_code] || '●';
+        const difficultyMap = {'easy': '简单', 'medium': '中等', 'hard': '困难'};
+        const difficulty = difficultyMap[template.difficulty] || template.difficulty;
         
         return `
-        <div class="full-template-card">
+        <div class="full-template-card" data-template-id="${template.scene_code}">
             <div class="card-header-row">
-                <div class="full-card-icon">${icons[template.industry] || '●'}</div>
+                <div class="full-card-icon">${icon}</div>
                 <span class="card-industry-tag">${industryTag}</span>
             </div>
             <h3 class="full-card-title">${escapeHtml(template.scene_name)}</h3>
-            <p class="full-card-role">${escapeHtml(template.role_type || '通用教练')}</p>
-            <p class="full-card-description">${escapeHtml(truncateText(template.scene_prompt, 100))}</p>
-            <a href="/manage_system/scenes/create-custom?template=${template.scene_code}" class="full-card-btn">使用此模板</a>
+            <p class="full-card-role">👤 ${escapeHtml(template.user_role || '通用训练')} vs 🤖 ${escapeHtml(template.ai_role || 'AI')}</p>
+            <p class="full-card-description">${escapeHtml(truncateText(template.scene_description, 80))}</p>
+            <div class="card-meta">
+                <span class="meta-item">📊 ${difficulty}</span>
+                <span class="meta-item">🔥 ${template.usage_count || 0} 次使用</span>
+            </div>
+            <a href="/manage_system/scene-config?scene_code=${template.scene_code}" class="full-card-btn">使用此模板</a>
         </div>
-    `;
+        `;
     }).join('');
+    
+    if (append) {
+        grid.insertAdjacentHTML('beforeend', html);
+    } else {
+        grid.innerHTML = html;
+    }
 }
 
-// Template category filter
-document.querySelectorAll('.template-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        // Update active state
-        document.querySelectorAll('.template-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        
-        // Filter templates
-        currentTemplateCategory = this.dataset.category;
-        filterAllTemplates();
-    });
-});
-
-function filterAllTemplates() {
-    let filtered = allPresetScenes;
+// ============================================
+// 更新加载状态
+// ============================================
+function updateLoadingState() {
+    const loadMoreTrigger = document.getElementById('loadMoreTrigger');
+    const endMessage = document.getElementById('templatesEnd');
+    const totalCount = document.getElementById('totalCount');
     
-    if (currentTemplateCategory !== 'all') {
-        filtered = filtered.filter(t => 
-            t.industry === currentTemplateCategory || 
-            t.category === currentTemplateCategory
+    if (loadMoreTrigger) loadMoreTrigger.style.display = 'none';
+    
+    if (!templateState.hasMore) {
+        if (endMessage) {
+            endMessage.style.display = 'block';
+            if (totalCount) {
+                totalCount.textContent = templateState.filteredTemplates.length;
+            }
+        }
+    } else {
+        if (endMessage) endMessage.style.display = 'none';
+    }
+}
+
+// ============================================
+// 设置搜索
+// ============================================
+function setupSearch() {
+    // 暂时禁用搜索功能
+    const searchInput = document.getElementById('templateSearch');
+    if (searchInput) {
+        searchInput.disabled = true;
+        searchInput.placeholder = '搜索功能开发中...';
+    }
+}
+
+// ============================================
+// 设置Tab切换
+// ============================================
+function setupTabs() {
+    // 暂时禁用标签切换功能
+    document.querySelectorAll('.template-tab').forEach(tab => {
+        if (tab.dataset.category !== 'all') {
+            tab.style.opacity = '0.5';
+            tab.style.cursor = 'not-allowed';
+            tab.disabled = true;
+        }
+    });
+}
+
+// ============================================
+// 过滤并重新加载
+// ============================================
+function filterAndReload() {
+    // 重置状态
+    templateState.currentPage = 0;
+    templateState.displayedTemplates = [];
+    templateState.hasMore = true;
+    
+    // 过滤模板
+    let filtered = templateState.allTemplates;
+    
+    console.log('Filter - Total templates:', filtered.length);
+    console.log('Filter - Current category:', templateState.currentCategory);
+    
+    // 按分类过滤
+    if (templateState.currentCategory !== 'all') {
+        filtered = filtered.filter(t => {
+            const matches = t.scene_type === templateState.currentCategory;
+            if (!matches) {
+                console.log(`Filtered out: ${t.scene_name} (type: ${t.scene_type})`);
+            }
+            return matches;
+        });
+        console.log('After category filter:', filtered.length);
+    }
+    
+        // 按搜索词过滤
+    if (templateState.searchQuery) {
+        filtered = filtered.filter(t =>
+            (t.scene_name && t.scene_name.toLowerCase().includes(templateState.searchQuery)) ||
+            (t.scene_description && t.scene_description.toLowerCase().includes(templateState.searchQuery)) ||
+            (t.user_role && t.user_role.toLowerCase().includes(templateState.searchQuery)) ||
+            (t.ai_role && t.ai_role.toLowerCase().includes(templateState.searchQuery))
         );
     }
     
-    renderAllTemplates(filtered);
+    templateState.filteredTemplates = filtered;
+    
+    // 清空并重新加载
+    const grid = document.getElementById('templatesFullGrid');
+    if (grid) grid.innerHTML = '';
+    
+        // 更新数量显示
+    updateTemplateCount(filtered.length);
+    
+    if (filtered.length === 0) {
+        showEmptyState();
+    } else {
+        loadNextPage();
+    }
 }
 
+// ============================================
+// Intersection Observer（监听滚动加载更多）
+// ============================================
+function setupIntersectionObserver() {
+    const loadMoreTrigger = document.getElementById('loadMoreTrigger');
+    if (!loadMoreTrigger) return;
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && templateState.hasMore && !templateState.isLoading) {
+                loadNextPage();
+            }
+        });
+    }, {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1
+    });
+    
+    observer.observe(loadMoreTrigger);
+}
+
+// ============================================
+// 返回顶部按钮
+// ============================================
+function setupBackToTop() {
+    // 创建返回顶部按钮
+    const backToTopBtn = document.createElement('button');
+    backToTopBtn.className = 'back-to-top';
+    backToTopBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    `;
+    document.body.appendChild(backToTopBtn);
+    
+    // 滚动监听
+    window.addEventListener('scroll', debounce(() => {
+        if (window.scrollY > window.innerHeight) {
+            backToTopBtn.style.display = 'flex';
+        } else {
+            backToTopBtn.style.display = 'none';
+        }
+    }, 100));
+    
+    // 点击返回顶部
+    backToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+// ============================================
+// 平滑滚动到模板区
+// ============================================
+function setupScrollToTemplates() {
+    const btn = document.getElementById('scrollToTemplatesBtn');
+    if (btn) {
+        btn.addEventListener('click', function() {
+            const templatesSection = document.getElementById('allTemplatesSection');
+            if (templatesSection) {
+                templatesSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }
+        });
+    }
+}
+
+// ============================================
+// 工具函数
+// ============================================
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -963,6 +1416,53 @@ function escapeHtml(text) {
 function truncateText(str, length) {
     if (!str) return '';
     return str.length > length ? str.substring(0, length) + '...' : str;
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func.apply(this, args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showError(message) {
+    const grid = document.getElementById('templatesFullGrid');
+    if (grid) {
+        grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                <p style="color: var(--ink-gray); font-size: 1rem; margin-bottom: 1rem;">😕 ${message}</p>
+                <button onclick="location.reload()" style="padding: 0.75rem 1.5rem; background: var(--primary-purple); color: white; border: none; border-radius: 6px; cursor: pointer;">刷新页面</button>
+            </div>
+        `;
+    }
+}
+
+function showEmptyState() {
+    const grid = document.getElementById('templatesFullGrid');
+    if (grid) {
+        grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                <h3 style="font-family: var(--font-display); font-size: 1.25rem; color: var(--ink-black); margin-bottom: 0.5rem;">未找到匹配的模板</h3>
+                <p style="color: var(--ink-gray); font-size: 0.875rem;">尝试调整搜索条件或选择其他分类</p>
+            </div>
+        `;
+    }
+    
+    const endMessage = document.getElementById('templatesEnd');
+    if (endMessage) endMessage.style.display = 'none';
+}
+
+function updateTemplateCount(count) {
+    const countEl = document.getElementById('templatesCount');
+    if (countEl) {
+        countEl.textContent = `共 ${count} 个模板`;
+    }
 }
 </script>
 {% endblock %}

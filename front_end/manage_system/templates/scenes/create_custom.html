@@ -1,16 +1,17 @@
-<!-- {% extends "layout.html" %} -->
+{% extends "layout.html" %}
 
-{% block title %}创建自定义场景 - AI教练后台管理系统{% endblock %}
+{% block title %}场景构建器 - AI教练后台管理系统{% endblock %}
 
 {% block breadcrumb %}
 <span class="breadcrumb-item"><a href="/manage_system/">首页</a></span>
 <span class="breadcrumb-separator">/</span>
-<span class="breadcrumb-item"><a href="/manage_system/scenes">场景管理</a></span>
-<span class="breadcrumb-separator">/</span>
-<span class="breadcrumb-item active">创建自定义场景</span>
+<span class="breadcrumb-item active">场景构建器</span>
 {% endblock %}
 
 {% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 .create-custom-page {
     max-width: 900px;
