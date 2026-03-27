@@ -1,4 +1,6 @@
-{% extends "layout.html" %}
+import os
+
+html_content = """{% extends "layout.html" %}
 
 {% block title %}场景配置 - AI教练后台管理系统{% endblock %}
 
@@ -548,9 +550,9 @@ function updateNumbers(containerId) {
 function applyTemplate(type) {
     const bgInput = document.getElementById('backgroundInput');
     if (type === 'female') {
-        bgInput.value = "客户是30岁女性白领，预算20万左右，关注安全性和外观，周末带家人来看车。 这是她第一次购车，对汽车参数不太了解，更看重服务体验和试驾感受。";
+        bgInput.value = "客户是30岁女性白领，预算20万左右，关注安全性和外观，周末带家人来看车。\n这是她第一次购车，对汽车参数不太了解，更看重服务体验和试驾感受。";
     } else if (type === 'family') {
-        bgInput.value = "客户是35岁二胎奶爸，预算25万左右，旧车是一台小轿车打算置换。 核心诉求是空间大、后排舒适，打算买MPV或中大型SUV，对油耗有一定要求。";
+        bgInput.value = "客户是35岁二胎奶爸，预算25万左右，旧车是一台小轿车打算置换。\n核心诉求是空间大、后排舒适，打算买MPV或中大型SUV，对油耗有一定要求。";
     }
     
     // 简单动画提示
@@ -572,10 +574,16 @@ function startTraining() {
     btn.innerHTML = '正在初始化剧本...';
     btn.style.opacity = '0.7';
     setTimeout(() => {
-        alert('假装跳转到了训练页面！ 配置已打包传给大模型。');
+        alert('假装跳转到了训练页面！\n配置已打包传给大模型。');
         btn.innerHTML = '开始训练 ▶';
         btn.style.opacity = '1';
     }, 1000);
 }
 </script>
 {% endblock %}
+"""
+
+filepath = 'front_end/manage_system/templates/scenes/scene_config.html'
+with open(filepath, 'w', encoding='utf-8') as f:
+    f.write(html_content)
+print(f'Successfully overwrote {filepath}')
