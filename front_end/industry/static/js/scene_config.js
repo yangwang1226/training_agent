@@ -71,25 +71,30 @@ async function loadSceneById(sceneId) {
         
         const scene = result.data;
         
-        // 解析JSON字段
+                // 解析JSON字段
         const fixedQuestions = scene.fixed_questions ? JSON.parse(scene.fixed_questions) : [];
         const relatedQuestions = scene.related_questions ? JSON.parse(scene.related_questions) : [];
         const sopChecklist = scene.sop_checklist ? JSON.parse(scene.sop_checklist) : [];
         
-        // 保存配置
+        // 从数据库读取场景描述、固定问题和SOP质检项
+        const sceneDescription = scene.scene_description || '';
+        const dbFixedQuestions = fixedQuestions.length > 0 ? fixedQuestions : [];
+        const dbSopChecklist = sopChecklist.length > 0 ? sopChecklist : [];
+        
+                // 保存配置（使用数据库中的数据）
         currentConfig = {
             sceneId: sceneId,
             sceneName: scene.scene_name,
-            sceneDescription: scene.scene_description || '',
+            sceneDescription: sceneDescription,
             industry: scene.industry || '',
             aiRole: scene.ai_role || '',
             userRole: scene.role_type || '',
             difficulty: scene.difficulty || 'medium',
             duration: 600,
             openingLine: scene.opening_line || '',
-            fixedQuestions: JSON.parse(JSON.stringify(fixedQuestions)),
+            fixedQuestions: JSON.parse(JSON.stringify(dbFixedQuestions)),
             relatedQuestions: JSON.parse(JSON.stringify(relatedQuestions)),
-            sopChecklist: JSON.parse(JSON.stringify(sopChecklist))
+            sopChecklist: JSON.parse(JSON.stringify(dbSopChecklist))
         };
         
         // 保存原始配置（用于恢复默认）

@@ -1,4 +1,4 @@
-from .template_manager import TemplateManager
+from ...service.scene.template_service import TemplateManager
 from .conversational import (
     ConversationalPromptAgent,
     ConversationState,

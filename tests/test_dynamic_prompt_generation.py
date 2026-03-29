@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agent.service.scene.prompt_generation_service import PromptGenerationService
+from service.scene.prompt_generation_service import PromptGenerationService
 import json
 
 

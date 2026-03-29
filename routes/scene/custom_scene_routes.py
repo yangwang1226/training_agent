@@ -15,7 +15,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
 
 # 导入动态提示词生成服务
-from agent.service.scene.prompt_generation_service import PromptGenerationService
+from service.scene.prompt_generation_service import PromptGenerationService
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from dotenv import load_dotenv
 load_dotenv()
 
-from ..template_manager import TemplateManager
+from ....service.scene.template_service import TemplateManager
 from .state import ConversationState
 from .models import InfoExtraction, ExtendedInfoJudge
 from .prompts import SYSTEM_PROMPT, get_customer_questions_prompt, get_service_provider_questions_prompt

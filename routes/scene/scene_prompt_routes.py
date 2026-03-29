@@ -6,7 +6,7 @@ import logging
 import json
 from flask import Blueprint, request, jsonify
 import db as db_module
-from agent.service.scene.prompt_generation_service import PromptGenerationService
+from service.scene.prompt_generation_service import PromptGenerationService
 
 logger = logging.getLogger(__name__)
 
@@ -19,30 +19,6 @@ prompt_service = PromptGenerationService()
 def generate_and_save_prompt():
     """
     生成场景提示词并保存为草稿
-    
-    请求体:
-    {
-        "scene_name": "场景名称",
-        "scene_type": "sales" 或 "service",
-        "ai_role": "AI角色",
-        "user_role": "用户角色",
-        "industry": "行业",
-        "scene_description": "场景描述",
-        "background_info": "背景信息",
-        "fixed_questions": [{"question": "问题1", "order": 1}, ...],
-        "related_questions": [{"question": "关联问题", "trigger_keywords": [...]}, ...],
-        "purchase_intent": "一般" (仅sales场景),
-        "problem_severity": "中等" (仅service场景),
-        "use_dynamic": true/false,
-        "status": 0  (0=草稿, 2=已定制)
-    }
-    
-    返回:
-    {
-        "success": true,
-        "scene_id": 123,
-        "scene_prompt": "生成的提示词"
-    }
     """
     try:
         data = request.json
@@ -69,13 +45,8 @@ def generate_and_save_prompt():
         # 生成提示词
         logger.info(f"开始生成 {scene_type} 场景提示词: {scene_name}")
         
-        use_dynamic = data.get('use_dynamic', True)
-        
-        scene_prompt = prompt_service.generate_scene_prompt(
-            scene_type=scene_type,
-            scene_data=data,
-            use_dynamic=use_dynamic
-        )
+                # 纯模板映射生成，不包含考核目标
+        scene_prompt = prompt_service.generate_scene_prompt(data)
         
         if not scene_prompt:
             return jsonify({
@@ -85,24 +56,22 @@ def generate_and_save_prompt():
         
         logger.info(f"提示词生成成功，长度: {len(scene_prompt)} 字符")
         
-        # 准备保存数据
+                # 准备保存数据
         save_data = {
             'scene_name': scene_name,
-            'scene_prompt': scene_prompt,
             'scene_type': scene_type,
             'status': data.get('status', 0),  # 默认草稿状态
-            'role_type': data.get('ai_role'),
-            'industry': data.get('industry')
+            'industry': data.get('industry'),
+            'ai_role': data.get('ai_role'),
+            'user_role': data.get('user_role'),
+            'scene_description': data.get('scene_description'),
+            'scene_prompt': scene_prompt
         }
         
-        # 处理固定问题和关联问题
-        fixed_questions = data.get('fixed_questions')
-        if fixed_questions:
-            save_data['fixed_questions'] = json.dumps(fixed_questions, ensure_ascii=False)
-        
-        related_questions = data.get('related_questions')
-        if related_questions:
-            save_data['related_questions'] = json.dumps(related_questions, ensure_ascii=False)
+        # 考训分离: 考核目标 (sop_checklist) 原样存入，仅供复盘使用
+        sop_checklist = data.get('sop_checklist')
+        if sop_checklist:
+            save_data['sop_checklist'] = json.dumps(sop_checklist, ensure_ascii=False)
         
         # 保存到数据库
         scene_id = db_module.save_scene(**save_data)
@@ -134,11 +103,6 @@ def generate_and_save_prompt():
 def regenerate_prompt(scene_id):
     """
     重新生成指定场景的提示词
-    
-    请求体:
-    {
-        "use_dynamic": true/false
-    }
     """
     try:
         # 获取场景数据
@@ -151,26 +115,20 @@ def regenerate_prompt(scene_id):
         
         scene_type = scene.get('scene_type', 'sales')
         
-        # 准备场景数据
+        # 准备场景数据 (适配最新表结构)
         scene_data = {
-            'ai_role': scene.get('role_type'),
+            'ai_role': scene.get('ai_role'),
             'user_role': scene.get('user_role'),
             'industry': scene.get('industry'),
-            'scene_description': scene.get('scene_description'),
-            'background_info': scene.get('background_info', ''),
-            'fixed_questions': scene.get('fixed_questions'),
-            'related_questions': scene.get('related_questions')
+            'scene_description': scene.get('scene_description')
         }
         
-        # 重新生成提示词
+        # 如果请求体有新数据则合并覆盖
         data = request.json or {}
-        use_dynamic = data.get('use_dynamic', True)
+        scene_data.update(data)
         
-        new_prompt = prompt_service.generate_scene_prompt(
-            scene_type=scene_type,
-            scene_data=scene_data,
-            use_dynamic=use_dynamic
-        )
+        # 重新生成提示词
+        new_prompt = prompt_service.generate_scene_prompt(scene_data)
         
         if not new_prompt:
             return jsonify({
@@ -221,13 +179,8 @@ def preview_prompt():
                 'error': '场景类型必须是 sales 或 service'
             }), 400
         
-        use_dynamic = data.get('use_dynamic', True)
-        
-        scene_prompt = prompt_service.generate_scene_prompt(
-            scene_type=scene_type,
-            scene_data=data,
-            use_dynamic=use_dynamic
-        )
+                # 纯模板映射生成，不包含考核目标
+        scene_prompt = prompt_service.generate_scene_prompt(data)
         
         if not scene_prompt:
             return jsonify({

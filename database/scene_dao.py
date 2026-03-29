@@ -16,37 +16,38 @@ class SceneStatus:
 
 def save_scene(
     scene_name: str, 
-    scene_prompt: str, 
+    scene_prompt: str = None, 
     status: int = SceneStatus.CUSTOMIZED, 
     org_id: int = None, 
     creator_id: int = None, 
     create_name: str = None,
-    dimension_config: str = None,
-    role_type: str = None,
+    ai_role: str = None,
+    user_role: str = None,
     scene_type: str = 'sales',
-    role_description: str = None,
+    scene_description: str = None,
     industry: str = None,
-    training_goal: str = None,
     full_evaluation_prompt: str = None,
     sop_checklist: str = None,
     preset_scene_code: str = None,
     opening_line: str = None,
     fixed_questions: str = None,
-    related_questions: str = None
+    source: str = 'custom'
 ) -> Optional[int]:
     with get_db() as conn:
         with conn.cursor() as cursor:
             sql = """
                 INSERT INTO ai_coach_scene 
                 (scene_name, scene_prompt, status, org_id, creator_id, create_name,
-                 dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt, sop_checklist,
-                 preset_scene_code, opening_line, fixed_questions, related_questions, scene_type)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 ai_role, user_role, scene_type, scene_description, industry, 
+                 full_evaluation_prompt, sop_checklist, preset_scene_code, 
+                 opening_line, fixed_questions, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             cursor.execute(sql, (
                 scene_name, scene_prompt, status, org_id, creator_id, create_name,
-                dimension_config, role_type, role_description, industry, training_goal, full_evaluation_prompt, sop_checklist,
-                preset_scene_code, opening_line, fixed_questions, related_questions, scene_type
+                ai_role, user_role, scene_type, scene_description, industry, 
+                full_evaluation_prompt, sop_checklist, preset_scene_code, 
+                opening_line, fixed_questions, source
             ))
             conn.commit()
             scene_id = cursor.lastrowid
@@ -117,12 +118,12 @@ def soft_delete_scene(scene_id: int) -> bool:
 
 def update_scene(scene_id: int, **kwargs) -> bool:
     """更新场景信息"""
-    # 允许更新的字段列表
+    # 允许更新的字段列表（已迁移到新字段名）
     allowed_fields = [
-        'scene_name', 'scene_prompt', 'background_hint', 
-        'role_type', 'role_description', 'industry', 
-        'training_goal', 'dimension_config', 'sop_checklist',
-        'status', 'opening_line', 'fixed_questions', 'related_questions'
+        'scene_name', 'scene_prompt', 'scene_type', 'industry', 
+        'ai_role', 'user_role', 'scene_description', 'opening_line', 
+        'fixed_questions', 'sop_checklist',
+        'full_evaluation_prompt', 'status', 'source'
     ]
     
     # 过滤出实际需要更新的字段

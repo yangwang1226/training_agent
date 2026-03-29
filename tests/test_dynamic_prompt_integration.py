@@ -9,7 +9,7 @@ import sys
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from agent.service.scene.prompt_generation_service import PromptGenerationService
+from service.scene.prompt_generation_service import PromptGenerationService
 
 
 def test_custom_scene_prompt_generation():
