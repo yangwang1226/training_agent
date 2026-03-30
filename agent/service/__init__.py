@@ -1,4 +1,3 @@
-from ...service.scene.template_service import TemplateManager
 from .conversational import (
     ConversationalPromptAgent,
     ConversationState,
@@ -8,7 +7,6 @@ from .conversational import (
 )
 
 __all__ = [
-    "TemplateManager",
     "ConversationalPromptAgent",
     "ConversationState",
     "InfoExtraction",

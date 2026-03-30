@@ -9,7 +9,6 @@ from langchain_core.output_parsers import JsonOutputParser
 from dotenv import load_dotenv
 load_dotenv()
 
-from ....service.scene.template_service import TemplateManager
 from .state import ConversationState
 from .models import InfoExtraction, ExtendedInfoJudge
 from .prompts import SYSTEM_PROMPT, get_customer_questions_prompt, get_service_provider_questions_prompt
@@ -20,7 +19,7 @@ SERVICE_PROVIDER_ROLES = ["访客", "快递员", "外卖员", "送货员", "维�
 
 class ConversationalPromptAgent:
     def __init__(self):
-        self.template_manager = TemplateManager()
+        self.template_manager = None
         self.state = ConversationState()
         self.messages: List = [SystemMessage(content=SYSTEM_PROMPT)]
         

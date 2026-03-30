@@ -349,7 +349,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
         </div>
         <div class="header-actions">
             <button class="btn btn-outline" onclick="history.back()">取消修改</button>
-            <button class="btn btn-outline">保存草稿</button>
+            <button class="btn btn-outline" onclick="saveScene()" id="saveDraftBtn">保存</button>
             <button class="btn btn-primary" onclick="startTraining()">开始训练 ▶</button>
         </div>
     </header>
@@ -498,6 +498,7 @@ async function loadSceneData() {
         
         if (result.success && result.data) {
             const scene = result.data;
+            window.sceneData = scene;
             
             // 1. 替换场景名称
             if (scene.scene_name) {
@@ -759,6 +760,83 @@ function startTraining() {
         btn.innerHTML = '开始训练 ▶';
         btn.style.opacity = '1';
     }, 1000);
+}
+
+async function saveScene() {
+    if (!checkTotalWeight()) {
+        alert('SOP 考核目标权重之和必须等于 100%');
+        return;
+    }
+
+    const btn = document.getElementById('saveDraftBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '正在保存...';
+    btn.disabled = true;
+
+    const sceneTitle = document.getElementById('sceneTitle').innerText;
+    const backgroundInput = document.getElementById('backgroundInput').value;
+    
+        const sopItems = [];
+    document.querySelectorAll('.sop-row').forEach(row => {
+        const content = row.querySelector('.sop-content').value;
+        const weight = row.querySelector('.sop-weight').value;
+        if (content) {
+            sopItems.push({ content, weight: parseInt(weight) || 0 });
+        }
+    });
+
+    const fixedQuestions = [];
+    document.querySelectorAll('.objection-row').forEach(row => {
+        const content = row.querySelector('.objection-content').value;
+        if (content) {
+            fixedQuestions.push(content);
+        }
+    });
+
+    const openingLine = document.getElementById('openingLineInput')?.value || '';
+    const presetSceneCode = new URLSearchParams(window.location.search).get('scene_code') || '';
+
+    // Retrieve potentially hidden variables
+    const aiRole = window.sceneData?.ai_role || '';
+    const userRole = window.sceneData?.user_role || '';
+    const industryCode = window.sceneData?.industry_code || '';
+
+    const payload = {
+        scene_name: sceneTitle,
+        scene_type: window.sceneData?.scene_type || 'sales',
+        scene_description: backgroundInput,
+        sop_checklist: sopItems,
+        fixed_questions: JSON.stringify(fixedQuestions),
+        opening_line: openingLine,
+        preset_scene_code: presetSceneCode,
+        scene_code: presetSceneCode,
+        industry_code: industryCode,
+        ai_role: aiRole,
+        user_role: userRole
+    };
+
+    try {
+        const response = await fetch('/api/scene-prompt/generate-and-save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert('场景保存成功！\nScene ID: ' + result.scene_id);
+        } else {
+            alert('保存失败: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error saving scene:', error);
+        alert('保存过程中发生错误');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 </script>
 {% endblock %}

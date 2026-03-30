@@ -7,12 +7,14 @@ import json
 from flask import Blueprint, request, jsonify
 import db as db_module
 from service.scene.prompt_generation_service import PromptGenerationService
+from service.user.login_service import LoginService
 
 logger = logging.getLogger(__name__)
 
 scene_prompt_bp = Blueprint('scene_prompt', __name__, url_prefix='/api/scene-prompt')
 
 prompt_service = PromptGenerationService()
+current_user = LoginService.get_current_user()
 
 
 @scene_prompt_bp.route('/generate-and-save', methods=['POST'])
@@ -56,16 +58,23 @@ def generate_and_save_prompt():
         
         logger.info(f"提示词生成成功，长度: {len(scene_prompt)} 字符")
         
-                # 准备保存数据
+        # 准备保存数据
         save_data = {
             'scene_name': scene_name,
             'scene_type': scene_type,
             'status': data.get('status', 0),  # 默认草稿状态
-            'industry': data.get('industry'),
+            'industry': data.get('industry_code'),
             'ai_role': data.get('ai_role'),
             'user_role': data.get('user_role'),
             'scene_description': data.get('scene_description'),
-            'scene_prompt': scene_prompt
+            'scene_prompt': scene_prompt,
+            'preset_scene_code': data.get('preset_scene_code'),
+            'opening_line': data.get('opening_line'),
+            'fixed_questions': data.get('fixed_questions'),
+            'full_evaluation_prompt': data.get('full_evaluation_prompt'),
+            'creator_id': current_user['creator_id'],
+            'create_name': current_user['create_name'],
+            'org_id': current_user['org_id']  # 默认 org_id 为 1
         }
         
         # 考训分离: 考核目标 (sop_checklist) 原样存入，仅供复盘使用
